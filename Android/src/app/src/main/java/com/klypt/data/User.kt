@@ -1,4 +1,4 @@
-package com.klpyt.data
+package com.klypt.data
 
 data class User (
     var name: String

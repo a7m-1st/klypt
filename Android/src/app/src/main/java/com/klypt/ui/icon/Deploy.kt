@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.icon
+package com.klypt.ui.icon
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathFillType

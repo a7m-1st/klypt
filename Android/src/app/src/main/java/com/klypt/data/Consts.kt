@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 // Keys used to send/receive data to Work.
 const val KEY_MODEL_URL = "KEY_MODEL_URL"

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.home
+package com.klypt.ui.home
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.theme.GalleryTheme
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -92,19 +92,19 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.os.bundleOf
-import com.klpyt.GalleryTopAppBar
-import com.klpyt.R
-import com.klpyt.data.AppBarAction
-import com.klpyt.data.AppBarActionType
-import com.klpyt.data.Task
-import com.klpyt.data.TaskType
-import com.klpyt.firebaseAnalytics
-import com.klpyt.proto.ImportedModel
-import com.klpyt.ui.common.TaskIcon
-import com.klpyt.ui.common.tos.TosDialog
-import com.klpyt.ui.common.tos.TosViewModel
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.theme.customColors
+import com.klypt.GalleryTopAppBar
+import com.klypt.R
+import com.klypt.data.AppBarAction
+import com.klypt.data.AppBarActionType
+import com.klypt.data.Task
+import com.klypt.data.TaskType
+import com.klypt.firebaseAnalytics
+import com.klypt.proto.ImportedModel
+import com.klypt.ui.common.TaskIcon
+import com.klypt.ui.common.tos.TosDialog
+import com.klypt.ui.common.tos.TosViewModel
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.theme.customColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

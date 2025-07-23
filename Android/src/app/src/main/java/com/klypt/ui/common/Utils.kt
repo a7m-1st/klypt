@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 import android.Manifest
 import android.content.Context
@@ -25,9 +25,9 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import com.klpyt.data.Model
-import com.klpyt.data.Task
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.data.Model
+import com.klypt.data.Task
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 import java.io.File
 import kotlin.math.ln
 import kotlin.math.pow

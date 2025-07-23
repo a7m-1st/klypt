@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 import android.app.ActivityManager
 import android.content.Intent
@@ -52,11 +52,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import com.klpyt.data.Model
-import com.klpyt.data.Task
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.modelmanager.TokenRequestResultType
-import com.klpyt.ui.modelmanager.TokenStatus
+import com.klypt.data.Model
+import com.klypt.data.Task
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.modelmanager.TokenRequestResultType
+import com.klypt.ui.modelmanager.TokenStatus
 import java.net.HttpURLConnection
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers

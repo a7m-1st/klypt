@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import com.klpyt.AppLifecycleProvider
-import com.klpyt.GalleryLifecycleProvider
-import com.klpyt.proto.Settings
+import com.klypt.AppLifecycleProvider
+import com.klypt.GalleryLifecycleProvider
+import com.klypt.proto.Settings
 
 /**
  * App container for Dependency injection.

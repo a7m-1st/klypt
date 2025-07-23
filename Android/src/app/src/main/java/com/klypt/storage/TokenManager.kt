@@ -1,9 +1,9 @@
-package com.klpyt.storage
+package com.klypt.storage
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
-import com.klpyt.data.User
+import com.klypt.data.User
 import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject

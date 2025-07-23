@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.worker
+package com.klypt.worker
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -28,24 +28,24 @@ import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
-import com.klpyt.common.readLaunchInfo
-import com.klpyt.data.KEY_MODEL_DOWNLOAD_ACCESS_TOKEN
-import com.klpyt.data.KEY_MODEL_DOWNLOAD_APP_TS
-import com.klpyt.data.KEY_MODEL_DOWNLOAD_ERROR_MESSAGE
-import com.klpyt.data.KEY_MODEL_DOWNLOAD_FILE_NAME
-import com.klpyt.data.KEY_MODEL_DOWNLOAD_MODEL_DIR
-import com.klpyt.data.KEY_MODEL_DOWNLOAD_RATE
-import com.klpyt.data.KEY_MODEL_DOWNLOAD_RECEIVED_BYTES
-import com.klpyt.data.KEY_MODEL_DOWNLOAD_REMAINING_MS
-import com.klpyt.data.KEY_MODEL_EXTRA_DATA_DOWNLOAD_FILE_NAMES
-import com.klpyt.data.KEY_MODEL_EXTRA_DATA_URLS
-import com.klpyt.data.KEY_MODEL_IS_ZIP
-import com.klpyt.data.KEY_MODEL_NAME
-import com.klpyt.data.KEY_MODEL_START_UNZIPPING
-import com.klpyt.data.KEY_MODEL_TOTAL_BYTES
-import com.klpyt.data.KEY_MODEL_UNZIPPED_DIR
-import com.klpyt.data.KEY_MODEL_URL
-import com.klpyt.data.KEY_MODEL_VERSION
+import com.klypt.common.readLaunchInfo
+import com.klypt.data.KEY_MODEL_DOWNLOAD_ACCESS_TOKEN
+import com.klypt.data.KEY_MODEL_DOWNLOAD_APP_TS
+import com.klypt.data.KEY_MODEL_DOWNLOAD_ERROR_MESSAGE
+import com.klypt.data.KEY_MODEL_DOWNLOAD_FILE_NAME
+import com.klypt.data.KEY_MODEL_DOWNLOAD_MODEL_DIR
+import com.klypt.data.KEY_MODEL_DOWNLOAD_RATE
+import com.klypt.data.KEY_MODEL_DOWNLOAD_RECEIVED_BYTES
+import com.klypt.data.KEY_MODEL_DOWNLOAD_REMAINING_MS
+import com.klypt.data.KEY_MODEL_EXTRA_DATA_DOWNLOAD_FILE_NAMES
+import com.klypt.data.KEY_MODEL_EXTRA_DATA_URLS
+import com.klypt.data.KEY_MODEL_IS_ZIP
+import com.klypt.data.KEY_MODEL_NAME
+import com.klypt.data.KEY_MODEL_START_UNZIPPING
+import com.klypt.data.KEY_MODEL_TOTAL_BYTES
+import com.klypt.data.KEY_MODEL_UNZIPPED_DIR
+import com.klypt.data.KEY_MODEL_URL
+import com.klypt.data.KEY_MODEL_VERSION
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream

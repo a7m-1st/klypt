@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.tos
+package com.klypt.ui.common.tos
 
 import androidx.lifecycle.ViewModel
-import com.klpyt.data.DataStoreRepository
+import com.klypt.data.DataStoreRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 

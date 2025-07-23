@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt
+package com.klypt
 
 import android.util.Log
 import com.google.firebase.Firebase

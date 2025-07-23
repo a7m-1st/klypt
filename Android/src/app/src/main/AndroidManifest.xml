@@ -38,7 +38,7 @@
         android:required="false" />
 
     <application
-        android:name="com.klpyt.GalleryApplication"
+        android:name="com.klypt.GalleryApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -54,7 +54,7 @@
           Instead, just recompose the view.
          -->
         <activity
-            android:name="com.klpyt.MainActivity"
+            android:name="com.klypt.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Gallery.SplashScreen"
             android:screenOrientation="portrait"
@@ -74,7 +74,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="com.klpyt" />
+                <data android:scheme="com.klypt" />
             </intent-filter>
         </activity>
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.common
+package com.klypt.common
 
 import androidx.compose.ui.graphics.Color
 

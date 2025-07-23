@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.theme.GalleryTheme
 import androidx.compose.runtime.Composable
-import com.klpyt.data.Config
-import com.klpyt.data.ConfigKey
-import com.klpyt.data.NumberSliderConfig
-import com.klpyt.data.ValueType
-import com.klpyt.data.convertValueToTargetType
-import com.klpyt.ui.common.ConfigDialog
+import com.klypt.data.Config
+import com.klypt.data.ConfigKey
+import com.klypt.data.NumberSliderConfig
+import com.klypt.data.ValueType
+import com.klypt.data.convertValueToTargetType
+import com.klypt.ui.common.ConfigDialog
 
 private const val DEFAULT_BENCHMARK_WARM_UP_ITERATIONS = 50f
 private const val DEFAULT_BENCHMARK_ITERATIONS = 200f

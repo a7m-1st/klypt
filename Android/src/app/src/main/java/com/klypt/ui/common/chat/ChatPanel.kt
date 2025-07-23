@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
-// import com.klpyt.ui.preview.PreviewChatModel
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewChatModel
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.theme.GalleryTheme
 import android.content.ClipData
 import android.graphics.Bitmap
 import androidx.compose.foundation.background
@@ -82,14 +82,14 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.klpyt.R
-import com.klpyt.data.Model
-import com.klpyt.data.Task
-import com.klpyt.data.TaskType
-import com.klpyt.ui.common.ErrorDialog
-import com.klpyt.ui.modelmanager.ModelInitializationStatusType
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.theme.customColors
+import com.klypt.R
+import com.klypt.data.Model
+import com.klypt.data.Task
+import com.klypt.data.TaskType
+import com.klypt.ui.common.ErrorDialog
+import com.klypt.ui.modelmanager.ModelInitializationStatusType
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.theme.customColors
 import kotlinx.coroutines.launch
 
 enum class ChatInputType {

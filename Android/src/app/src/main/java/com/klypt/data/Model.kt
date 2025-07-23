@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 import android.content.Context
 import java.io.File

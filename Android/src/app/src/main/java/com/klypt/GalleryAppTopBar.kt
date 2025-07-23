@@ -16,7 +16,7 @@
 
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.klpyt
+package com.klypt
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,8 +46,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.klpyt.data.AppBarAction
-import com.klpyt.data.AppBarActionType
+import com.klypt.data.AppBarAction
+import com.klypt.data.AppBarActionType
 
 /** The top app bar. */
 @OptIn(ExperimentalMaterial3Api::class)

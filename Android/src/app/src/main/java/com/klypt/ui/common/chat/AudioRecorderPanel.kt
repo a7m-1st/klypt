@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -60,10 +60,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.klpyt.R
-import com.klpyt.data.MAX_AUDIO_CLIP_DURATION_SEC
-import com.klpyt.data.SAMPLE_RATE
-import com.klpyt.ui.theme.customColors
+import com.klypt.R
+import com.klypt.data.MAX_AUDIO_CLIP_DURATION_SEC
+import com.klypt.data.SAMPLE_RATE
+import com.klypt.ui.theme.customColors
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder

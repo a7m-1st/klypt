@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.modelitem
+package com.klypt.ui.common.modelitem
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.preview.MODEL_TEST1
-// import com.klpyt.ui.preview.MODEL_TEST2
-// import com.klpyt.ui.preview.MODEL_TEST3
-// import com.klpyt.ui.preview.MODEL_TEST4
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.preview.TASK_TEST2
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.MODEL_TEST1
+// import com.klypt.ui.preview.MODEL_TEST2
+// import com.klypt.ui.preview.MODEL_TEST3
+// import com.klypt.ui.preview.MODEL_TEST4
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.preview.TASK_TEST2
+// import com.klypt.ui.theme.GalleryTheme
 
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -64,16 +64,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import com.klpyt.data.Model
-import com.klpyt.data.ModelDownloadStatusType
-import com.klpyt.data.Task
-import com.klpyt.ui.common.DownloadAndTryButton
-import com.klpyt.ui.common.MarkdownText
-import com.klpyt.ui.common.TaskIcon
-import com.klpyt.ui.common.checkNotificationPermissionAndStartDownload
-import com.klpyt.ui.common.getTaskBgColor
-import com.klpyt.ui.common.getTaskIconColor
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.data.Model
+import com.klypt.data.ModelDownloadStatusType
+import com.klypt.data.Task
+import com.klypt.ui.common.DownloadAndTryButton
+import com.klypt.ui.common.MarkdownText
+import com.klypt.ui.common.TaskIcon
+import com.klypt.ui.common.checkNotificationPermissionAndStartDownload
+import com.klypt.ui.common.getTaskBgColor
+import com.klypt.ui.common.getTaskIconColor
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 
 private val DEFAULT_VERTICAL_PADDING = 16.dp
 

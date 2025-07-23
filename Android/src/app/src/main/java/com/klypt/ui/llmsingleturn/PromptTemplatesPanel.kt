@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmsingleturn
+package com.klypt.ui.llmsingleturn
 
 import android.content.ClipData
 import androidx.compose.foundation.BorderStroke
@@ -87,12 +87,12 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.klpyt.R
-import com.klpyt.data.Model
-import com.klpyt.ui.common.chat.MessageBubbleShape
-import com.klpyt.ui.modelmanager.ModelInitializationStatusType
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.theme.customColors
+import com.klypt.R
+import com.klypt.data.Model
+import com.klypt.ui.common.chat.MessageBubbleShape
+import com.klypt.ui.modelmanager.ModelInitializationStatusType
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.theme.customColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

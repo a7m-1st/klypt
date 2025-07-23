@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.Dp
-import com.klpyt.common.Classification
-import com.klpyt.data.Model
-import com.klpyt.data.PromptTemplate
+import com.klypt.common.Classification
+import com.klypt.data.Model
+import com.klypt.data.PromptTemplate
 
 private const val TAG = "AGChatMessage"
 

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.theme.GalleryTheme
-// import com.klpyt.ui.preview.MODEL_TEST1
+// import com.klypt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.MODEL_TEST1
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,10 +39,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.klpyt.data.convertValueToTargetType
-import com.klpyt.data.getConfigValueString
-import com.klpyt.ui.theme.bodySmallNarrow
-import com.klpyt.ui.theme.titleSmaller
+import com.klypt.data.convertValueToTargetType
+import com.klypt.data.getConfigValueString
+import com.klypt.ui.theme.bodySmallNarrow
+import com.klypt.ui.theme.titleSmaller
 
 /**
  * Composable function to display a message indicating configuration value changes.

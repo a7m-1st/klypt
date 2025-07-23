@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 import android.media.AudioAttributes
 import android.media.AudioFormat
@@ -52,8 +52,8 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.MAX_AUDIO_CLIP_DURATION_SEC
-import com.klpyt.ui.theme.customColors
+import com.klypt.data.MAX_AUDIO_CLIP_DURATION_SEC
+import com.klypt.ui.theme.customColors
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlinx.coroutines.Dispatchers

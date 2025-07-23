@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 /** Possible action for app bar. */
 enum class AppBarActionType {

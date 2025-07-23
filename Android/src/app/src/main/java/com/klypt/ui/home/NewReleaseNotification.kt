@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.home
+package com.klypt.ui.home
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
@@ -44,9 +44,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.klpyt.BuildConfig
-import com.klpyt.common.getJsonResponse
-import com.klpyt.ui.common.ClickableLink
+import com.klypt.BuildConfig
+import com.klypt.common.getJsonResponse
+import com.klypt.ui.common.ClickableLink
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

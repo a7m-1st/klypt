@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmsingleturn
+package com.klypt.ui.llmsingleturn
 
 import androidx.compose.ui.graphics.Brush.Companion.linearGradient
 import androidx.compose.ui.graphics.Color

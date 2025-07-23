@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.navigation
+package com.klypt.ui.navigation
 
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.util.Log
@@ -49,31 +49,31 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.klpyt.data.Model
-import com.klpyt.data.TASK_LLM_ASK_AUDIO
-import com.klpyt.data.TASK_LLM_ASK_IMAGE
-import com.klpyt.data.TASK_LLM_CHAT
-import com.klpyt.data.TASK_LLM_PROMPT_LAB
-import com.klpyt.data.Task
-import com.klpyt.data.TaskType
-import com.klpyt.data.getModelByName
-import com.klpyt.firebaseAnalytics
-import com.klpyt.ui.home.HomeScreen
-import com.klpyt.ui.llmchat.LlmAskAudioDestination
-import com.klpyt.ui.llmchat.LlmAskAudioScreen
-import com.klpyt.ui.llmchat.LlmAskAudioViewModel
-import com.klpyt.ui.llmchat.LlmAskImageDestination
-import com.klpyt.ui.llmchat.LlmAskImageScreen
-import com.klpyt.ui.llmchat.LlmAskImageViewModel
-import com.klpyt.ui.llmchat.LlmChatDestination
-import com.klpyt.ui.llmchat.LlmChatScreen
-import com.klpyt.ui.llmchat.LlmChatViewModel
-import com.klpyt.ui.llmsingleturn.LlmSingleTurnDestination
-import com.klpyt.ui.llmsingleturn.LlmSingleTurnScreen
-import com.klpyt.ui.llmsingleturn.LlmSingleTurnViewModel
-import com.klpyt.ui.login.LoginScreen
-import com.klpyt.ui.modelmanager.ModelManager
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.data.Model
+import com.klypt.data.TASK_LLM_ASK_AUDIO
+import com.klypt.data.TASK_LLM_ASK_IMAGE
+import com.klypt.data.TASK_LLM_CHAT
+import com.klypt.data.TASK_LLM_PROMPT_LAB
+import com.klypt.data.Task
+import com.klypt.data.TaskType
+import com.klypt.data.getModelByName
+import com.klypt.firebaseAnalytics
+import com.klypt.ui.home.HomeScreen
+import com.klypt.ui.llmchat.LlmAskAudioDestination
+import com.klypt.ui.llmchat.LlmAskAudioScreen
+import com.klypt.ui.llmchat.LlmAskAudioViewModel
+import com.klypt.ui.llmchat.LlmAskImageDestination
+import com.klypt.ui.llmchat.LlmAskImageScreen
+import com.klypt.ui.llmchat.LlmAskImageViewModel
+import com.klypt.ui.llmchat.LlmChatDestination
+import com.klypt.ui.llmchat.LlmChatScreen
+import com.klypt.ui.llmchat.LlmChatViewModel
+import com.klypt.ui.llmsingleturn.LlmSingleTurnDestination
+import com.klypt.ui.llmsingleturn.LlmSingleTurnScreen
+import com.klypt.ui.llmsingleturn.LlmSingleTurnViewModel
+import com.klypt.ui.login.LoginScreen
+import com.klypt.ui.modelmanager.ModelManager
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 
 private const val TAG = "AGGalleryNavGraph"
 private const val ROUTE_PLACEHOLDER = "placeholder"
@@ -294,7 +294,7 @@ fun GalleryNavHost(
   if (data != null) {
     intent.data = null
     Log.d(TAG, "navigation link clicked: $data")
-    if (data.toString().startsWith("com.klpyt://model/")) {
+    if (data.toString().startsWith("com.klypt://model/")) {
       val modelName = data.pathSegments.last()
       getModelByName(modelName)?.let { model ->
         // TODO(jingjin): need to show a list of possible tasks for this model.

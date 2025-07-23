@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmsingleturn
+package com.klypt.ui.llmsingleturn
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

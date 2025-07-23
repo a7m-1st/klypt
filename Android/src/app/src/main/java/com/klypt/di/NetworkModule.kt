@@ -1,6 +1,6 @@
-package com.klpyt.di
+package com.klypt.di
 
-import com.klpyt.network.AuthApiService
+import com.klypt.network.AuthApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

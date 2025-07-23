@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.theme
+package com.klypt.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

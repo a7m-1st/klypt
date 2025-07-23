@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.tos
+package com.klypt.ui.common.tos
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,8 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.klpyt.R
-import com.klpyt.ui.common.MarkdownText
+import com.klypt.R
+import com.klypt.ui.common.MarkdownText
 
 /** A composable for Terms of Service dialog, shown once when app is launched. */
 @OptIn(ExperimentalMaterial3Api::class)

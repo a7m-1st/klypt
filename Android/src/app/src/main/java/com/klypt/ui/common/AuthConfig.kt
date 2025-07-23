@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 import androidx.core.net.toUri
 import net.openid.appauth.AuthorizationServiceConfiguration

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt
+package com.klypt
 
 import android.app.Application
-import com.klpyt.common.writeLaunchInfo
-import com.klpyt.data.DataStoreRepository
-import com.klpyt.ui.theme.ThemeSettings
+import com.klypt.common.writeLaunchInfo
+import com.klypt.data.DataStoreRepository
+import com.klypt.ui.theme.ThemeSettings
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject

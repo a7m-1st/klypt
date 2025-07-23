@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
-// import com.klpyt.ui.preview.MODEL_TEST1
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.MODEL_TEST1
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.theme.GalleryTheme
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
@@ -56,15 +56,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.klpyt.R
-import com.klpyt.data.Model
-import com.klpyt.data.ModelDownloadStatusType
-import com.klpyt.data.Task
-import com.klpyt.ui.common.formatToHourMinSecond
-import com.klpyt.ui.common.getTaskIconColor
-import com.klpyt.ui.common.humanReadableSize
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.theme.labelSmallNarrow
+import com.klypt.R
+import com.klypt.data.Model
+import com.klypt.data.ModelDownloadStatusType
+import com.klypt.data.Task
+import com.klypt.ui.common.formatToHourMinSecond
+import com.klypt.ui.common.getTaskIconColor
+import com.klypt.ui.common.humanReadableSize
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.theme.labelSmallNarrow
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlinx.coroutines.delay

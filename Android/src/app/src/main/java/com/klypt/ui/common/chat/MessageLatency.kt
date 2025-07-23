@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.theme.GalleryTheme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import com.klpyt.ui.common.humanReadableDuration
+import com.klypt.ui.common.humanReadableDuration
 
 /** Composable function to display the latency of a chat message, if available. */
 @Composable

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.preview.ALL_PREVIEW_TASKS
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.ALL_PREVIEW_TASKS
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.theme.GalleryTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,9 +46,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.PromptTemplate
-import com.klpyt.data.Task
-import com.klpyt.ui.common.getTaskIconColor
+import com.klypt.data.PromptTemplate
+import com.klypt.data.Task
+import com.klypt.ui.common.getTaskIconColor
 
 private const val CARD_HEIGHT = 100
 

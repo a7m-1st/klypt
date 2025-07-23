@@ -1,9 +1,9 @@
-package com.klpyt.repository
+package com.klypt.repository
 
-import com.klpyt.network.AuthApiService
-import com.klpyt.network.LoginRequest
-import com.klpyt.network.LoginResponse
-import com.klpyt.storage.TokenManager
+import com.klypt.network.AuthApiService
+import com.klypt.network.LoginRequest
+import com.klypt.network.LoginResponse
+import com.klypt.storage.TokenManager
 import javax.inject.Inject
 import javax.inject.Singleton
 

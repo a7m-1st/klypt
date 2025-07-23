@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmsingleturn
+package com.klypt.ui.llmsingleturn
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.preview.PreviewLlmSingleTurnViewModel
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewLlmSingleTurnViewModel
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.theme.GalleryTheme
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -44,15 +44,15 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.core.os.bundleOf
-import com.klpyt.data.ModelDownloadStatusType
-import com.klpyt.data.TASK_LLM_PROMPT_LAB
-import com.klpyt.firebaseAnalytics
-import com.klpyt.ui.common.ErrorDialog
-import com.klpyt.ui.common.ModelPageAppBar
-import com.klpyt.ui.common.chat.ModelDownloadStatusInfoPanel
-import com.klpyt.ui.modelmanager.ModelInitializationStatusType
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.theme.customColors
+import com.klypt.data.ModelDownloadStatusType
+import com.klypt.data.TASK_LLM_PROMPT_LAB
+import com.klypt.firebaseAnalytics
+import com.klypt.ui.common.ErrorDialog
+import com.klypt.ui.common.ModelPageAppBar
+import com.klypt.ui.common.chat.ModelDownloadStatusInfoPanel
+import com.klypt.ui.modelmanager.ModelInitializationStatusType
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.theme.customColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

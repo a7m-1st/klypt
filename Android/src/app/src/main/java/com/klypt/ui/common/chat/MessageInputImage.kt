@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.theme.GalleryTheme
 
 import android.Manifest
 import android.content.Context
@@ -53,7 +53,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.klpyt.ui.common.createTempPictureUri
+import com.klypt.ui.common.createTempPictureUri
 
 private const val TAG = "AGMessageInputImage"
 

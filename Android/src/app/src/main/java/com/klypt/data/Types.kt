@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 enum class Accelerator(val label: String) {
   CPU(label = "CPU"),

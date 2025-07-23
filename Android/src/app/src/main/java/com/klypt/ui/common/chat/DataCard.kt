@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,11 +28,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.klpyt.ui.theme.GalleryTheme
-import com.klpyt.ui.theme.bodySmallMediumNarrow
-import com.klpyt.ui.theme.bodySmallMediumNarrowBold
-import com.klpyt.ui.theme.labelSmallNarrow
-import com.klpyt.ui.theme.labelSmallNarrowMedium
+import com.klypt.ui.theme.GalleryTheme
+import com.klypt.ui.theme.bodySmallMediumNarrow
+import com.klypt.ui.theme.bodySmallMediumNarrowBold
+import com.klypt.ui.theme.labelSmallNarrow
+import com.klypt.ui.theme.labelSmallNarrowMedium
 
 /**
  * Composable function to display a data card with a label and a numeric value.

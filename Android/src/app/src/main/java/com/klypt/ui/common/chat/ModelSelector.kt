@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.preview.TASK_TEST2
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.preview.TASK_TEST2
+// import com.klypt.ui.theme.GalleryTheme
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,12 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.Model
-import com.klpyt.data.Task
-import com.klpyt.data.convertValueToTargetType
-import com.klpyt.ui.common.ConfigDialog
-import com.klpyt.ui.common.modelitem.ModelItem
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.data.Model
+import com.klypt.data.Task
+import com.klypt.data.convertValueToTargetType
+import com.klypt.ui.common.ConfigDialog
+import com.klypt.ui.common.modelitem.ModelItem
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 
 /**
  * Composable function to display a selectable model item with an option to configure its settings.
