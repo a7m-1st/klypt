@@ -7,5 +7,7 @@ data class LoginUiState (
     val firstNameError: String? = null,
     val lastNameError: String? = null,
     val errorMessage: String? = null,
-    val isFormValid: Boolean = false
+    val isFormValid: Boolean = false,
+    val isOfflineMode: Boolean = false,
+    val localDataAvailable: Boolean = false
 )

@@ -13,7 +13,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val syncService: com.klypt.data.sync.SyncService
 ): ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState : StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -25,6 +26,7 @@ class LoginViewModel @Inject constructor(
         )
 
         validateForm()
+        checkLocalDataAvailability()
     }
 
     fun updateLastName(lastName: String) {
@@ -32,7 +34,9 @@ class LoginViewModel @Inject constructor(
             lastName = lastName,
             lastNameError = null
         )
+        
         validateForm()
+        checkLocalDataAvailability()
     }
 
     fun login(onSuccess: () -> Unit) {
@@ -45,17 +49,43 @@ class LoginViewModel @Inject constructor(
             )
 
             try {
+                // First, check if user exists locally for faster response
+                val localUserExists = syncService.checkUserLocally(
+                    _uiState.value.firstName,
+                    _uiState.value.lastName
+                )
+                
+                // Attempt network login
                 val result = authRepository.login(
                     firstName = _uiState.value.firstName,
                     lastName = _uiState.value.lastName
                 )
 
-                if(result.isSuccess) {onSuccess()}
-                else {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = result.exceptionOrNull()?.message ?: "Login Failed"
-                    )
+                if(result.isSuccess) {
+                    onSuccess()
+                } else {
+                    // If network login fails, try offline login
+                    if (localUserExists.isSuccess && localUserExists.getOrNull() == true) {
+                        val offlineResult = syncService.offlineLogin(
+                            _uiState.value.firstName,
+                            _uiState.value.lastName
+                        )
+                        
+                        if (offlineResult.isSuccess && offlineResult.getOrNull() != null) {
+                            // Use offline data (you might want to set a flag to indicate offline mode)
+                            onSuccess()
+                        } else {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                errorMessage = "Login failed. No network connection and no offline data available."
+                            )
+                        }
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = result.exceptionOrNull()?.message ?: "Login Failed"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -63,7 +93,6 @@ class LoginViewModel @Inject constructor(
                     errorMessage = e.message ?: "Network Error"
                 )
             }
-
         }
     }
 
@@ -85,5 +114,21 @@ class LoginViewModel @Inject constructor(
                 _uiState.value.lastName.isNotBlank();
 
         _uiState.value = _uiState.value.copy(isFormValid = isValid)
+    }
+    
+    private fun checkLocalDataAvailability() {
+        val firstName = _uiState.value.firstName
+        val lastName = _uiState.value.lastName
+        
+        if (firstName.isNotBlank() && lastName.isNotBlank()) {
+            viewModelScope.launch {
+                val localUserExists = syncService.checkUserLocally(firstName, lastName)
+                _uiState.value = _uiState.value.copy(
+                    localDataAvailable = localUserExists.isSuccess && localUserExists.getOrNull() == true
+                )
+            }
+        } else {
+            _uiState.value = _uiState.value.copy(localDataAvailable = false)
+        }
     }
 }

@@ -126,6 +126,8 @@ dependencies {
   
   // Secure storage
   implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+  implementation("com.couchbase.lite:couchbase-lite-android-ktx:3.2.3")
 }
 
 protobuf {
