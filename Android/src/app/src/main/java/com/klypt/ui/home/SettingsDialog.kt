@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.home
+package com.klypt.ui.home
 
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import android.app.UiModeManager
@@ -67,13 +67,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.klpyt.BuildConfig
-import com.klpyt.R
-import com.klpyt.proto.Theme
-import com.klpyt.ui.common.tos.TosDialog
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.theme.ThemeSettings
-import com.klpyt.ui.theme.labelSmallNarrow
+import com.klypt.BuildConfig
+import com.klypt.R
+import com.klypt.proto.Theme
+import com.klypt.ui.common.tos.TosDialog
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.theme.ThemeSettings
+import com.klypt.ui.theme.labelSmallNarrow
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

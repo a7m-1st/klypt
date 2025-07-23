@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.theme.GalleryTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,8 +56,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.klpyt.R
-import com.klpyt.ui.theme.customColors
+import com.klypt.R
+import com.klypt.ui.theme.customColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

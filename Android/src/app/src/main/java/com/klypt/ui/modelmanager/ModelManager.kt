@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.modelmanager
+package com.klypt.ui.modelmanager
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.theme.GalleryTheme
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,11 +31,11 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.klpyt.GalleryTopAppBar
-import com.klpyt.data.AppBarAction
-import com.klpyt.data.AppBarActionType
-import com.klpyt.data.Model
-import com.klpyt.data.Task
+import com.klypt.GalleryTopAppBar
+import com.klypt.data.AppBarAction
+import com.klypt.data.AppBarActionType
+import com.klypt.data.Model
+import com.klypt.data.Task
 
 /** A screen to manage models. */
 @OptIn(ExperimentalMaterial3Api::class)

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -59,11 +59,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.Model
-import com.klpyt.data.Task
-import com.klpyt.ui.common.modelitem.StatusIcon
-import com.klpyt.ui.modelmanager.ModelInitializationStatusType
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.data.Model
+import com.klypt.data.Task
+import com.klypt.ui.common.modelitem.StatusIcon
+import com.klypt.ui.modelmanager.ModelInitializationStatusType
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

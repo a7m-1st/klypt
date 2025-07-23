@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-package com.klpyt.di
+package com.klypt.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import androidx.datastore.dataStoreFile
-import com.klpyt.AppLifecycleProvider
-import com.klpyt.GalleryLifecycleProvider
-import com.klpyt.SettingsSerializer
-import com.klpyt.data.DataStoreRepository
-import com.klpyt.data.DefaultDataStoreRepository
-import com.klpyt.data.DefaultDownloadRepository
-import com.klpyt.data.DownloadRepository
-import com.klpyt.proto.Settings
+import com.klypt.AppLifecycleProvider
+import com.klypt.GalleryLifecycleProvider
+import com.klypt.SettingsSerializer
+import com.klypt.data.DataStoreRepository
+import com.klypt.data.DefaultDataStoreRepository
+import com.klypt.data.DefaultDownloadRepository
+import com.klypt.data.DownloadRepository
+import com.klypt.proto.Settings
 import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides

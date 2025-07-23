@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.theme
+package com.klypt.ui.theme
 
 import androidx.compose.runtime.mutableStateOf
-import com.klpyt.proto.Theme
+import com.klypt.proto.Theme
 
 object ThemeSettings {
   val themeOverride = mutableStateOf<Theme>(Theme.THEME_AUTO)

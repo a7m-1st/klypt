@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.klpyt
+package com.klypt
 
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.Serializer
-import com.klpyt.proto.Settings
+import com.klypt.proto.Settings
 import com.google.protobuf.InvalidProtocolBufferException
 import java.io.InputStream
 import java.io.OutputStream

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 // @Serializable(with = ConfigValueSerializer::class)
 sealed class ConfigValue {

@@ -15,9 +15,9 @@ limitations under the License.
 
 syntax = "proto3";
 
-package com.klpyt.proto;
+package com.klypt.proto;
 
-option java_package = "com.klpyt.proto";
+option java_package = "com.klypt.proto";
 option java_multiple_files = true;
 
 enum Theme {

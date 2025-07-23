@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.modelitem
+package com.klypt.ui.common.modelitem
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.theme.GalleryTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -33,9 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.ModelDownloadStatus
-import com.klpyt.data.ModelDownloadStatusType
-import com.klpyt.ui.theme.customColors
+import com.klypt.data.ModelDownloadStatus
+import com.klypt.data.ModelDownloadStatusType
+import com.klypt.ui.theme.customColors
 
 private val SIZE = 18.dp
 

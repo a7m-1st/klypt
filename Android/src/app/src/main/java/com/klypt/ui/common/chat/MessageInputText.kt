@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.theme.GalleryTheme
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -110,12 +110,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.klpyt.common.AudioClip
-import com.klpyt.common.convertWavToMonoWithMaxSeconds
-import com.klpyt.data.MAX_AUDIO_CLIP_COUNT
-import com.klpyt.data.MAX_IMAGE_COUNT
-import com.klpyt.data.SAMPLE_RATE
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.common.AudioClip
+import com.klypt.common.convertWavToMonoWithMaxSeconds
+import com.klypt.data.MAX_AUDIO_CLIP_COUNT
+import com.klypt.data.MAX_IMAGE_COUNT
+import com.klypt.data.SAMPLE_RATE
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 import java.util.concurrent.Executors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

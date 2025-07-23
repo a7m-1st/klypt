@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.modelitem
+package com.klypt.ui.common.modelitem
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -22,8 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.klpyt.R
-import com.klpyt.data.Model
+import com.klypt.R
+import com.klypt.data.Model
 
 /** Composable function to display a confirmation dialog for deleting a model. */
 @Composable

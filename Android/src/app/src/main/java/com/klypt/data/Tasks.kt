@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
@@ -25,7 +25,7 @@ import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.klpyt.R
+import com.klypt.R
 
 /** Type of task. */
 enum class TaskType(val label: String, val id: String) {

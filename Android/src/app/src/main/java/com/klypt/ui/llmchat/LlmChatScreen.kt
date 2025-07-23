@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmchat
+package com.klypt.ui.llmchat
 
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.os.bundleOf
-import com.klpyt.firebaseAnalytics
-import com.klpyt.ui.common.chat.ChatMessageAudioClip
-import com.klpyt.ui.common.chat.ChatMessageImage
-import com.klpyt.ui.common.chat.ChatMessageText
-import com.klpyt.ui.common.chat.ChatView
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.firebaseAnalytics
+import com.klypt.ui.common.chat.ChatMessageAudioClip
+import com.klypt.ui.common.chat.ChatMessageImage
+import com.klypt.ui.common.chat.ChatMessageText
+import com.klypt.ui.common.chat.ChatView
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 
 /** Navigation destination data */
 object LlmChatDestination {

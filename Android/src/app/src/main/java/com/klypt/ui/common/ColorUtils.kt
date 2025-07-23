@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import com.klpyt.data.Task
-import com.klpyt.ui.theme.customColors
+import com.klypt.data.Task
+import com.klypt.ui.theme.customColors
 
 @Composable
 fun getTaskBgColor(task: Task): Color {

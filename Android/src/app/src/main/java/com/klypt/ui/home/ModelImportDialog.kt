@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.home
+package com.klypt.ui.home
 
 import android.content.Context
 import android.net.Uri
@@ -59,25 +59,25 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.klpyt.data.Accelerator
-import com.klpyt.data.BooleanSwitchConfig
-import com.klpyt.data.Config
-import com.klpyt.data.ConfigKey
-import com.klpyt.data.DEFAULT_MAX_TOKEN
-import com.klpyt.data.DEFAULT_TEMPERATURE
-import com.klpyt.data.DEFAULT_TOPK
-import com.klpyt.data.DEFAULT_TOPP
-import com.klpyt.data.IMPORTS_DIR
-import com.klpyt.data.LabelConfig
-import com.klpyt.data.NumberSliderConfig
-import com.klpyt.data.SegmentedButtonConfig
-import com.klpyt.data.ValueType
-import com.klpyt.data.convertValueToTargetType
-import com.klpyt.proto.ImportedModel
-import com.klpyt.proto.LlmConfig
-import com.klpyt.ui.common.ConfigEditorsPanel
-import com.klpyt.ui.common.ensureValidFileName
-import com.klpyt.ui.common.humanReadableSize
+import com.klypt.data.Accelerator
+import com.klypt.data.BooleanSwitchConfig
+import com.klypt.data.Config
+import com.klypt.data.ConfigKey
+import com.klypt.data.DEFAULT_MAX_TOKEN
+import com.klypt.data.DEFAULT_TEMPERATURE
+import com.klypt.data.DEFAULT_TOPK
+import com.klypt.data.DEFAULT_TOPP
+import com.klypt.data.IMPORTS_DIR
+import com.klypt.data.LabelConfig
+import com.klypt.data.NumberSliderConfig
+import com.klypt.data.SegmentedButtonConfig
+import com.klypt.data.ValueType
+import com.klypt.data.convertValueToTargetType
+import com.klypt.proto.ImportedModel
+import com.klypt.proto.LlmConfig
+import com.klypt.ui.common.ConfigEditorsPanel
+import com.klypt.ui.common.ensureValidFileName
+import com.klypt.ui.common.humanReadableSize
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URLDecoder

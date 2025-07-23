@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.theme
+package com.klypt.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -30,7 +30,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import com.klpyt.proto.Theme
+import com.klypt.proto.Theme
 
 private val lightScheme =
   lightColorScheme(

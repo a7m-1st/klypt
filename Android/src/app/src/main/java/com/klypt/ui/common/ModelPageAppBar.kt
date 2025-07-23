@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -49,12 +49,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.Model
-import com.klpyt.data.ModelDownloadStatusType
-import com.klpyt.data.Task
-import com.klpyt.data.convertValueToTargetType
-import com.klpyt.ui.modelmanager.ModelInitializationStatusType
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.data.Model
+import com.klypt.data.ModelDownloadStatusType
+import com.klypt.data.Task
+import com.klypt.data.convertValueToTargetType
+import com.klypt.ui.modelmanager.ModelInitializationStatusType
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

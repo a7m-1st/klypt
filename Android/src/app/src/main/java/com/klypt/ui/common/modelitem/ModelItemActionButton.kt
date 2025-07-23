@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.modelitem
+package com.klypt.ui.common.modelitem
 
 import android.content.Context
 import androidx.compose.foundation.layout.Row
@@ -35,12 +35,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.Model
-import com.klpyt.data.ModelDownloadStatus
-import com.klpyt.data.ModelDownloadStatusType
-import com.klpyt.data.Task
-import com.klpyt.ui.common.getTaskIconColor
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.data.Model
+import com.klypt.data.ModelDownloadStatus
+import com.klypt.data.ModelDownloadStatusType
+import com.klypt.data.Task
+import com.klypt.ui.common.getTaskIconColor
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 
 /**
  * Composable function to display action buttons for a model item, based on its download status.

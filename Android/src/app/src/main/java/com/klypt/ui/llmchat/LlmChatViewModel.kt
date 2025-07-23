@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmchat
+package com.klypt.ui.llmchat
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.viewModelScope
-import com.klpyt.data.ConfigKey
-import com.klpyt.data.Model
-import com.klpyt.data.TASK_LLM_ASK_AUDIO
-import com.klpyt.data.TASK_LLM_ASK_IMAGE
-import com.klpyt.data.TASK_LLM_CHAT
-import com.klpyt.data.Task
-import com.klpyt.ui.common.chat.ChatMessageAudioClip
-import com.klpyt.ui.common.chat.ChatMessageBenchmarkLlmResult
-import com.klpyt.ui.common.chat.ChatMessageLoading
-import com.klpyt.ui.common.chat.ChatMessageText
-import com.klpyt.ui.common.chat.ChatMessageType
-import com.klpyt.ui.common.chat.ChatMessageWarning
-import com.klpyt.ui.common.chat.ChatSide
-import com.klpyt.ui.common.chat.ChatViewModel
-import com.klpyt.ui.common.chat.Stat
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.data.ConfigKey
+import com.klypt.data.Model
+import com.klypt.data.TASK_LLM_ASK_AUDIO
+import com.klypt.data.TASK_LLM_ASK_IMAGE
+import com.klypt.data.TASK_LLM_CHAT
+import com.klypt.data.Task
+import com.klypt.ui.common.chat.ChatMessageAudioClip
+import com.klypt.ui.common.chat.ChatMessageBenchmarkLlmResult
+import com.klypt.ui.common.chat.ChatMessageLoading
+import com.klypt.ui.common.chat.ChatMessageText
+import com.klypt.ui.common.chat.ChatMessageType
+import com.klypt.ui.common.chat.ChatMessageWarning
+import com.klypt.ui.common.chat.ChatSide
+import com.klypt.ui.common.chat.ChatViewModel
+import com.klypt.ui.common.chat.Stat
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt
+package com.klypt
 
 interface AppLifecycleProvider {
   var isAppInForeground: Boolean

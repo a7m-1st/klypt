@@ -1,7 +1,7 @@
-package com.klpyt.network
+package com.klypt.network
 
 import android.service.autofill.UserData
-import com.klpyt.data.User
+import com.klypt.data.User
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
-// import com.klpyt.ui.preview.PreviewChatModel
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewChatModel
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.theme.GalleryTheme
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -60,12 +60,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.Model
-import com.klpyt.data.ModelDownloadStatusType
-import com.klpyt.data.Task
-import com.klpyt.ui.common.ModelPageAppBar
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.modelmanager.PagerScrollState
+import com.klypt.data.Model
+import com.klypt.data.ModelDownloadStatusType
+import com.klypt.data.Task
+import com.klypt.ui.common.ModelPageAppBar
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.modelmanager.PagerScrollState
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

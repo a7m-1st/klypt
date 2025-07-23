@@ -1,4 +1,4 @@
-package com.klpyt.ui.login
+package com.klypt.ui.login
 
 data class LoginUiState (
     val firstName: String = "",

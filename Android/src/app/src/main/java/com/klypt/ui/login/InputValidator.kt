@@ -1,4 +1,4 @@
-package com.klpyt.ui.login
+package com.klypt.ui.login
 
 import javax.inject.Inject
 import javax.inject.Singleton

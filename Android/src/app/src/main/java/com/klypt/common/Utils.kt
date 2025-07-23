@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.common
+package com.klypt.common
 
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.klpyt.data.SAMPLE_RATE
+import com.klypt.data.SAMPLE_RATE
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File

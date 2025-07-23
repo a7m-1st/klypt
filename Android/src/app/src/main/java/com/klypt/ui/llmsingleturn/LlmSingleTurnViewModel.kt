@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmsingleturn
+package com.klypt.ui.llmsingleturn
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.klpyt.common.processLlmResponse
-import com.klpyt.data.Model
-import com.klpyt.data.TASK_LLM_PROMPT_LAB
-import com.klpyt.data.Task
-import com.klpyt.ui.common.chat.ChatMessageBenchmarkLlmResult
-import com.klpyt.ui.common.chat.Stat
-import com.klpyt.ui.llmchat.LlmChatModelHelper
-import com.klpyt.ui.llmchat.LlmModelInstance
+import com.klypt.common.processLlmResponse
+import com.klypt.data.Model
+import com.klypt.data.TASK_LLM_PROMPT_LAB
+import com.klypt.data.Task
+import com.klypt.ui.common.chat.ChatMessageBenchmarkLlmResult
+import com.klypt.ui.common.chat.Stat
+import com.klypt.ui.llmchat.LlmChatModelHelper
+import com.klypt.ui.llmchat.LlmModelInstance
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers

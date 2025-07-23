@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmchat
+package com.klypt.ui.llmchat
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import com.klpyt.common.cleanUpMediapipeTaskErrorMessage
-import com.klpyt.data.Accelerator
-import com.klpyt.data.ConfigKey
-import com.klpyt.data.DEFAULT_MAX_TOKEN
-import com.klpyt.data.DEFAULT_TEMPERATURE
-import com.klpyt.data.DEFAULT_TOPK
-import com.klpyt.data.DEFAULT_TOPP
-import com.klpyt.data.MAX_IMAGE_COUNT
-import com.klpyt.data.Model
+import com.klypt.common.cleanUpMediapipeTaskErrorMessage
+import com.klypt.data.Accelerator
+import com.klypt.data.ConfigKey
+import com.klypt.data.DEFAULT_MAX_TOKEN
+import com.klypt.data.DEFAULT_TEMPERATURE
+import com.klypt.data.DEFAULT_TOPK
+import com.klypt.data.DEFAULT_TOPP
+import com.klypt.data.MAX_IMAGE_COUNT
+import com.klypt.data.Model
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.genai.llminference.GraphOptions
 import com.google.mediapipe.tasks.genai.llminference.LlmInference

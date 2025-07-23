@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,8 +35,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.os.bundleOf
-import com.klpyt.firebaseAnalytics
-import com.klpyt.ui.theme.customColors
+import com.klypt.firebaseAnalytics
+import com.klypt.ui.theme.customColors
 
 @Composable
 fun ClickableLink(url: String, linkText: String, icon: ImageVector) {

@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.chat
+package com.klypt.ui.common.chat
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
-import com.klpyt.common.processLlmResponse
-import com.klpyt.data.Model
-import com.klpyt.data.Task
+import com.klypt.common.processLlmResponse
+import com.klypt.data.Model
+import com.klypt.data.Task
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update

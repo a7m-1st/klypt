@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.theme.GalleryTheme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,11 +46,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.klpyt.data.Model
-import com.klpyt.data.Task
-import com.klpyt.ui.common.modelitem.StatusIcon
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.theme.labelSmallNarrow
+import com.klypt.data.Model
+import com.klypt.data.Task
+import com.klypt.ui.common.modelitem.StatusIcon
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.theme.labelSmallNarrow
 
 @Composable
 fun ModelPicker(

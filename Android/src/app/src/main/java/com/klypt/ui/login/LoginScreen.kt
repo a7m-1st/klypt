@@ -1,4 +1,4 @@
-package com.klpyt.ui.login
+package com.klypt.ui.login
 
 import android.graphics.drawable.Icon
 import androidx.compose.foundation.layout.Arrangement

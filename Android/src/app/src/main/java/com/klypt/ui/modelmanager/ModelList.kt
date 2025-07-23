@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.modelmanager
+package com.klypt.ui.modelmanager
 
 // import androidx.compose.ui.tooling.preview.Preview
-// import com.klpyt.ui.preview.PreviewModelManagerViewModel
-// import com.klpyt.ui.preview.TASK_TEST1
-// import com.klpyt.ui.theme.GalleryTheme
+// import com.klypt.ui.preview.PreviewModelManagerViewModel
+// import com.klypt.ui.preview.TASK_TEST1
+// import com.klypt.ui.theme.GalleryTheme
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,10 +45,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.klpyt.data.Model
-import com.klpyt.data.Task
-import com.klpyt.ui.common.ClickableLink
-import com.klpyt.ui.common.modelitem.ModelItem
+import com.klypt.data.Model
+import com.klypt.data.Task
+import com.klypt.ui.common.ClickableLink
+import com.klypt.ui.common.modelitem.ModelItem
 
 private const val TAG = "AGModelList"
 

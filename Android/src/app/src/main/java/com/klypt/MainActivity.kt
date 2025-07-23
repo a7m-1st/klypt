@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt
+package com.klypt
 
 import android.os.Build
 import android.os.Bundle
@@ -27,7 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.os.bundleOf
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.klpyt.ui.theme.GalleryTheme
+import com.klypt.ui.theme.GalleryTheme
 import com.google.firebase.analytics.FirebaseAnalytics
 import dagger.hilt.android.AndroidEntryPoint
 

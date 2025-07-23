@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common
+package com.klypt.ui.common
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -42,11 +42,11 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.klpyt.R
-import com.klpyt.data.TASKS
-import com.klpyt.data.TASK_LLM_CHAT
-import com.klpyt.data.Task
-import com.klpyt.ui.theme.GalleryTheme
+import com.klypt.R
+import com.klypt.data.TASKS
+import com.klypt.data.TASK_LLM_CHAT
+import com.klypt.data.Task
+import com.klypt.ui.theme.GalleryTheme
 
 private val SHAPES: List<Int> =
   listOf(

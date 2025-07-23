@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 import androidx.datastore.core.DataStore
-import com.klpyt.proto.AccessTokenData
-import com.klpyt.proto.ImportedModel
-import com.klpyt.proto.Settings
-import com.klpyt.proto.Theme
+import com.klypt.proto.AccessTokenData
+import com.klypt.proto.ImportedModel
+import com.klypt.proto.Settings
+import com.klypt.proto.Theme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 

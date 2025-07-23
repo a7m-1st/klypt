@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.common.modelitem
+package com.klypt.ui.common.modelitem
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -37,14 +37,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.klpyt.data.Model
-import com.klpyt.data.ModelDownloadStatus
-import com.klpyt.data.ModelDownloadStatusType
-import com.klpyt.data.Task
-import com.klpyt.ui.common.formatToHourMinSecond
-import com.klpyt.ui.common.getTaskIconColor
-import com.klpyt.ui.common.humanReadableSize
-import com.klpyt.ui.theme.labelSmallNarrow
+import com.klypt.data.Model
+import com.klypt.data.ModelDownloadStatus
+import com.klypt.data.ModelDownloadStatusType
+import com.klypt.data.Task
+import com.klypt.ui.common.formatToHourMinSecond
+import com.klypt.ui.common.getTaskIconColor
+import com.klypt.ui.common.humanReadableSize
+import com.klypt.ui.theme.labelSmallNarrow
 
 /**
  * Composable function to display the model name and its download status information.

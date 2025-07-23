@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.ui.llmsingleturn
+package com.klypt.ui.llmsingleturn
 
 import android.content.ClipData
 import android.util.Log
@@ -61,14 +61,14 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.klpyt.data.ConfigKey
-import com.klpyt.data.Model
-import com.klpyt.data.TASK_LLM_PROMPT_LAB
-import com.klpyt.ui.common.MarkdownText
-import com.klpyt.ui.common.chat.MessageBodyBenchmarkLlm
-import com.klpyt.ui.common.chat.MessageBodyLoading
-import com.klpyt.ui.modelmanager.ModelManagerViewModel
-import com.klpyt.ui.modelmanager.PagerScrollState
+import com.klypt.data.ConfigKey
+import com.klypt.data.Model
+import com.klypt.data.TASK_LLM_PROMPT_LAB
+import com.klypt.ui.common.MarkdownText
+import com.klypt.ui.common.chat.MessageBodyBenchmarkLlm
+import com.klypt.ui.common.chat.MessageBodyLoading
+import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.modelmanager.PagerScrollState
 import kotlinx.coroutines.launch
 
 private val OPTIONS = listOf("Response", "Benchmark")

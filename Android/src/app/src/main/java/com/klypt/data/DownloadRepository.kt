@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.klpyt.data
+package com.klypt.data
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -38,11 +38,11 @@ import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkQuery
-import com.klpyt.AppLifecycleProvider
-import com.klpyt.R
-import com.klpyt.common.readLaunchInfo
-import com.klpyt.firebaseAnalytics
-import com.klpyt.worker.DownloadWorker
+import com.klypt.AppLifecycleProvider
+import com.klypt.R
+import com.klypt.common.readLaunchInfo
+import com.klypt.firebaseAnalytics
+import com.klypt.worker.DownloadWorker
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -332,7 +332,7 @@ class DefaultDownloadRepository(
 
     // Create an Intent to open your app with a deep link.
     val intent =
-      Intent(Intent.ACTION_VIEW, "com.klpyt://model/${modelName}".toUri()).apply {
+      Intent(Intent.ACTION_VIEW, "com.klypt://model/${modelName}".toUri()).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
       }
 

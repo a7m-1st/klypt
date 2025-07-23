@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.klpyt
+package com.klypt
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.klpyt.ui.navigation.GalleryNavHost
+import com.klypt.ui.navigation.GalleryNavHost
 
 /** Top level composable representing the main screen of the application. */
 @Composable
