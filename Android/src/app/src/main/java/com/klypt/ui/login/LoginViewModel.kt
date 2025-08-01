@@ -2,6 +2,7 @@ package com.klypt.ui.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.klypt.data.UserRole
 import com.klypt.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,12 @@ class LoginViewModel @Inject constructor(
         
         validateForm()
         checkLocalDataAvailability()
+    }
+
+    fun updateUserRole(role: UserRole) {
+        _uiState.value = _uiState.value.copy(
+            role = role
+        )
     }
 
     fun login(onSuccess: () -> Unit) {

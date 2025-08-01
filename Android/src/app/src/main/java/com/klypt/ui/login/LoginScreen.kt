@@ -35,6 +35,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.klypt.data.UserRole
+import com.klypt.data.mainGreenColor
 
 @Composable
 fun LoginScreen(
@@ -44,27 +46,10 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LoginContent(
-        uiState = uiState,
-        onFirstNameChange = viewModel::updateFirstName,
-        onLastNameChange = viewModel::updateLastName,
-        onLoginClick = { viewModel.login(onNavigateToHome)},
-        onSignupClick = onNavigateToSignup
-    )
-}
-
-@Composable
-private fun LoginContent(
-    uiState: LoginUiState,
-    onFirstNameChange: (String) -> Unit,
-    onLastNameChange: (String) -> Unit,
-    onLoginClick: () -> Unit,
-    onSignupClick: () -> Unit,
-) {
-    var test by remember { mutableStateOf(false) }
-
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -81,67 +66,168 @@ private fun LoginContent(
             modifier = Modifier.padding(bottom = 48.dp)
         )
 
-        //firstName
-        OutlinedTextField(
-            value = uiState.firstName,
-            onValueChange = onFirstNameChange,
-            label = { Text("First Name") },
-            leadingIcon = {
-//                Icon(Icons.Default.TextFields)
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text
-            ),
-            isError = uiState.firstNameError != null,
-            supportingText = uiState.firstNameError?.let {it:String -> { Text(it) }},
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-        )
-
-        OutlinedTextField(
-            value = uiState.lastName,
-            onValueChange = onLastNameChange,
-            label = { Text("Last Name") },
-            leadingIcon = {
-//                Icon(Icons.Default.TextFields)
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text
-            ),
-            isError = uiState.lastNameError != null,
-            supportingText = uiState.lastNameError?.let {{ Text(it) }},
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-        )
-
-        TextButton(
-            onClick = { /* handle recover*/},
-            modifier = Modifier.align(Alignment.Start)
-        ) {
-            Text("Recover an account? Recover account",
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        //Login Button
-        Button (
-            onClick = onLoginClick,
-            enabled = !uiState.isLoading && uiState.isFormValid,
-            modifier = Modifier.fillMaxWidth().height(56.dp)
-        ) {
-            if(uiState.isLoading) {
-                CircularProgressIndicator(color = Color(0xFF2FA96E))
-            } else {
-                Text("Log in as a Student", fontSize = 16.sp)
+        //Main body
+        when (uiState.role) {
+            UserRole.STUDENT -> {
+                StudentLoginContent(
+                    uiState = uiState,
+                    onFirstNameChange = viewModel::updateFirstName,
+                    onLastNameChange = viewModel::updateLastName,
+                    onStudentLogin = {},
+                    recoverAccount = {}
+                )
+            }
+            UserRole.EDUCATOR -> {
+                EducatorLoginContent(
+                    uiState = uiState,
+                    onPhoneNumberChange = {},
+                    onEducatorLogin = {},
+                    clickSignUp = {},
+                    recoverAccount = {}
+                )
             }
         }
+    }
 
-        uiState.errorMessage?.let{ error ->
-            Text(
-                text = error,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 16.dp)
-            )
+}
+
+@Composable
+private fun StudentLoginContent(
+    uiState: LoginUiState,
+    onFirstNameChange: (String) -> Unit,
+    onLastNameChange: (String) -> Unit,
+    onStudentLogin: () -> Unit,
+    recoverAccount: () -> Unit = {}
+) {
+    //firstName
+    OutlinedTextField(
+        value = uiState.firstName,
+        onValueChange = onFirstNameChange,
+        label = { Text("First Name") },
+        leadingIcon = {
+//                Icon(Icons.Default.TextFields)
+        },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Text
+        ),
+        isError = uiState.firstNameError != null,
+        supportingText = uiState.firstNameError?.let {it:String -> { Text(it) }},
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+    )
+
+    OutlinedTextField(
+        value = uiState.lastName,
+        onValueChange = onLastNameChange,
+        label = { Text("Last Name") },
+        leadingIcon = {
+//                Icon(Icons.Default.TextFields)
+        },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Text
+        ),
+        isError = uiState.lastNameError != null,
+        supportingText = uiState.lastNameError?.let {{ Text(it) }},
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+    )
+
+    TextButton(
+        onClick = { /* handle recover*/},
+    ) {
+        Text("Recover an account? Recover account",
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+
+    Spacer(modifier = Modifier.height(32.dp))
+
+    //Login Button
+    Button (
+        onClick = onStudentLogin,
+        enabled = !uiState.isLoading && uiState.isFormValid,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+    ) {
+        if(uiState.isLoading) {
+            CircularProgressIndicator(color = Color(mainGreenColor))
+        } else {
+            Text("Log in as a Student", fontSize = 16.sp)
+        }
+    }
+
+    uiState.errorMessage?.let{ error ->
+        Text(
+            text = error,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+    }
+}
+
+@Composable
+private fun EducatorLoginContent(
+    uiState: LoginUiState,
+    onPhoneNumberChange: (String) -> Unit,
+    onEducatorLogin: () -> Unit,
+    clickSignUp: () -> Unit,
+    recoverAccount: () -> Unit = {}
+) {
+    //Phone
+    OutlinedTextField(
+        value = uiState.phoneNumber,
+        onValueChange = onPhoneNumberChange,
+        label = { Text("Phone Number")},
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number
+        ),
+        isError = uiState.phoneNumberError != null,
+        supportingText = { uiState.phoneNumberError?.let { Text(it) } },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+    )
+    TextButton(
+        onClick = { /* handle recover*/},
+    ) {
+        Text("Recover an account? Recover account",
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+
+    Spacer(modifier = Modifier.height(32.dp))
+
+    //Login Button
+    Button (
+        onClick = onEducatorLogin,
+        enabled = !uiState.isLoading && uiState.isFormValid,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+    ) {
+        if(uiState.isLoading) {
+            CircularProgressIndicator(color = Color(mainGreenColor))
+        } else {
+            Text("Log in as a Educator", fontSize = 16.sp)
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    //Signup Button
+    Button (
+        onClick = clickSignUp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+    ) {
+        if(uiState.isLoading) {
+            CircularProgressIndicator(color = Color(mainGreenColor))
+        } else {
+            Text("Sign up as Educator", fontSize = 16.sp)
         }
     }
 }

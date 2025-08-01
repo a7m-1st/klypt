@@ -20,3 +20,8 @@ enum class Accelerator(val label: String) {
   CPU(label = "CPU"),
   GPU(label = "GPU"),
 }
+
+enum class UserRole(val role: String) {
+  STUDENT(role = "Student"),
+  EDUCATOR(role = "Educator")
+}

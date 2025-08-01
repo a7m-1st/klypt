@@ -53,3 +53,7 @@ const val MAX_AUDIO_CLIP_DURATION_SEC = 30
 
 // Audio-recording related consts.
 const val SAMPLE_RATE = 16000
+
+
+//Theme
+const val mainGreenColor = 0xFF2FA96E

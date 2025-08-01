@@ -72,6 +72,8 @@ import com.klypt.ui.llmsingleturn.LlmSingleTurnDestination
 import com.klypt.ui.llmsingleturn.LlmSingleTurnScreen
 import com.klypt.ui.llmsingleturn.LlmSingleTurnViewModel
 import com.klypt.ui.login.LoginScreen
+import com.klypt.ui.login.LoginViewModel
+import com.klypt.ui.login.RoleSelectionScreen
 import com.klypt.ui.modelmanager.ModelManager
 import com.klypt.ui.modelmanager.ModelManagerViewModel
 
@@ -144,8 +146,8 @@ fun GalleryNavHost(
 
   NavHost(
     navController = navController,
-    // Start with login if not authenticated, home if authenticated
-    startDestination = "login",
+    // Start with role selection, then login if not authenticated, home if authenticated
+    startDestination = "role_selection",
     enterTransition = { EnterTransition.None },
     exitTransition = { ExitTransition.None },
     modifier = modifier,
@@ -153,7 +155,26 @@ fun GalleryNavHost(
     // Placeholder root screen
     composable(route = ROUTE_PLACEHOLDER) { Text("") }
 
-    composable("login") {
+    composable("role_selection") { backStackEntry ->
+      val parentEntry = remember(backStackEntry) {
+        navController.getBackStackEntry("role_selection")
+      }
+      val loginViewModel: LoginViewModel = hiltViewModel(parentEntry)
+      
+      RoleSelectionScreen(
+        onNavigateToLogin = {
+          navController.navigate("login")
+        },
+        viewModel = loginViewModel
+      )
+    }
+
+    composable("login") { backStackEntry ->
+      val parentEntry = remember(backStackEntry) {
+        navController.getBackStackEntry("role_selection")
+      }
+      val loginViewModel: LoginViewModel = hiltViewModel(parentEntry)
+      
       LoginScreen(
         onNavigateToHome = {
           navController.navigate("home") {
@@ -162,7 +183,8 @@ fun GalleryNavHost(
         },
         onNavigateToSignup = {
           navController.navigate("signup")
-        }
+        },
+        viewModel = loginViewModel
       )
     }
 
