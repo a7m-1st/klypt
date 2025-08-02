@@ -3,8 +3,7 @@ package com.klypt
 import android.app.Application
 import com.klypt.common.writeLaunchInfo
 import com.klypt.data.DataStoreRepository
-import com.klypt.data.database.CouchDBManager
-import com.klypt.data.sync.SyncService
+import com.klypt.data.database.DatabaseInitializer
 import com.klypt.ui.theme.ThemeSettings
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
@@ -17,8 +16,7 @@ import javax.inject.Inject
 class GalleryApplication : Application() {
 
   @Inject lateinit var dataStoreRepository: DataStoreRepository
-  @Inject lateinit var couchDBManager: CouchDBManager
-  @Inject lateinit var syncService: SyncService
+  @Inject lateinit var databaseInitializer: DatabaseInitializer
   
   private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -32,7 +30,13 @@ class GalleryApplication : Application() {
 
     FirebaseApp.initializeApp(this)
     
-    // Initialize CouchDB (already done in CouchDBManager constructor)
-    // The CouchDBManager is initialized when injected
+    // Initialize CouchDB database
+    databaseInitializer.initializeOnStartup()
+  }
+  
+  override fun onTerminate() {
+    super.onTerminate()
+    // Clean up database resources
+    databaseInitializer.cleanup()
   }
 }

@@ -14,8 +14,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val validator: InputValidator,
-    private val syncService: com.klypt.data.sync.SyncService
+    private val validator: InputValidator
 ): ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState : StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -63,7 +62,7 @@ class LoginViewModel @Inject constructor(
     }
 
     fun login(onSuccess: () -> Unit) {
-        if(!validateInputs()) return;
+        if(!validateInputs()) return
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -73,7 +72,7 @@ class LoginViewModel @Inject constructor(
 
             try {
                 // First, check if user exists locally for faster response
-                val localUserExists = syncService.checkUserLocally(
+                val localUserResult = authRepository.getUserFromCouchDB(
                     _uiState.value.firstName,
                     _uiState.value.lastName
                 )
@@ -85,28 +84,25 @@ class LoginViewModel @Inject constructor(
                 )
 
                 if(result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isOfflineMode = false
+                    )
                     onSuccess()
                 } else {
-                    // If network login fails, try offline login
-                    if (localUserExists.isSuccess && localUserExists.getOrNull() == true) {
-                        val offlineResult = syncService.offlineLogin(
-                            _uiState.value.firstName,
-                            _uiState.value.lastName
+                    // If network login fails, try offline login with local CouchDB data
+                    if (localUserResult.isSuccess && localUserResult.getOrNull() != null) {
+                        // User exists in local CouchDB, proceed with offline mode
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isOfflineMode = true,
+                            errorMessage = null
                         )
-                        
-                        if (offlineResult.isSuccess && offlineResult.getOrNull() != null) {
-                            // Use offline data (you might want to set a flag to indicate offline mode)
-                            onSuccess()
-                        } else {
-                            _uiState.value = _uiState.value.copy(
-                                isLoading = false,
-                                errorMessage = "Login failed. No network connection and no offline data available."
-                            )
-                        }
+                        onSuccess()
                     } else {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            errorMessage = result.exceptionOrNull()?.message ?: "Login Failed"
+                            errorMessage = "Login failed. No network connection and no offline data available."
                         )
                     }
                 }
@@ -115,6 +111,53 @@ class LoginViewModel @Inject constructor(
                     isLoading = false,
                     errorMessage = e.message ?: "Network Error"
                 )
+            }
+        }
+    }
+
+    /**
+     * Search for users in CouchDB (useful for auto-complete or user discovery)
+     */
+    fun searchUsers(query: String, onResult: (List<String>) -> Unit) {
+        if (query.isBlank()) {
+            onResult(emptyList())
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                val searchResult = authRepository.searchUsersInCouchDB(query)
+                if (searchResult.isSuccess) {
+                    val users = searchResult.getOrNull() ?: emptyList()
+                    val userNames = users.map { "${it.firstName} ${it.lastName}" }
+                    onResult(userNames)
+                } else {
+                    onResult(emptyList())
+                }
+            } catch (e: Exception) {
+                onResult(emptyList())
+            }
+        }
+    }
+    
+    /**
+     * Get offline user statistics for debugging/info purposes
+     */
+    fun getOfflineUserStats(onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val allUsersResult = authRepository.getAllUsersFromCouchDB()
+                if (allUsersResult.isSuccess) {
+                    val users = allUsersResult.getOrNull() ?: emptyList()
+                    val activeUsers = users.count { it.isActive }
+                    val totalUsers = users.size
+                    val stats = "Offline Users: $activeUsers active, $totalUsers total"
+                    onResult(stats)
+                } else {
+                    onResult("No offline data available")
+                }
+            } catch (e: Exception) {
+                onResult("Error retrieving offline data")
             }
         }
     }
@@ -148,10 +191,14 @@ class LoginViewModel @Inject constructor(
         
         if (firstName.isNotBlank() && lastName.isNotBlank()) {
             viewModelScope.launch {
-                val localUserExists = syncService.checkUserLocally(firstName, lastName)
-                _uiState.value = _uiState.value.copy(
-                    localDataAvailable = localUserExists.isSuccess && localUserExists.getOrNull() == true
-                )
+                try {
+                    val localUserResult = authRepository.getUserFromCouchDB(firstName, lastName)
+                    _uiState.value = _uiState.value.copy(
+                        localDataAvailable = localUserResult.isSuccess && localUserResult.getOrNull() != null
+                    )
+                } catch (e: Exception) {
+                    _uiState.value = _uiState.value.copy(localDataAvailable = false)
+                }
             }
         } else {
             _uiState.value = _uiState.value.copy(localDataAvailable = false)
