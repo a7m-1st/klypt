@@ -59,7 +59,6 @@ fun SignupScreen(
             value = uiState.age,
             onValueChange = { viewModel.updateAge(it) },
             label = { Text("Age*") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
@@ -84,7 +83,6 @@ fun SignupScreen(
             value = uiState.phoneNumber,
             onValueChange = { viewModel.updatePhoneNumber(it) },
             label = { Text("Phone Number*") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
