@@ -26,78 +26,81 @@ fun SignupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(24.dp)
     ) {
-        // Top - Same title as login page
-        Text(
-            text = buildAnnotatedString {
-                append("Klypt")
-                withStyle(style = SpanStyle(color = Color(0xFF2FA96E))) {
-                    append(".")
-                }
-            },
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 48.dp)
-        )
-
-        // Signup form fields
-        OutlinedTextField(
-            value = uiState.fullName,
-            onValueChange = { viewModel.updateFullName(it) },
-            label = { Text("Full Name*") },
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
-        OutlinedTextField(
-            value = uiState.age,
-            onValueChange = { viewModel.updateAge(it) },
-            label = { Text("Age*") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
-        OutlinedTextField(
-            value = uiState.currentJob,
-            onValueChange = { viewModel.updateCurrentJob(it) },
-            label = { Text("Current Job*") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
-        OutlinedTextField(
-            value = uiState.instituteName,
-            onValueChange = { viewModel.updateInstituteName(it) },
-            label = { Text("Institute Name*") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
-        OutlinedTextField(
-            value = uiState.phoneNumber,
-            onValueChange = { viewModel.updatePhoneNumber(it) },
-            label = { Text("Phone Number*") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp)
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Next button at the very bottom
-        Button(
-            onClick = onNext,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
+                .fillMaxSize()
+                .padding(horizontal = 24.dp), // Optional for spacing
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Next", fontSize = 16.sp)
+            // Top - Same title as login page
+            Text(
+                text = buildAnnotatedString {
+                    append("Klypt")
+                    withStyle(style = SpanStyle(color = Color(0xFF2FA96E))) {
+                        append(".")
+                    }
+                },
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 48.dp)
+            )
+
+            // Signup form fields
+            OutlinedTextField(
+                value = uiState.fullName,
+                onValueChange = { viewModel.updateFullName(it) },
+                label = { Text("Full Name*") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+            OutlinedTextField(
+                value = uiState.age,
+                onValueChange = { viewModel.updateAge(it) },
+                label = { Text("Age*") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+            OutlinedTextField(
+                value = uiState.currentJob,
+                onValueChange = { viewModel.updateCurrentJob(it) },
+                label = { Text("Current Job*") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+            OutlinedTextField(
+                value = uiState.instituteName,
+                onValueChange = { viewModel.updateInstituteName(it) },
+                label = { Text("Institute Name*") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+            OutlinedTextField(
+                value = uiState.phoneNumber,
+                onValueChange = { viewModel.updatePhoneNumber(it) },
+                label = { Text("Phone Number*") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            )
+            // Next button right after the fields
+            Button(
+                onClick = onNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Next", fontSize = 16.sp)
+            }
         }
     }
 }

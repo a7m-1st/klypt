@@ -203,6 +203,13 @@ fun GalleryNavHost(
       )
     }
 
+    // Signup page route
+    composable("signup") {
+      com.klypt.ui.signup.SignupScreen(
+        onNext = { navController.navigateUp() }
+      )
+    }
+
     composable(
       route = "otp_verify/{phoneNumber}",
       arguments = listOf(navArgument("phoneNumber") { type = NavType.StringType })
