@@ -74,13 +74,15 @@ class LoginViewModel @Inject constructor(
                 // First, check if user exists locally for faster response
                 val localUserResult = authRepository.getUserFromCouchDB(
                     _uiState.value.firstName,
-                    _uiState.value.lastName
+                    _uiState.value.lastName,
+                    _uiState.value.role
                 )
                 
                 // Attempt network login
                 val result = authRepository.login(
                     firstName = _uiState.value.firstName,
-                    lastName = _uiState.value.lastName
+                    lastName = _uiState.value.lastName,
+                    userRole = _uiState.value.role
                 )
 
                 if(result.isSuccess) {
@@ -126,11 +128,26 @@ class LoginViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                val searchResult = authRepository.searchUsersInCouchDB(query)
+                val searchResult = authRepository.searchUsersInCouchDB(query, _uiState.value.role)
                 if (searchResult.isSuccess) {
                     val users = searchResult.getOrNull() ?: emptyList()
-                    val userNames = users.map { "${it.firstName} ${it.lastName}" }
-                    onResult(userNames)
+                    val userNames = when (_uiState.value.role) {
+                        UserRole.STUDENT -> {
+                            users.map { user ->
+                                if (user is com.klypt.data.models.Student) {
+                                    "${user.firstName} ${user.lastName}"
+                                } else ""
+                            }
+                        }
+                        UserRole.EDUCATOR -> {
+                            users.map { user ->
+                                if (user is com.klypt.data.models.Educator) {
+                                    user.fullName
+                                } else ""
+                            }
+                        }
+                    }
+                    onResult(userNames.filter { it.isNotEmpty() })
                 } else {
                     onResult(emptyList())
                 }
@@ -146,12 +163,16 @@ class LoginViewModel @Inject constructor(
     fun getOfflineUserStats(onResult: (String) -> Unit) {
         viewModelScope.launch {
             try {
-                val allUsersResult = authRepository.getAllUsersFromCouchDB()
+                val allUsersResult = authRepository.getAllUsersFromCouchDB(_uiState.value.role)
                 if (allUsersResult.isSuccess) {
                     val users = allUsersResult.getOrNull() ?: emptyList()
                     val activeUsers = users.count { it.isActive }
                     val totalUsers = users.size
-                    val stats = "Offline Users: $activeUsers active, $totalUsers total"
+                    val roleText = when (_uiState.value.role) {
+                        UserRole.STUDENT -> "Students"
+                        UserRole.EDUCATOR -> "Educators"
+                    }
+                    val stats = "Offline $roleText: $activeUsers active, $totalUsers total"
                     onResult(stats)
                 } else {
                     onResult("No offline data available")
@@ -192,7 +213,7 @@ class LoginViewModel @Inject constructor(
         if (firstName.isNotBlank() && lastName.isNotBlank()) {
             viewModelScope.launch {
                 try {
-                    val localUserResult = authRepository.getUserFromCouchDB(firstName, lastName)
+                    val localUserResult = authRepository.getUserFromCouchDB(firstName, lastName, _uiState.value.role)
                     _uiState.value = _uiState.value.copy(
                         localDataAvailable = localUserResult.isSuccess && localUserResult.getOrNull() != null
                     )

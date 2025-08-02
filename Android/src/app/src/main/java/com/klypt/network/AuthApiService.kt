@@ -1,7 +1,6 @@
 package com.klypt.network
 
 import android.service.autofill.UserData
-import com.klypt.data.User
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -25,6 +24,5 @@ data class RegisterRequest(
 )
 
 data class LoginResponse(
-    val token: String,
-    val user: User
+    val token: String
 )

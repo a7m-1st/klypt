@@ -2,9 +2,9 @@ package com.klypt.data.repositories
 
 import com.couchbase.lite.CouchbaseLiteException
 import com.couchbase.lite.MutableDocument
+import com.klypt.DatabaseManager
+import com.klypt.data.KeyValueRepository
 
-import com.couchbase.learningpath.data.DatabaseManager
-import com.couchbase.learningpath.data.KeyValueRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -98,6 +98,56 @@ class StudentRepository(
                 }
             }
             return@withContext result
+        }
+    }
+    
+    suspend fun searchStudents(query: String): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val searchQuery = "SELECT * FROM _ WHERE type='$studentType' AND (firstName LIKE '%$query%' OR lastName LIKE '%$query%')"
+                val queryResults = db.createQuery(searchQuery).execute().allResults()
+                
+                for (result in queryResults) {
+                    val studentData = mutableMapOf<String, Any>()
+                    studentData["_id"] = result.getString("_id") ?: ""
+                    studentData["type"] = result.getString("type") ?: ""
+                    studentData["firstName"] = result.getString("firstName") ?: ""
+                    studentData["lastName"] = result.getString("lastName") ?: ""
+                    studentData["recoveryCode"] = result.getString("recoveryCode") ?: ""
+                    studentData["enrolledClassIds"] = result.getArray("enrolledClassIds") ?: emptyList<String>()
+                    studentData["createdAt"] = result.getString("createdAt") ?: ""
+                    studentData["updatedAt"] = result.getString("updatedAt") ?: ""
+                    results.add(studentData)
+                }
+            }
+            return@withContext results
+        }
+    }
+    
+    suspend fun getAllStudents(): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val query = "SELECT * FROM _ WHERE type='$studentType'"
+                val queryResults = db.createQuery(query).execute().allResults()
+                
+                for (result in queryResults) {
+                    val studentData = mutableMapOf<String, Any>()
+                    studentData["_id"] = result.getString("_id") ?: ""
+                    studentData["type"] = result.getString("type") ?: ""
+                    studentData["firstName"] = result.getString("firstName") ?: ""
+                    studentData["lastName"] = result.getString("lastName") ?: ""
+                    studentData["recoveryCode"] = result.getString("recoveryCode") ?: ""
+                    studentData["enrolledClassIds"] = result.getArray("enrolledClassIds") ?: emptyList<String>()
+                    studentData["createdAt"] = result.getString("createdAt") ?: ""
+                    studentData["updatedAt"] = result.getString("updatedAt") ?: ""
+                    results.add(studentData)
+                }
+            }
+            return@withContext results
         }
     }
 

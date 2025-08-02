@@ -2,9 +2,9 @@ package com.klypt.data.repositories
 
 import com.couchbase.lite.CouchbaseLiteException
 import com.couchbase.lite.MutableDocument
+import com.klypt.DatabaseManager
+import com.klypt.data.KeyValueRepository
 
-import com.couchbase.learningpath.data.DatabaseManager
-import com.couchbase.learningpath.data.KeyValueRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

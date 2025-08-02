@@ -2,9 +2,9 @@ package com.klypt.data.repositories
 
 import com.couchbase.lite.CouchbaseLiteException
 import com.couchbase.lite.MutableDocument
+import com.klypt.DatabaseManager
+import com.klypt.data.KeyValueRepository
 
-import com.couchbase.learningpath.data.DatabaseManager
-import com.couchbase.learningpath.data.KeyValueRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -104,6 +104,60 @@ class EducatorRepository(
                 }
             }
             return@withContext result
+        }
+    }
+    
+    suspend fun searchEducators(query: String): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val searchQuery = "SELECT * FROM _ WHERE type='$educatorType' AND fullName LIKE '%$query%'"
+                val queryResults = db.createQuery(searchQuery).execute().allResults()
+                
+                for (result in queryResults) {
+                    val educatorData = mutableMapOf<String, Any>()
+                    educatorData["_id"] = result.getString("_id") ?: ""
+                    educatorData["type"] = result.getString("type") ?: ""
+                    educatorData["fullName"] = result.getString("fullName") ?: ""
+                    educatorData["age"] = result.getInt("age") ?: 0
+                    educatorData["currentJob"] = result.getString("currentJob") ?: ""
+                    educatorData["instituteName"] = result.getString("instituteName") ?: ""
+                    educatorData["phoneNumber"] = result.getString("phoneNumber") ?: ""
+                    educatorData["verified"] = result.getBoolean("verified") ?: false
+                    educatorData["recoveryCode"] = result.getString("recoveryCode") ?: ""
+                    educatorData["classIds"] = result.getArray("classIds") ?: emptyList<String>()
+                    results.add(educatorData)
+                }
+            }
+            return@withContext results
+        }
+    }
+    
+    suspend fun getAllEducators(): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val query = "SELECT * FROM _ WHERE type='$educatorType'"
+                val queryResults = db.createQuery(query).execute().allResults()
+                
+                for (result in queryResults) {
+                    val educatorData = mutableMapOf<String, Any>()
+                    educatorData["_id"] = result.getString("_id") ?: ""
+                    educatorData["type"] = result.getString("type") ?: ""
+                    educatorData["fullName"] = result.getString("fullName") ?: ""
+                    educatorData["age"] = result.getInt("age") ?: 0
+                    educatorData["currentJob"] = result.getString("currentJob") ?: ""
+                    educatorData["instituteName"] = result.getString("instituteName") ?: ""
+                    educatorData["phoneNumber"] = result.getString("phoneNumber") ?: ""
+                    educatorData["verified"] = result.getBoolean("verified") ?: false
+                    educatorData["recoveryCode"] = result.getString("recoveryCode") ?: ""
+                    educatorData["classIds"] = result.getArray("classIds") ?: emptyList<String>()
+                    results.add(educatorData)
+                }
+            }
+            return@withContext results
         }
     }
 

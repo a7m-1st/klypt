@@ -3,7 +3,6 @@ package com.klypt.storage
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
-import com.klypt.data.User
 import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -31,16 +30,6 @@ class TokenManager @Inject constructor(
 
     fun getToken(): String? {
         return sharedPreferences.getString(KEY_TOKEN, null)
-    }
-
-    fun saveUser(user: User) {
-        val userJson = gson.toJson(user)
-        sharedPreferences.edit().putString(KEY_USER, userJson).apply()
-    }
-
-    fun getUser(): User? {
-        val userJson = sharedPreferences.getString(KEY_USER, null)
-        return userJson?.let { gson.fromJson(it, User::class.java) }
     }
 
     fun saveTwilioSid(sid: String) {

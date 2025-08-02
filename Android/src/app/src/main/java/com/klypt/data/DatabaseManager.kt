@@ -2,7 +2,6 @@ package com.klypt
 
 import android.content.Context
 import com.couchbase.lite.*
-import com.klypt.data.User
 import com.klypt.data.models.*
 import java.io.File
 import java.io.FileOutputStream
@@ -85,9 +84,7 @@ class DatabaseManager(private val context: Context) {
         }
     }
 
-    fun initializeDatabases(
-        currentUser: User? = null
-    ) {
+    fun initializeDatabases() {
         try {
             val dbConfig = DatabaseConfigurationFactory.create(context.filesDir.toString())
 
