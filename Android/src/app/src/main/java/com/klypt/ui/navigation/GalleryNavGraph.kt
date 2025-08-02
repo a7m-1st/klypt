@@ -56,6 +56,7 @@ import com.klypt.data.TASK_LLM_CHAT
 import com.klypt.data.TASK_LLM_PROMPT_LAB
 import com.klypt.data.Task
 import com.klypt.data.TaskType
+import com.klypt.data.UserRole
 import com.klypt.data.getModelByName
 import com.klypt.firebaseAnalytics
 import com.klypt.ui.home.HomeScreen
@@ -76,6 +77,8 @@ import com.klypt.ui.login.LoginViewModel
 import com.klypt.ui.login.RoleSelectionScreen
 import com.klypt.ui.modelmanager.ModelManager
 import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.otp.OtpEntryScreen
+import com.klypt.ui.otp.OtpViewModel
 
 private const val TAG = "AGGalleryNavGraph"
 private const val ROUTE_PLACEHOLDER = "placeholder"
@@ -177,14 +180,48 @@ fun GalleryNavHost(
       
       LoginScreen(
         onNavigateToHome = {
-          navController.navigate("home") {
-            popUpTo("login") { inclusive = true }
+          val uiState = loginViewModel.uiState.value
+          when (uiState.role) {
+            UserRole.STUDENT -> {
+              // Student goes directly to home
+              navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+              }
+            }
+            UserRole.EDUCATOR -> {
+              // Educator goes to OTP verification with phone number
+              navController.navigate("otp_verify/${uiState.phoneNumber}") {
+                popUpTo("login") { inclusive = true }
+              }
+            }
           }
         },
         onNavigateToSignup = {
           navController.navigate("signup")
         },
         viewModel = loginViewModel
+      )
+    }
+
+    composable(
+      route = "otp_verify/{phoneNumber}",
+      arguments = listOf(navArgument("phoneNumber") { type = NavType.StringType })
+    ) { backStackEntry ->
+      val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
+      val parentEntry = remember(backStackEntry) {
+        navController.getBackStackEntry("otp_verify/$phoneNumber")
+      }
+      val otpViewModel: OtpViewModel = hiltViewModel(parentEntry)
+
+      OtpEntryScreen(
+        phoneNumber = phoneNumber,
+        onNavigateToHome = {
+          navController.navigate("home")
+        },
+        onNavigateBack = {
+          navController.navigateUp()
+        },
+        viewModel = hiltViewModel()
       )
     }
 

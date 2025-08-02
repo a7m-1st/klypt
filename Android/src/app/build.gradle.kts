@@ -1,7 +1,11 @@
 /*
  * Copyright 2025 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under     // Inject API keys from local.properties into BuildConfig
+    buildConfigField("String", "TWILIO_ACCOUNT_SID", "\"${localProperties.getProperty("TWILIO_ACCOUNT_SID", "")}\"")
+    buildConfigField("String", "TWILIO_AUTH_TOKEN", "\"${localProperties.getProperty("TWILIO_AUTH_TOKEN", "")}\"")
+    buildConfigField("String", "TWILIO_VERIFICATION_SERVICE_SID", "\"${localProperties.getProperty("TWILIO_VERIFICATION_SERVICE_SID", "")}\"")
+    buildConfigField("String", "HUGGING_FACE_API_KEY", "\"${localProperties.getProperty("HUGGING_FACE_API_KEY", "")}\""))Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -13,6 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
@@ -27,6 +33,13 @@ plugins {
   kotlin("kapt")
 }
 
+// Load local.properties file
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+  localProperties.load(localPropertiesFile.inputStream())
+}
+
 android {
   namespace = "com.klypt"
   compileSdk = 35
@@ -36,7 +49,7 @@ android {
     minSdk = 31
     targetSdk = 35
     versionCode = 1
-    versionName = "1.0.4"
+    versionName = "1.0.0"
 
     // Needed for HuggingFace auth workflows.
     // Use the scheme of the "Redirect URLs" in HuggingFace app.
@@ -44,6 +57,12 @@ android {
         "https://huggingface.co/a7m1st"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    // Inject API keys from local.properties into BuildConfig
+    buildConfigField("String", "TWILIO_ACCOUNT_SID", "\"${localProperties.getProperty("TWILIO_ACCOUNT_SID", "")}\"")
+    buildConfigField("String", "TWILIO_AUTH_TOKEN", "\"${localProperties.getProperty("TWILIO_AUTH_TOKEN", "")}\"")
+    buildConfigField("String", "HUGGING_FACE_API_KEY", "\"${localProperties.getProperty("HUGGING_FACE_API_KEY", "")}\"")
+    buildConfigField("String", "TWILIO_VERIFICATION_SERVICE_SID", "\"${localProperties.getProperty("TWILIO_VERIFICATION_SERVICE_SID", "")}\"")
   }
 
   buildTypes {
@@ -117,6 +136,7 @@ dependencies {
   implementation("com.squareup.retrofit2:retrofit:2.9.0")
   implementation("com.squareup.retrofit2:converter-gson:2.9.0")
   implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+  implementation("com.squareup.okhttp3:okhttp:4.12.0")
   
   // // Coroutines (for async operations)
   // implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

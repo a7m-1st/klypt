@@ -19,4 +19,6 @@ data class LoginUiState (
     //educator login
     val phoneNumber: String = "",
     val phoneNumberError: String? = null,
+    val countryCode: String = "+1", // Default to US
+    val selectedCountry: String = "US", // Default country
 )

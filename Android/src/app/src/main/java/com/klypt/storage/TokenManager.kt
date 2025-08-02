@@ -43,6 +43,30 @@ class TokenManager @Inject constructor(
         return userJson?.let { gson.fromJson(it, User::class.java) }
     }
 
+    fun saveTwilioSid(sid: String) {
+        sharedPreferences.edit().putString(KEY_TWILIO_SID, sid).apply()
+    }
+
+    fun getTwilioSid(): String? {
+        return sharedPreferences.getString(KEY_TWILIO_SID, null)
+    }
+
+    fun saveTwilioAuthToken(authToken: String) {
+        sharedPreferences.edit().putString(KEY_TWILIO_AUTH_TOKEN, authToken).apply()
+    }
+
+    fun getTwilioAuthToken(): String? {
+        return sharedPreferences.getString(KEY_TWILIO_AUTH_TOKEN, null)
+    }
+
+    fun saveTwilioServiceSid(serviceSid: String) {
+        sharedPreferences.edit().putString(KEY_TWILIO_SERVICE_SID, serviceSid).apply()
+    }
+
+    fun getTwilioServiceSid(): String? {
+        return sharedPreferences.getString(KEY_TWILIO_SERVICE_SID, null)
+    }
+
     fun clearAll() {
         sharedPreferences.edit().clear().apply()
     }
@@ -50,5 +74,8 @@ class TokenManager @Inject constructor(
     companion object {
         private const val KEY_TOKEN = "auth_token"
         private const val KEY_USER = "user_data"
+        private const val KEY_TWILIO_SID = "twilio_sid"
+        private const val KEY_TWILIO_AUTH_TOKEN = "twilio_auth_token"
+        private const val KEY_TWILIO_SERVICE_SID = "twilio_service_sid"
     }
 }

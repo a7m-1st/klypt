@@ -40,6 +40,22 @@ class LoginViewModel @Inject constructor(
         checkLocalDataAvailability()
     }
 
+    fun updatePhoneNumber(phoneNumber: String) {
+        _uiState.value = _uiState.value.copy(
+            phoneNumber = phoneNumber,
+            phoneNumberError = null
+        )
+        
+        validateForm()
+    }
+
+    fun updateCountryCode(countryCode: String, country: String) {
+        _uiState.value = _uiState.value.copy(
+            countryCode = countryCode,
+            selectedCountry = country
+        )
+    }
+
     fun updateUserRole(role: UserRole) {
         _uiState.value = _uiState.value.copy(
             role = role
@@ -117,8 +133,11 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun validateForm() {
-        val isValid = _uiState.value.firstName.isNotBlank() &&
-                _uiState.value.lastName.isNotBlank();
+        val isValid = when (_uiState.value.role) {
+            UserRole.STUDENT -> _uiState.value.firstName.isNotBlank() &&
+                    _uiState.value.lastName.isNotBlank()
+            UserRole.EDUCATOR -> _uiState.value.phoneNumber.isNotBlank()
+        }
 
         _uiState.value = _uiState.value.copy(isFormValid = isValid)
     }
