@@ -95,7 +95,7 @@ fun LoginScreen(
                         // Navigate to OTP screen with phone number
                         onNavigateToHome()
                     },
-                    clickSignUp = {},
+                    clickSignUp = onNavigateToSignup,
                     recoverAccount = {}
                 )
             }
