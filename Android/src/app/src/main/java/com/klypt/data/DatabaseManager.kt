@@ -1,8 +1,8 @@
 package com.klypt
 
 import android.content.Context
-import com.couchbase.learningpath.models.User
 import com.couchbase.lite.*
+import com.klypt.data.User
 import com.klypt.data.models.*
 import java.io.File
 import java.io.FileOutputStream
@@ -86,7 +86,7 @@ class DatabaseManager(private val context: Context) {
     }
 
     fun initializeDatabases(
-        currentUser: User
+        currentUser: User? = null
     ) {
         try {
             val dbConfig = DatabaseConfigurationFactory.create(context.filesDir.toString())
@@ -94,9 +94,9 @@ class DatabaseManager(private val context: Context) {
             // create or open a database to share between team members to store
             // projects, assets, and user profiles
             // calculate database name based on current logged in users team name
-            val teamName = (currentUser.team.filterNot { it.isWhitespace() }).lowercase()
-            currentInventoryDatabaseName = teamName.plus("_").plus(defaultInventoryDatabaseName)
-            inventoryDatabase = Database(currentInventoryDatabaseName, dbConfig)
+//            val teamName = (currentUser.team.filterNot { it.isWhitespace() }).lowercase()
+//            currentInventoryDatabaseName = teamName.plus("_").plus(defaultInventoryDatabaseName)
+            inventoryDatabase = Database("klypt", dbConfig)
 
             //setup the warehouse Database
             setupWarehouseDatabase(dbConfig)
