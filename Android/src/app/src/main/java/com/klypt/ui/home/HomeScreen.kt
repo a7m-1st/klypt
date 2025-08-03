@@ -400,7 +400,7 @@ private fun IntroText() {
 }
 
 @Composable
-private fun TaskList(
+internal fun TaskList(
   tasks: List<Task>,
   navigateToTaskScreen: (Task) -> Unit,
   loadingModelAllowlist: Boolean,

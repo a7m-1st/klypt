@@ -59,6 +59,7 @@ import com.klypt.data.TaskType
 import com.klypt.data.UserRole
 import com.klypt.data.getModelByName
 import com.klypt.firebaseAnalytics
+import com.klypt.ui.home.EnhancedHomeScreen
 import com.klypt.ui.home.HomeScreen
 import com.klypt.ui.llmchat.LlmAskAudioDestination
 import com.klypt.ui.llmchat.LlmAskAudioScreen
@@ -236,7 +237,7 @@ fun GalleryNavHost(
       var showModelManager by remember { mutableStateOf(false) }
       var pickedTask by remember { mutableStateOf<Task?>(null) }
 
-      HomeScreen(
+      EnhancedHomeScreen(
         modelManagerViewModel = modelManagerViewModel,
         tosViewModel = hiltViewModel(),
         navigateToTaskScreen = { task ->
