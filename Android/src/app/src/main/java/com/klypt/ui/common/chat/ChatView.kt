@@ -94,6 +94,7 @@ fun ChatView(
   onResetSessionClicked: (Model) -> Unit = {},
   onStreamImageMessage: (Model, ChatMessageImage) -> Unit = { _, _ -> },
   onStopButtonClicked: (Model) -> Unit = {},
+  onKlyptSummaryClicked: (Model, List<ChatMessage>) -> Unit = { _, _ -> },
   chatInputType: ChatInputType = ChatInputType.TEXT,
   showStopButtonInInputWhenInProgress: Boolean = false,
 ) {
@@ -241,6 +242,7 @@ fun ChatView(
                 selectedImage = bitmap
                 showImageViewer = true
               },
+              onKlyptSummaryClicked = onKlyptSummaryClicked,
               modifier = Modifier.weight(1f).graphicsLayer { alpha = curAlpha },
               chatInputType = chatInputType,
               showStopButtonInInputWhenInProgress = showStopButtonInInputWhenInProgress,

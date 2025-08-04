@@ -18,15 +18,19 @@ package com.klypt.ui.llmchat
 
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.os.bundleOf
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.firebaseAnalytics
+import com.klypt.ui.llmchat.components.ChatSummaryViewModel
 import com.klypt.ui.common.chat.ChatMessageAudioClip
 import com.klypt.ui.common.chat.ChatMessageImage
 import com.klypt.ui.common.chat.ChatMessageText
 import com.klypt.ui.common.chat.ChatView
 import com.klypt.ui.modelmanager.ModelManagerViewModel
+import kotlinx.coroutines.launch
 
 /** Navigation destination data */
 object LlmChatDestination {
@@ -92,8 +96,10 @@ fun ChatViewWrapper(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  chatSummaryViewModel: ChatSummaryViewModel = hiltViewModel()
 ) {
   val context = LocalContext.current
+  val scope = rememberCoroutineScope()
 
   ChatView(
     task = viewModel.task,
@@ -161,6 +167,27 @@ fun ChatViewWrapper(
     onResetSessionClicked = { model -> viewModel.resetSession(model = model) },
     showStopButtonInInputWhenInProgress = true,
     onStopButtonClicked = { model -> viewModel.stopResponse(model = model) },
+    onKlyptSummaryClicked = { model, messages ->
+      chatSummaryViewModel.createKlyptSummary(
+        model = model,
+        messages = messages,
+        context = context,
+        onSuccess = {
+          android.widget.Toast.makeText(
+            context,
+            "Klypt summary saved successfully!",
+            android.widget.Toast.LENGTH_SHORT
+          ).show()
+        },
+        onError = { errorMessage ->
+          android.widget.Toast.makeText(
+            context,
+            errorMessage,
+            android.widget.Toast.LENGTH_LONG
+          ).show()
+        }
+      )
+    },
     navigateUp = navigateUp,
     modifier = modifier,
   )

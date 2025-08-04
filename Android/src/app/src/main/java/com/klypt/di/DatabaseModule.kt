@@ -1,10 +1,12 @@
 package com.klypt.di
 
 import android.content.Context
-import com.klypt.DatabaseManager
+import com.klypt.data.DatabaseManager
 import com.klypt.data.database.DatabaseInitializer
 import com.klypt.data.repositories.StudentRepository
 import com.klypt.data.repositories.EducatorRepository
+import com.klypt.data.services.ChatSummaryService
+import com.klypt.data.services.UserContextProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,5 +48,19 @@ object DatabaseModule {
         databaseManager: DatabaseManager
     ): DatabaseInitializer {
         return DatabaseInitializer(databaseManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatSummaryService(
+        databaseManager: DatabaseManager
+    ): ChatSummaryService {
+        return ChatSummaryService(databaseManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserContextProvider(): UserContextProvider {
+        return UserContextProvider()
     }
 }

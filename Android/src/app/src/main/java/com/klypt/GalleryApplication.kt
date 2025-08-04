@@ -34,7 +34,10 @@ class GalleryApplication : Application() {
     FirebaseApp.initializeApp(this)
     
     // Initialize CouchDB database
+    Log.d("GalleryApplication", "About to initialize database...")
+    Log.d("GalleryApplication", "DatabaseInitializer instance: $databaseInitializer")
     databaseInitializer.initializeOnStartup()
+    Log.d("GalleryApplication", "Database initialization call completed")
 
     if(ApiKeyConfig.isHuggingFaceConfigured()) {
       dataStoreRepository.saveAccessTokenData(

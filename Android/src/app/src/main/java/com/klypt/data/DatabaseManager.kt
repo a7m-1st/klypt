@@ -1,4 +1,4 @@
-package com.klypt
+package com.klypt.data
 
 import android.content.Context
 import com.couchbase.lite.*
@@ -41,10 +41,12 @@ class DatabaseManager(private val context: Context) {
     private val classCodeIndexName = "idxClassCode"
     private val klypIndexName = "idxKlyp"
     private val quizAttemptIndexName = "idxQuizAttempt"
+    private val chatSummaryIndexName = "idxChatSummary"
     private val studentIdAttributeName = "studentId"
     private val educatorIdAttributeName = "educatorId"
     private val classCodeAttributeName = "classCode"
     private val klypIdAttributeName = "klypId"
+    private val userIdAttributeName = "userId"
 
     var currentInventoryDatabaseName = "inventory"
 
@@ -85,64 +87,120 @@ class DatabaseManager(private val context: Context) {
     }
 
     fun initializeDatabases() {
+        android.util.Log.d("DatabaseManager", "================================")
+        android.util.Log.d("DatabaseManager", "STARTING DATABASE INITIALIZATION")
+        android.util.Log.d("DatabaseManager", "================================")
         try {
+            android.util.Log.d("DatabaseManager", "Starting database initialization...")
             val dbConfig = DatabaseConfigurationFactory.create(context.filesDir.toString())
+            android.util.Log.d("DatabaseManager", "Database config created with path: ${context.filesDir}")
 
             // create or open a database to share between team members to store
             // projects, assets, and user profiles
             // calculate database name based on current logged in users team name
 //            val teamName = (currentUser.team.filterNot { it.isWhitespace() }).lowercase()
 //            currentInventoryDatabaseName = teamName.plus("_").plus(defaultInventoryDatabaseName)
+            android.util.Log.d("DatabaseManager", "Initializing inventory database...")
             inventoryDatabase = Database("klypt", dbConfig)
+            android.util.Log.d("DatabaseManager", "Inventory database created: ${inventoryDatabase != null}")
 
             //setup the warehouse Database
-            setupWarehouseDatabase(dbConfig)
+            android.util.Log.d("DatabaseManager", "Setting up warehouse database...")
+            try {
+                setupWarehouseDatabase(dbConfig)
+                android.util.Log.d("DatabaseManager", "Warehouse database created: ${warehouseDatabase != null}")
+            } catch (e: Exception) {
+                android.util.Log.e("DatabaseManager", "Warehouse database setup failed, continuing with other databases", e)
+                warehouseDatabase = null
+            }
 
-            // setup the Klyp database for educational content
-            setupKlyptDatabase(dbConfig)
+            // setup the Klyp database for educational content (CRITICAL for chat summaries)
+            android.util.Log.d("DatabaseManager", "Setting up Klyp database...")
+            try {
+                setupKlyptDatabase(dbConfig)
+                android.util.Log.d("DatabaseManager", "Klyp database setup completed. klyptDatabase is null: ${klyptDatabase == null}")
+                android.util.Log.d("DatabaseManager", "Klyp database instance: $klyptDatabase")
+            } catch (e: Exception) {
+                android.util.Log.e("DatabaseManager", "CRITICAL: Klyp database setup failed!", e)
+                throw e // Re-throw since this is critical for chat summaries
+            }
 
             //create indexes for database queries
-            createTypeIndex(warehouseDatabase)
+            android.util.Log.d("DatabaseManager", "Creating database indexes...")
+            createTypeIndex(warehouseDatabase) // May be null, but createTypeIndex handles it
             createTypeIndex(inventoryDatabase)
-            createTypeIndex(klyptDatabase)
+            createTypeIndex(klyptDatabase) // This should not be null now
 
+            // Create team/city indexes (these use inventoryDatabase)
             createTeamTypeIndex()
             createCityTypeIndex()
             createCityCountryTypeIndex()
             createAuditIndex()
 
-            // Create indexes for new Klyp data models
+            // Create indexes for new Klyp data models (CRITICAL for chat summaries)
             createKlyptIndexes()
+            
+            android.util.Log.d("DatabaseManager", "Database initialization completed successfully")
 
         } catch (e: Exception) {
-            android.util.Log.e(e.message, e.stackTraceToString())
+            android.util.Log.e("DatabaseManager", "CRITICAL ERROR: Database initialization failed!", e)
+            android.util.Log.e("DatabaseManager", "Exception message: ${e.message}")
+            android.util.Log.e("DatabaseManager", "Exception details:", e)
         }
     }
 
     private fun setupWarehouseDatabase(dbConfig: DatabaseConfiguration) {
-        // create the warehouse database if it doesn't already exist
-        if (!Database.exists(warehouseDatabaseName, context.filesDir)) {
-            unzip(startingWarehouseFileName, File(context.filesDir.toString()))
+        android.util.Log.d("DatabaseManager", "Setting up warehouse database...")
+        try {
+            // create the warehouse database if it doesn't already exist
+            if (!Database.exists(warehouseDatabaseName, context.filesDir)) {
+                android.util.Log.d("DatabaseManager", "Warehouse database doesn't exist, attempting to load from assets...")
+                
+                try {
+                    unzip(startingWarehouseFileName, File(context.filesDir.toString()))
 
-            // copy the warehouse database to the project database
-            // never open the database directly as this will cause issues
-            // with sync
-            val warehouseDbFile =
-                File(
-                    String.format(
-                        "%s/%s",
-                        context.filesDir,
-                        ("${startingWarehouseDatabaseName}.cblite2")
-                    )
-                )
-            Database.copy(warehouseDbFile, warehouseDatabaseName, dbConfig)
+                    // copy the warehouse database to the project database
+                    // never open the database directly as this will cause issues
+                    // with sync
+                    val warehouseDbFile =
+                        File(
+                            String.format(
+                                "%s/%s",
+                                context.filesDir,
+                                ("${startingWarehouseDatabaseName}.cblite2")
+                            )
+                        )
+                    Database.copy(warehouseDbFile, warehouseDatabaseName, dbConfig)
+                    android.util.Log.d("DatabaseManager", "Warehouse database loaded from assets successfully")
+                } catch (e: java.io.FileNotFoundException) {
+                    android.util.Log.w("DatabaseManager", "Warehouse assets file not found: ${e.message}. Creating empty warehouse database.")
+                    // If assets file is missing, just create an empty warehouse database
+                    warehouseDatabase = Database(warehouseDatabaseName, dbConfig)
+                    return
+                }
+            }
+            warehouseDatabase = Database(warehouseDatabaseName, dbConfig)
+            android.util.Log.d("DatabaseManager", "Warehouse database setup completed successfully")
+            
+        } catch (e: Exception) {
+            android.util.Log.e("DatabaseManager", "Failed to setup warehouse database, creating empty one instead", e)
+            // Fallback: create empty warehouse database
+            try {
+                warehouseDatabase = Database(warehouseDatabaseName, dbConfig)
+                android.util.Log.d("DatabaseManager", "Created fallback empty warehouse database")
+            } catch (fallbackException: Exception) {
+                android.util.Log.e("DatabaseManager", "Failed to create fallback warehouse database", fallbackException)
+                // Set to null so we know it failed
+                warehouseDatabase = null
+            }
         }
-        warehouseDatabase = Database(warehouseDatabaseName, dbConfig)
     }
 
     private fun setupKlyptDatabase(dbConfig: DatabaseConfiguration) {
         // create or open the Klyp database for storing educational content
+        android.util.Log.d("DatabaseManager", "Creating Klyp database with name: $klyptDatabaseName")
         klyptDatabase = Database(klyptDatabaseName, dbConfig)
+        android.util.Log.d("DatabaseManager", "Klyp database created successfully. Instance: $klyptDatabase")
     }
 
     private fun createKlyptIndexes() {
@@ -203,6 +261,19 @@ class DatabaseManager(private val context: Context) {
                             ValueIndexItem.property(studentIdAttributeName),
                             ValueIndexItem.property(klypIdAttributeName),
                             ValueIndexItem.property(classCodeAttributeName)
+                        )
+                    )
+                }
+
+                // Index for chat summaries
+                if (!db.indexes.contains(chatSummaryIndexName)) {
+                    db.createIndex(
+                        chatSummaryIndexName,
+                        IndexBuilder.valueIndex(
+                            ValueIndexItem.property(documentTypeAttributeName),
+                            ValueIndexItem.property(userIdAttributeName),
+                            ValueIndexItem.property(classCodeAttributeName),
+                            ValueIndexItem.property("userRole")
                         )
                     )
                 }
@@ -470,6 +541,50 @@ class DatabaseManager(private val context: Context) {
             } ?: false
         } catch (e: Exception) {
             android.util.Log.e("DatabaseManager", "Error saving quiz attempt: ${e.message}", e)
+            false
+        }
+    }
+
+    fun saveChatSummary(chatSummary: com.klypt.data.models.ChatSummary): Boolean {
+        android.util.Log.d("DatabaseManager", "saveChatSummary called for ID: ${chatSummary._id}")
+        return try {
+            android.util.Log.d("DatabaseManager", "klyptDatabase is null: ${klyptDatabase == null}")
+            klyptDatabase?.let { db ->
+                android.util.Log.d("DatabaseManager", "Creating document for chat summary...")
+                val document = MutableDocument(chatSummary._id)
+                document.setString("type", chatSummary.type)
+                document.setString("userId", chatSummary.userId)
+                document.setString("userRole", chatSummary.userRole)
+                document.setString("classCode", chatSummary.classCode)
+                document.setString("sessionTitle", chatSummary.sessionTitle)
+                document.setString("bulletPointSummary", chatSummary.bulletPointSummary)
+                document.setString("modelUsed", chatSummary.modelUsed)
+                document.setString("createdAt", chatSummary.createdAt)
+                document.setBoolean("isSharedWithEducator", chatSummary.isSharedWithEducator)
+                
+                android.util.Log.d("DatabaseManager", "Converting original messages to array...")
+                // Convert original messages to array
+                val messagesArray = MutableArray()
+                chatSummary.originalMessages.forEach { message ->
+                    val messageDict = MutableDictionary()
+                    messageDict.setString("content", message.content)
+                    messageDict.setString("type", message.type)
+                    messageDict.setLong("timestamp", message.timestamp)
+                    messageDict.setBoolean("isUser", message.isUser)
+                    messagesArray.addDictionary(messageDict)
+                }
+                document.setArray("originalMessages", messagesArray)
+                
+                android.util.Log.d("DatabaseManager", "Attempting to save document to database...")
+                db.save(document)
+                android.util.Log.d("DatabaseManager", "Document saved successfully!")
+                true
+            } ?: run {
+                android.util.Log.e("DatabaseManager", "klyptDatabase is null - database not initialized!")
+                false
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("DatabaseManager", "Error saving chat summary: ${e.message}", e)
             false
         }
     }

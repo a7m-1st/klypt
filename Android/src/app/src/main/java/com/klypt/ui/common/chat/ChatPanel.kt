@@ -29,9 +29,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -43,9 +45,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -114,6 +119,7 @@ fun ChatPanel(
   onStreamEnd: (Int) -> Unit = {},
   onStopButtonClicked: () -> Unit = {},
   onImageSelected: (Bitmap) -> Unit = {},
+  onKlyptSummaryClicked: (Model, List<ChatMessage>) -> Unit = { _, _ -> },
   chatInputType: ChatInputType = ChatInputType.TEXT,
   showStopButtonInInputWhenInProgress: Boolean = false,
 ) {
@@ -496,6 +502,36 @@ fun ChatPanel(
                 "To get started, tap the + icon to add your audio clip. Limited to 1 clip up to 30 seconds long."
             ),
             smallFontSize = false,
+          )
+        }
+      }
+    }
+
+    // Klypt Summary Button (only show if there are meaningful messages)
+    if (messages.any { it is ChatMessageText && it.content.trim().isNotEmpty() }) {
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center
+      ) {
+        Button(
+          onClick = { onKlyptSummaryClicked(selectedModel, messages) },
+          enabled = !uiState.inProgress,
+          colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary
+          ),
+          modifier = Modifier.height(48.dp)
+        ) {
+          Icon(
+            Icons.Default.Summarize,
+            contentDescription = "Generate Klypt Summary",
+            modifier = Modifier.size(20.dp)
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(
+            text = "Klypt",
+            style = MaterialTheme.typography.labelLarge
           )
         }
       }

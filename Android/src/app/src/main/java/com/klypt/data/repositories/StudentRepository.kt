@@ -2,7 +2,7 @@ package com.klypt.data.repositories
 
 import com.couchbase.lite.CouchbaseLiteException
 import com.couchbase.lite.MutableDocument
-import com.klypt.DatabaseManager
+import com.klypt.data.DatabaseManager
 import com.klypt.data.KeyValueRepository
 
 import kotlinx.coroutines.Dispatchers
