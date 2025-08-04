@@ -13,6 +13,9 @@ import com.klypt.data.services.UserContextProvider
 import com.klypt.firebaseAnalytics
 import com.klypt.ui.common.chat.ChatMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -57,7 +60,7 @@ class ChatSummaryHandler(
                 userId = userId,
                 userRole = userRole,
                 classCode = classCode,
-                modelName = model.name,
+                model = model,
                 sessionTitle = "LLM Chat Session"
             )
 
@@ -114,6 +117,9 @@ class ChatSummaryViewModel @Inject constructor(
     private val userContextProvider: UserContextProvider
 ) : ViewModel() {
     
+    private val _uiState = MutableStateFlow(ChatSummaryUiState())
+    val uiState: StateFlow<ChatSummaryUiState> = _uiState.asStateFlow()
+    
     fun createKlyptSummary(
         model: Model, 
         messages: List<ChatMessage>,
@@ -123,6 +129,8 @@ class ChatSummaryViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
+                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                
                 Log.d("ChatSummaryViewModel", "Starting Klypt summary creation via ViewModel")
                 
                 val userId = userContextProvider.getCurrentUserId()
@@ -135,18 +143,21 @@ class ChatSummaryViewModel @Inject constructor(
                 // Validate required data
                 if (userId.isEmpty()) {
                     Log.e("ChatSummaryViewModel", "User ID is empty")
+                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "User ID is required")
                     onError("User ID is required")
                     return@launch
                 }
                 
                 if (classCode.isEmpty()) {
                     Log.e("ChatSummaryViewModel", "Class code is empty")
+                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "Class code is required")
                     onError("Class code is required")
                     return@launch
                 }
                 
                 if (messages.isEmpty()) {
                     Log.e("ChatSummaryViewModel", "No messages to save")
+                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "Messages are required")
                     onError("Messages are required")
                     return@launch
                 }
@@ -157,9 +168,11 @@ class ChatSummaryViewModel @Inject constructor(
                     userId = userId,
                     userRole = userRole,
                     classCode = classCode,
-                    modelName = model.name,
+                    model = model,
                     sessionTitle = "LLM Chat Session"
                 )
+                
+                _uiState.value = _uiState.value.copy(isLoading = false)
                 
                 Log.d("ChatSummaryViewModel", "Save result - Success: ${result.isSuccess}")
                 
@@ -181,12 +194,27 @@ class ChatSummaryViewModel @Inject constructor(
                     result.exceptionOrNull()?.let { exception ->
                         Log.e("ChatSummaryViewModel", "Exception details:", exception)
                     }
+                    _uiState.value = _uiState.value.copy(errorMessage = errorMessage)
                     onError("Failed to save Klypt summary: $errorMessage")
                 }
             } catch (e: Exception) {
                 Log.e("ChatSummaryViewModel", "Exception in createKlyptSummary: ${e.message}", e)
-                onError("Error creating Klypt summary: ${e.message}")
+                val errorMsg = "Error creating Klypt summary: ${e.message}"
+                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = errorMsg)
+                onError(errorMsg)
             }
         }
     }
+    
+    /**
+     * Clears any error messages
+     */
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
 }
+
+data class ChatSummaryUiState(
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null
+)

@@ -1,6 +1,8 @@
 package com.klypt.data.services
 
+import android.util.Log
 import com.klypt.data.DatabaseManager
+import com.klypt.data.Model
 import com.klypt.data.UserRole
 import com.klypt.data.models.ChatSummary
 import com.klypt.data.models.SummaryMessage
@@ -9,8 +11,12 @@ import com.klypt.ui.common.chat.ChatMessage
 import com.klypt.ui.common.chat.ChatMessageAudioClip
 import com.klypt.ui.common.chat.ChatMessageText
 import com.klypt.ui.common.chat.ChatSide
+import com.klypt.ui.llmchat.LlmChatModelHelper
+import com.klypt.ui.llmchat.LlmModelInstance
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 @Singleton
 class ChatSummaryService @Inject constructor(
@@ -18,9 +24,141 @@ class ChatSummaryService @Inject constructor(
 ) {
     
     /**
-     * Generates a bullet point summary from chat messages
+     * Generates a bullet point summary from chat messages using LLM
      */
-    fun generateBulletPointSummary(messages: List<ChatMessage>): String {
+    suspend fun generateBulletPointSummary(
+        messages: List<ChatMessage>,
+        model: Model,
+        onLoadingStateChange: (Boolean) -> Unit = {}
+    ): String {
+        return try {
+            onLoadingStateChange(true)
+            
+            // Filter and prepare messages for summarization
+            val relevantMessages = messages.filter { 
+                it.side == ChatSide.USER || it.side == ChatSide.AGENT 
+            }
+            
+            if (relevantMessages.isEmpty()) {
+                onLoadingStateChange(false)
+                return "No messages to summarize."
+            }
+            
+            // Build conversation text with context length limit
+            val conversationText = buildConversationText(relevantMessages)
+            
+            // Create summarization prompt
+            val summaryPrompt = """
+Please create a comprehensive bullet point summary of this conversation between a user and an AI assistant. 
+
+The summary should include:
+- Main topics discussed
+- Key questions asked by the user
+- Important information provided by the AI
+- Any conclusions or outcomes reached
+
+Format the summary in markdown with clear bullet points and sections.
+
+Conversation:
+$conversationText
+
+Summary:
+""".trim()
+            
+            // Use LLM to generate summary
+            val summary = generateLlmSummary(model, summaryPrompt)
+            onLoadingStateChange(false)
+            
+            if (summary.isNotEmpty()) {
+                summary
+            } else {
+                // Fallback to rule-based summary if LLM fails
+                generateFallbackSummary(relevantMessages)
+            }
+            
+        } catch (e: Exception) {
+            Log.e("ChatSummaryService", "Error generating LLM summary", e)
+            onLoadingStateChange(false)
+            // Fallback to rule-based summary
+            generateFallbackSummary(messages.filter { 
+                it.side == ChatSide.USER || it.side == ChatSide.AGENT 
+            })
+        }
+    }
+    
+    /**
+     * Builds conversation text from messages with context length limit
+     */
+    private fun buildConversationText(messages: List<ChatMessage>, maxChars: Int = 8000): String {
+        val conversationBuilder = StringBuilder()
+        var currentLength = 0
+        
+        for (message in messages) {
+            val messageText = when (message) {
+                is ChatMessageText -> {
+                    val role = if (message.side == ChatSide.USER) "User" else "AI"
+                    "$role: ${message.content.trim()}\n\n"
+                }
+                is ChatMessageAudioClip -> {
+                    val role = if (message.side == ChatSide.USER) "User" else "AI"
+                    "$role: [Audio message - ${getDurationText(message)}]\n\n"
+                }
+                else -> ""
+            }
+            
+            if (currentLength + messageText.length > maxChars) {
+                conversationBuilder.append("[... conversation truncated due to length ...]\n")
+                break
+            }
+            
+            conversationBuilder.append(messageText)
+            currentLength += messageText.length
+        }
+        
+        return conversationBuilder.toString()
+    }
+    
+    /**
+     * Generates summary using LLM model
+     */
+    private suspend fun generateLlmSummary(model: Model, prompt: String): String {
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                // Check if model instance is available
+                if (model.instance == null) {
+                    Log.e("ChatSummaryService", "Model instance is null")
+                    continuation.resume("")
+                    return@suspendCancellableCoroutine
+                }
+                
+                val instance = model.instance as LlmModelInstance
+                val fullResponse = StringBuilder()
+                
+                LlmChatModelHelper.runInference(
+                    model = model,
+                    input = prompt,
+                    resultListener = { partialResult, done ->
+                        fullResponse.append(partialResult)
+                        if (done) {
+                            continuation.resume(fullResponse.toString())
+                        }
+                    },
+                    cleanUpListener = {
+                        // Cleanup if needed
+                    }
+                )
+                
+            } catch (e: Exception) {
+                Log.e("ChatSummaryService", "Error in LLM inference", e)
+                continuation.resume("")
+            }
+        }
+    }
+    
+    /**
+     * Generates a fallback rule-based summary when LLM is not available
+     */
+    private fun generateFallbackSummary(messages: List<ChatMessage>): String {
         val summaryBuilder = StringBuilder()
         summaryBuilder.append("## Chat Session Summary\n\n")
         
@@ -148,11 +286,12 @@ class ChatSummaryService @Inject constructor(
         userId: String,
         userRole: UserRole,
         classCode: String,
-        modelName: String,
-        sessionTitle: String? = null
+        model: Model,
+        sessionTitle: String? = null,
+        onLoadingStateChange: (Boolean) -> Unit = {}
     ): Result<ChatSummary> {
         return try {
-            val summary = generateBulletPointSummary(messages)
+            val summary = generateBulletPointSummary(messages, model, onLoadingStateChange)
             val originalMessages = convertToSummaryMessages(messages)
             
             val chatSummary = ChatSummary(
@@ -163,7 +302,7 @@ class ChatSummaryService @Inject constructor(
                 sessionTitle = sessionTitle ?: "Chat Session - ${java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date())}",
                 bulletPointSummary = summary,
                 originalMessages = originalMessages,
-                modelUsed = modelName,
+                modelUsed = model.name,
                 isSharedWithEducator = userRole == UserRole.STUDENT // Students can share with educators by default
             )
             
@@ -174,6 +313,7 @@ class ChatSummaryService @Inject constructor(
                 Result.failure(Exception("Failed to save chat summary to database"))
             }
         } catch (e: Exception) {
+            onLoadingStateChange(false)
             Result.failure(e)
         }
     }
