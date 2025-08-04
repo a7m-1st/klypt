@@ -124,12 +124,16 @@ class LoginViewModel @Inject constructor(
                                     _uiState.value.firstName,
                                     _uiState.value.lastName
                                 )
+                                // Generate a local offline token for session persistence
+                                userContextProvider.generateOfflineToken()
                             }
                             UserRole.EDUCATOR -> {
                                 userContextProvider.setCurrentEducatorUser(
                                     _uiState.value.phoneNumber,
                                     null
                                 )
+                                // Generate a local offline token for session persistence
+                                userContextProvider.generateOfflineToken()
                             }
                         }
                         

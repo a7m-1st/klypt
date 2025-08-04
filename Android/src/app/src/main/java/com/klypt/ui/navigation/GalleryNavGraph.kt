@@ -27,15 +27,19 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
@@ -161,14 +165,65 @@ fun GalleryNavHost(
 
   NavHost(
     navController = navController,
-    // Check authentication status to determine start destination
-    startDestination = if (userContextProvider.isLoggedIn()) "home" else "role_selection",
+    // Always start with splash to properly check authentication
+    startDestination = "splash",
     enterTransition = { EnterTransition.None },
     exitTransition = { ExitTransition.None },
     modifier = modifier,
   ) {
     // Placeholder root screen
     composable(route = ROUTE_PLACEHOLDER) { Text("") }
+
+    // Splash screen for session check
+    composable("splash") {
+      var isCheckingSession by remember { mutableStateOf(true) }
+      
+      LaunchedEffect(Unit) {
+        try {
+          // Check if user has stored session data
+          val hasStoredSession = userContextProvider.hasStoredSession()
+          
+          if (hasStoredSession) {
+            // Try to restore user context
+            val userId = userContextProvider.restoreUserContextAsync()
+            if (userId != null) {
+              // Session restored successfully - navigate to home
+              navController.navigate("home") {
+                popUpTo("splash") { inclusive = true }
+              }
+            } else {
+              // Failed to restore session - go to login
+              navController.navigate("role_selection") {
+                popUpTo("splash") { inclusive = true }
+              }
+            }
+          } else {
+            // No session data - go to login
+            navController.navigate("role_selection") {
+              popUpTo("splash") { inclusive = true }
+            }
+          }
+        } catch (e: Exception) {
+          Log.e(TAG, "Error during session check", e)
+          // On error, go to login
+          navController.navigate("role_selection") {
+            popUpTo("splash") { inclusive = true }
+          }
+        } finally {
+          isCheckingSession = false
+        }
+      }
+      
+      // Show loading indicator while checking session
+      if (isCheckingSession) {
+        Box(
+          modifier = Modifier.fillMaxSize(),
+          contentAlignment = Alignment.Center
+        ) {
+          CircularProgressIndicator()
+        }
+      }
+    }
 
     composable("role_selection") { backStackEntry ->
       val parentEntry = remember(backStackEntry) {

@@ -62,6 +62,27 @@ class UserContextProvider @Inject constructor(
     }
     
     /**
+     * Generate an offline token for session persistence
+     * This is used when user logs in offline mode
+     */
+    fun generateOfflineToken() {
+        Log.d(TAG, "generateOfflineToken() called")
+        
+        // Generate a simple offline token using timestamp and user info
+        val timestamp = System.currentTimeMillis()
+        val userInfo = when (currentUserRole) {
+            UserRole.STUDENT -> currentUserId ?: "unknown_student"
+            UserRole.EDUCATOR -> currentPhoneNumber ?: currentUserId ?: "unknown_educator"
+            null -> "unknown_user"
+        }
+        
+        val offlineToken = "offline_${userInfo}_${timestamp}"
+        tokenManager.saveToken(offlineToken)
+        
+        Log.d(TAG, "Generated offline token for user: $userInfo")
+    }
+    
+    /**
      * Gets the current user role
      * Returns null if no user is logged in
      */
@@ -94,7 +115,8 @@ class UserContextProvider @Inject constructor(
     }
     
     /**
-     * Check if user is currently logged in
+     * Check if user is currently logged in (synchronous version)
+     * This only checks cached data and token presence - use for quick checks
      */
     fun isLoggedIn(): Boolean {
         Log.d(TAG, "isLoggedIn() called")
@@ -102,10 +124,42 @@ class UserContextProvider @Inject constructor(
         val hasUserId = currentUserId != null
         Log.d(TAG, "Has token: $hasToken, Has cached userId: $hasUserId")
         
-        val result = hasToken && (hasUserId || restoreUserContext() != null)
+        // Simple check: token exists and we have cached user context
+        val result = hasToken && hasUserId
         Log.d(TAG, "isLoggedIn result: $result")
         return result
     }
+    
+    /**
+     * Check if user has stored credentials that could be restored (synchronous)
+     * This checks for stored identification without database queries
+     */
+    fun hasStoredSession(): Boolean {
+        Log.d(TAG, "hasStoredSession() called")
+        val hasToken = tokenManager.getToken() != null
+        val hasStudentId = tokenManager.getStudentIdentification() != null
+        val hasEducatorId = tokenManager.getEducatorIdentification() != null
+        
+        // Modified logic: if we have user identification, we should attempt restore
+        // even if token is missing, as the user might have valid local data
+        val result = hasStudentId || hasEducatorId
+        Log.d(TAG, "hasStoredSession result: $result (token=$hasToken, student=$hasStudentId, educator=$hasEducatorId)")
+        
+        if (hasToken && result) {
+            Log.d(TAG, "Full session found - token and user identification present")
+        } else if (result) {
+            Log.d(TAG, "Partial session found - user identification present but token missing, will attempt restore")
+        } else {
+            Log.d(TAG, "No session data found")
+        }
+        
+        return result
+    }
+
+    /**
+     * Get access to the token manager (for internal navigation use)
+     */
+    internal fun getTokenManager(): TokenManager = tokenManager
     
     /**
      * Sets the current user context after successful student login
@@ -158,62 +212,103 @@ class UserContextProvider @Inject constructor(
     }
     
     /**
-     * Attempts to restore user context from stored data
+     * Attempts to restore user context from stored data (async version)
+     * This should be used for app startup instead of the blocking version
      */
-    private fun restoreUserContext(): String? {
-        Log.d(TAG, "restoreUserContext() called")
+    suspend fun restoreUserContextAsync(): String? {
+        Log.d(TAG, "restoreUserContextAsync() called")
         
-        return runBlocking {
-            try {
-                // Try to get stored student identification
-                Log.d(TAG, "Attempting to get stored student identification...")
-                val storedStudent = tokenManager.getStudentIdentification()
-                Log.d(TAG, "Stored student data: $storedStudent")
+        return try {
+            val hasToken = tokenManager.getToken() != null
+            Log.d(TAG, "Token present: $hasToken")
+            
+            // Try to get stored student identification
+            Log.d(TAG, "Attempting to get stored student identification...")
+            val storedStudent = tokenManager.getStudentIdentification()
+            Log.d(TAG, "Stored student data: $storedStudent")
+            
+            if (storedStudent != null) {
+                val (firstName, lastName) = storedStudent
+                val studentId = "${firstName}_${lastName}"
+                Log.d(TAG, "Looking up student with ID: $studentId")
                 
-                if (storedStudent != null) {
-                    val (firstName, lastName) = storedStudent
-                    val studentId = "${firstName}_${lastName}"
-                    Log.d(TAG, "Looking up student with ID: $studentId")
+                val student = contentRepository.getStudentById(studentId)
+                Log.d(TAG, "Student lookup result: ${if (student != null) "found" else "not found"}")
+                
+                if (student != null) {
+                    currentUserId = studentId
+                    currentUserRole = UserRole.STUDENT
+                    Log.d(TAG, "Successfully restored student context: ID=$currentUserId, Role=$currentUserRole")
                     
-                    val student = contentRepository.getStudentById(studentId)
-                    Log.d(TAG, "Student lookup result: ${if (student != null) "found" else "not found"}")
-                    
-                    if (student != null) {
-                        currentUserId = studentId
-                        currentUserRole = UserRole.STUDENT
-                        Log.d(TAG, "Successfully restored student context: ID=$currentUserId, Role=$currentUserRole")
-                        return@runBlocking currentUserId
+                    // If no token but we have valid user data, generate offline token
+                    if (!hasToken) {
+                        Log.w(TAG, "No token found but user data exists - generating offline token")
+                        generateOfflineToken()
                     }
-                }
-                
-                // Try to get stored educator identification
-                Log.d(TAG, "Attempting to get stored educator identification...")
-                val storedEducator = tokenManager.getEducatorIdentification()
-                Log.d(TAG, "Stored educator data: $storedEducator")
-                
-                if (storedEducator != null) {
-                    val (phoneNumber, fullName) = storedEducator
-                    Log.d(TAG, "Looking up educator with phone: $phoneNumber")
                     
-                    // For educators, try to find by phone number
-                    val educator = findEducatorByPhone(phoneNumber)
-                    Log.d(TAG, "Educator lookup result: ${if (educator != null) "found" else "not found"}")
-                    
-                    if (educator != null) {
-                        currentUserId = phoneNumber
-                        currentUserRole = UserRole.EDUCATOR
-                        currentPhoneNumber = phoneNumber
-                        Log.d(TAG, "Successfully restored educator context: ID=$currentUserId, Role=$currentUserRole, Phone=$currentPhoneNumber")
-                        return@runBlocking currentUserId
-                    }
+                    return currentUserId
                 }
-                
-                Log.w(TAG, "Failed to restore user context - no valid stored data found")
-                null
-            } catch (e: Exception) {
-                Log.e(TAG, "Exception during user context restoration", e)
-                null
             }
+            
+            // Try to get stored educator identification
+            Log.d(TAG, "Attempting to get stored educator identification...")
+            val storedEducator = tokenManager.getEducatorIdentification()
+            Log.d(TAG, "Stored educator data: $storedEducator")
+            
+            if (storedEducator != null) {
+                val (phoneNumber, fullName) = storedEducator
+                Log.d(TAG, "Looking up educator with phone: $phoneNumber")
+                
+                // For educators, try to find by phone number
+                val educator = findEducatorByPhone(phoneNumber)
+                Log.d(TAG, "Educator lookup result: ${if (educator != null) "found" else "not found"}")
+                
+                if (educator != null) {
+                    currentUserId = phoneNumber
+                    currentUserRole = UserRole.EDUCATOR
+                    currentPhoneNumber = phoneNumber
+                    Log.d(TAG, "Successfully restored educator context: ID=$currentUserId, Role=$currentUserRole, Phone=$currentPhoneNumber")
+                    
+                    // If no token but we have valid user data, generate offline token
+                    if (!hasToken) {
+                        Log.w(TAG, "No token found but user data exists - generating offline token")
+                        generateOfflineToken()
+                    }
+                    
+                    return currentUserId
+                }
+            }
+            
+            Log.w(TAG, "Failed to restore user context - no valid stored data found")
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception during user context restoration", e)
+            null
+        }
+    }
+
+    /**
+     * Attempts to restore user context from stored data (deprecated blocking version)
+     * @deprecated Use restoreUserContextAsync() instead for better performance
+     */
+    @Deprecated("Use restoreUserContextAsync() instead", ReplaceWith("restoreUserContextAsync()"))
+    private fun restoreUserContext(): String? {
+        Log.d(TAG, "restoreUserContext() called - DEPRECATED")
+        
+        // Simple fallback - just check if we have stored credentials
+        val storedStudent = tokenManager.getStudentIdentification()
+        val storedEducator = tokenManager.getEducatorIdentification()
+        
+        return when {
+            storedStudent != null -> {
+                val (firstName, lastName) = storedStudent
+                "${firstName}_${lastName}"
+            }
+            storedEducator != null -> {
+                val (phoneNumber, _) = storedEducator
+                phoneNumber
+            }
+            else -> null
         }
     }
     
