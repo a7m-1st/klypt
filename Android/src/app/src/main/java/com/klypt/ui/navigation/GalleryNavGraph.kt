@@ -81,6 +81,10 @@ import com.klypt.ui.login.LoginViewModel
 import com.klypt.ui.login.RoleSelectionScreen
 import com.klypt.ui.modelmanager.ModelManager
 import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.newclass.NewClassDestination
+import com.klypt.ui.newclass.NewClassScreen
+import com.klypt.ui.classcodedisplay.ClassCodeDisplayDestination
+import com.klypt.ui.classcodedisplay.ClassCodeDisplayScreen
 import com.klypt.ui.otp.OtpEntryScreen
 import com.klypt.ui.otp.OtpViewModel
 
@@ -251,6 +255,9 @@ fun GalleryNavHost(
             bundleOf("capability_name" to task.type.toString()),
           )
         },
+        onNavigateToNewClass = {
+          navController.navigate(NewClassDestination.route)
+        }
       )
 
       // Model manager.
@@ -274,6 +281,44 @@ fun GalleryNavHost(
             navigateUp = { showModelManager = false },
           )
         }
+      }
+    }
+
+    // LLM chat for class creation
+    composable(
+      route = "llm-chat-for-class/{classCode}/{className}",
+      arguments = listOf(
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("className") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val viewModel: LlmChatViewModel = hiltViewModel(backStackEntry)
+      val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedClassName = backStackEntry.arguments?.getString("className") ?: ""
+      val className = java.net.URLDecoder.decode(encodedClassName, "UTF-8")
+
+      // Use the default model for class creation
+      val defaultModel = TASK_LLM_CHAT.models.firstOrNull()
+      defaultModel?.let { model ->
+        modelManagerViewModel.selectModel(model)
+
+        LlmChatScreen(
+          viewModel = viewModel,
+          modelManagerViewModel = modelManagerViewModel,
+          navigateUp = { navController.navigateUp() },
+          onNavigateToSummaryReview = { summary, model, messages ->
+            // For class creation, navigate directly to class code display instead of summary review
+            // TODO: Get actual educator ID from user session
+            val educatorId = "temp_educator_id" // Placeholder
+            val encodedClassName = java.net.URLEncoder.encode(className, "UTF-8")
+            navController.navigate("${ClassCodeDisplayDestination.route}/$classCode/$encodedClassName/$educatorId") {
+              // Clear the back stack to prevent going back to LLM chat
+              popUpTo("home") { inclusive = false }
+            }
+          }
+        )
       }
     }
 
@@ -403,6 +448,50 @@ fun GalleryNavHost(
         // Fallback if data is not available
         navController.navigateUp()
       }
+    }
+
+    // New Class Screen
+    composable(
+      route = NewClassDestination.route,
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) {
+      NewClassScreen(
+        onNavigateBack = { navController.navigateUp() },
+        onNavigateToLLMChat = { classCode, className ->
+          // Navigate to LLM Chat for class creation with class code and name
+          navController.navigate("llm-chat-for-class/$classCode/$className")
+        }
+      )
+    }
+
+    // Class Code Display Screen
+    composable(
+      route = "${ClassCodeDisplayDestination.route}/{classCode}/{className}/{educatorId}",
+      arguments = listOf(
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("className") { type = NavType.StringType },
+        navArgument("educatorId") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedClassName = backStackEntry.arguments?.getString("className") ?: ""
+      val className = java.net.URLDecoder.decode(encodedClassName, "UTF-8")
+      val educatorId = backStackEntry.arguments?.getString("educatorId") ?: ""
+      
+      ClassCodeDisplayScreen(
+        classCode = classCode,
+        className = className,
+        educatorId = educatorId,
+        onNavigateHome = { 
+          navController.navigate("home") {
+            popUpTo("home") { inclusive = true }
+          }
+        },
+        onNavigateBack = { navController.navigateUp() }
+      )
     }
   }
 

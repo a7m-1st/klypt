@@ -71,6 +71,7 @@ fun EnhancedHomeScreen(
     modelManagerViewModel: ModelManagerViewModel,
     tosViewModel: TosViewModel,
     navigateToTaskScreen: (Task) -> Unit,
+    onNavigateToNewClass: () -> Unit,
     modifier: Modifier = Modifier,
     homeContentViewModel: HomeContentViewModel = hiltViewModel()
 ) {
@@ -192,7 +193,8 @@ fun EnhancedHomeScreen(
                                 classes = homeUiState.myClasses,
                                 onClassClick = { classDoc ->
                                     // Navigate to class details
-                                }
+                                },
+                                onAddNewClassClick = onNavigateToNewClass
                             )
                         }
 
