@@ -119,12 +119,12 @@ class EducationalContentRepository @Inject constructor(
                 Log.e("EducationalContentRepository", "This indicates the student record is incomplete in the database")
                 
                 // Try to force create/update the student with proper data
-                Log.d("EducationalContentRepository", "Attempting to force create/update student...")
-                val forceCreatedStudent = forceCreateStudent(studentId)
-                if (forceCreatedStudent != null) {
-                    Log.d("EducationalContentRepository", "Successfully force created student: $forceCreatedStudent")
-                    return forceCreatedStudent
-                }
+//                Log.d("EducationalContentRepository", "Attempting to force create/update student...")
+//                val forceCreatedStudent = forceCreateStudent(studentId)
+//                if (forceCreatedStudent != null) {
+//                    Log.d("EducationalContentRepository", "Successfully force created student: $forceCreatedStudent")
+//                    return forceCreatedStudent
+//                }
                 
                 // Try to get all students to see what's actually stored
                 try {
@@ -588,6 +588,44 @@ class EducationalContentRepository @Inject constructor(
             )
             
             emit(featured)
+        }
+    }
+
+    /**
+     * Import a class by class code for the current user
+     */
+    suspend fun importClassByCode(classCode: String, currentUserId: String): Result<ClassDocument> {
+        return try {
+            val classData = classRepository.getClassByCode(classCode)
+            if (classData != null) {
+                val classDocument = DatabaseUtils.mapToClassDocument(classData)
+                if (classDocument != null) {
+                    // Add current user to the class if they're not already enrolled
+                    val currentStudentIds = classDocument.studentIds.toMutableList()
+                    if (!currentStudentIds.contains(currentUserId)) {
+                        currentStudentIds.add(currentUserId)
+                        
+                        // Update the class with the new student
+                        val updatedClassData = classData.toMutableMap()
+                        updatedClassData["studentIds"] = currentStudentIds
+                        
+                        classRepository.save(updatedClassData)
+                        
+                        // Return updated class document
+                        val updatedClass = classDocument.copy(studentIds = currentStudentIds)
+                        Result.success(updatedClass)
+                    } else {
+                        // User already enrolled
+                        Result.success(classDocument)
+                    }
+                } else {
+                    Result.failure(Exception("Failed to parse class data"))
+                }
+            } else {
+                Result.failure(Exception("Class with code '$classCode' not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

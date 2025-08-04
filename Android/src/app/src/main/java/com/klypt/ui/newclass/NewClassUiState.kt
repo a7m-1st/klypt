@@ -19,6 +19,12 @@ package com.klypt.ui.newclass
 data class NewClassUiState(
     val className: String = "",
     val classNameError: String? = null,
+    val classCode: String = "",
+    val classCodeError: String? = null,
     val isLoading: Boolean = false,
-    val isFormValid: Boolean = false
+    val isFormValid: Boolean = false,
+    val showClassCodeInput: Boolean = false,
+    val showCreateNewForm: Boolean = false,
+    val errorMessage: String? = null,
+    val successMessage: String? = null
 )

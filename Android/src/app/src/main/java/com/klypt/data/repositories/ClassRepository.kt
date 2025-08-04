@@ -170,6 +170,31 @@ class ClassRepository(
         }
     }
 
+    suspend fun getClassByCode(classCode: String): Map<String, Any>? {
+        return withContext(Dispatchers.IO) {
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val query = "SELECT * FROM _ WHERE type='$classType' AND classCode='$classCode'"
+                val queryResults = db.createQuery(query).execute().allResults()
+                
+                if (queryResults.isNotEmpty()) {
+                    val result = queryResults[0]
+                    val classData = mutableMapOf<String, Any>()
+                    classData["_id"] = result.getString("_id") ?: ""
+                    classData["type"] = result.getString("type") ?: ""
+                    classData["classCode"] = result.getString("classCode") ?: ""
+                    classData["classTitle"] = result.getString("classTitle") ?: ""
+                    classData["updatedAt"] = result.getString("updatedAt") ?: ""
+                    classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
+                    classData["educatorId"] = result.getString("educatorId") ?: ""
+                    classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
+                    return@withContext classData
+                }
+            }
+            return@withContext null
+        }
+    }
+
     private fun getClassDocumentId(classId: String): String {
         return "class::${classId}"
     }
