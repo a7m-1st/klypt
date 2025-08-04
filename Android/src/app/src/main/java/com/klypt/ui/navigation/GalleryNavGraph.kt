@@ -70,6 +70,9 @@ import com.klypt.ui.llmchat.LlmAskImageViewModel
 import com.klypt.ui.llmchat.LlmChatDestination
 import com.klypt.ui.llmchat.LlmChatScreen
 import com.klypt.ui.llmchat.LlmChatViewModel
+import com.klypt.ui.llmchat.SummaryReviewDestination
+import com.klypt.ui.llmchat.components.SummaryReviewScreen
+import com.klypt.ui.navigation.SummaryNavigationData
 import com.klypt.ui.llmsingleturn.LlmSingleTurnDestination
 import com.klypt.ui.llmsingleturn.LlmSingleTurnScreen
 import com.klypt.ui.llmsingleturn.LlmSingleTurnViewModel
@@ -290,6 +293,12 @@ fun GalleryNavHost(
           viewModel = viewModel,
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
+          onNavigateToSummaryReview = { summary, model, messages ->
+            // Store the data in the temporary holder
+            SummaryNavigationData.storeSummaryData(summary, model, messages)
+            // Navigate to summary review screen
+            navController.navigate("${SummaryReviewDestination.route}/${model.name}")
+          }
         )
       }
     }
@@ -330,6 +339,12 @@ fun GalleryNavHost(
           viewModel = viewModel,
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
+          onNavigateToSummaryReview = { summary, model, messages ->
+            // Store the data in the temporary holder
+            SummaryNavigationData.storeSummaryData(summary, model, messages)
+            // Navigate to summary review screen
+            navController.navigate("${SummaryReviewDestination.route}/${model.name}")
+          }
         )
       }
     }
@@ -350,7 +365,43 @@ fun GalleryNavHost(
           viewModel = viewModel,
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
+          onNavigateToSummaryReview = { summary, model, messages ->
+            // Store the data in the temporary holder
+            SummaryNavigationData.storeSummaryData(summary, model, messages)
+            // Navigate to summary review screen
+            navController.navigate("${SummaryReviewDestination.route}/${model.name}")
+          }
         )
+      }
+    }
+
+    // Summary Review Screen
+    composable(
+      route = "${SummaryReviewDestination.route}/{modelName}",
+      arguments = listOf(navArgument("modelName") { type = NavType.StringType }),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      // Retrieve the stored data
+      val (summary, model, messages) = SummaryNavigationData.getSummaryData()
+      
+      if (summary != null && model != null) {
+        SummaryReviewScreen(
+          summary = summary,
+          model = model,
+          messages = messages,
+          onNavigateBack = { 
+            SummaryNavigationData.clearSummaryData()
+            navController.navigateUp() 
+          },
+          onSaveComplete = {
+            SummaryNavigationData.clearSummaryData()
+            navController.navigate("home")
+          }
+        )
+      } else {
+        // Fallback if data is not available
+        navController.navigateUp()
       }
     }
   }

@@ -588,4 +588,47 @@ class DatabaseManager(private val context: Context) {
             false
         }
     }
+
+    fun updateChatSummary(chatSummary: com.klypt.data.models.ChatSummary): Boolean {
+        android.util.Log.d("DatabaseManager", "updateChatSummary called for ID: ${chatSummary._id}")
+        return try {
+            klyptDatabase?.let { db ->
+                android.util.Log.d("DatabaseManager", "Updating document for chat summary...")
+                val document = db.getDocument(chatSummary._id)?.toMutable() ?: MutableDocument(chatSummary._id)
+                
+                document.setString("type", chatSummary.type)
+                document.setString("userId", chatSummary.userId)
+                document.setString("userRole", chatSummary.userRole)
+                document.setString("classCode", chatSummary.classCode)
+                document.setString("sessionTitle", chatSummary.sessionTitle)
+                document.setString("bulletPointSummary", chatSummary.bulletPointSummary)
+                document.setString("modelUsed", chatSummary.modelUsed)
+                document.setString("createdAt", chatSummary.createdAt)
+                document.setBoolean("isSharedWithEducator", chatSummary.isSharedWithEducator)
+                
+                // Convert original messages to array
+                val messagesArray = MutableArray()
+                chatSummary.originalMessages.forEach { message ->
+                    val messageDict = MutableDictionary()
+                    messageDict.setString("content", message.content)
+                    messageDict.setString("type", message.type)
+                    messageDict.setLong("timestamp", message.timestamp)
+                    messageDict.setBoolean("isUser", message.isUser)
+                    messagesArray.addDictionary(messageDict)
+                }
+                document.setArray("originalMessages", messagesArray)
+                
+                android.util.Log.d("DatabaseManager", "Attempting to save updated document to database...")
+                db.save(document)
+                android.util.Log.d("DatabaseManager", "Document updated successfully!")
+                true
+            } ?: run {
+                android.util.Log.e("DatabaseManager", "klyptDatabase is null - database not initialized!")
+                false
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("DatabaseManager", "Error updating chat summary: ${e.message}", e)
+            false
+        }
+    }
 }

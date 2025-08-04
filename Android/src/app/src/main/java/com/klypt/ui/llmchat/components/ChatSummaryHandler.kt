@@ -8,6 +8,7 @@ import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.klypt.data.Model
+import com.klypt.data.models.ChatSummary
 import com.klypt.data.services.ChatSummaryService
 import com.klypt.data.services.UserContextProvider
 import com.klypt.firebaseAnalytics
@@ -124,7 +125,7 @@ class ChatSummaryViewModel @Inject constructor(
         model: Model, 
         messages: List<ChatMessage>,
         context: android.content.Context,
-        onSuccess: () -> Unit = {},
+        onSuccess: (ChatSummary) -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -178,7 +179,12 @@ class ChatSummaryViewModel @Inject constructor(
                 
                 if (result.isSuccess) {
                     Log.d("ChatSummaryViewModel", "Successfully saved Klypt summary")
-                    onSuccess()
+                    val chatSummary = result.getOrNull()
+                    if (chatSummary != null) {
+                        onSuccess(chatSummary)
+                    } else {
+                        onError("Failed to retrieve saved summary")
+                    }
                     firebaseAnalytics?.logEvent(
                         "klypt_summary_created",
                         bundleOf(

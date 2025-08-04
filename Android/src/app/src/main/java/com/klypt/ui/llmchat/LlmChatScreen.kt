@@ -27,6 +27,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.os.bundleOf
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.firebaseAnalytics
+import com.klypt.data.Model
+import com.klypt.data.models.ChatSummary
+import com.klypt.ui.common.chat.ChatMessage
 import com.klypt.ui.llmchat.components.ChatSummaryViewModel
 import com.klypt.ui.llmchat.components.SummaryLoadingScreen
 import com.klypt.ui.common.chat.ChatMessageAudioClip
@@ -50,10 +53,15 @@ object LlmAskAudioDestination {
   val route = "LlmAskAudioRoute"
 }
 
+object SummaryReviewDestination {
+  val route = "SummaryReviewRoute"
+}
+
 @Composable
 fun LlmChatScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
+  onNavigateToSummaryReview: (ChatSummary, Model, List<ChatMessage>) -> Unit = { _, _, _ -> },
   modifier: Modifier = Modifier,
   viewModel: LlmChatViewModel,
 ) {
@@ -61,6 +69,7 @@ fun LlmChatScreen(
     viewModel = viewModel,
     modelManagerViewModel = modelManagerViewModel,
     navigateUp = navigateUp,
+    onNavigateToSummaryReview = onNavigateToSummaryReview,
     modifier = modifier,
   )
 }
@@ -69,6 +78,7 @@ fun LlmChatScreen(
 fun LlmAskImageScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
+  onNavigateToSummaryReview: (ChatSummary, Model, List<ChatMessage>) -> Unit = { _, _, _ -> },
   modifier: Modifier = Modifier,
   viewModel: LlmAskImageViewModel,
 ) {
@@ -76,6 +86,7 @@ fun LlmAskImageScreen(
     viewModel = viewModel,
     modelManagerViewModel = modelManagerViewModel,
     navigateUp = navigateUp,
+    onNavigateToSummaryReview = onNavigateToSummaryReview,
     modifier = modifier,
   )
 }
@@ -84,6 +95,7 @@ fun LlmAskImageScreen(
 fun LlmAskAudioScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
+  onNavigateToSummaryReview: (ChatSummary, Model, List<ChatMessage>) -> Unit = { _, _, _ -> },
   modifier: Modifier = Modifier,
   viewModel: LlmAskAudioViewModel,
 ) {
@@ -91,6 +103,7 @@ fun LlmAskAudioScreen(
     viewModel = viewModel,
     modelManagerViewModel = modelManagerViewModel,
     navigateUp = navigateUp,
+    onNavigateToSummaryReview = onNavigateToSummaryReview,
     modifier = modifier,
   )
 }
@@ -100,6 +113,7 @@ fun ChatViewWrapper(
   viewModel: LlmChatViewModelBase,
   modelManagerViewModel: ModelManagerViewModel,
   navigateUp: () -> Unit,
+  onNavigateToSummaryReview: (ChatSummary, Model, List<ChatMessage>) -> Unit = { _, _, _ -> },
   modifier: Modifier = Modifier,
   chatSummaryViewModel: ChatSummaryViewModel = hiltViewModel()
 ) {
@@ -185,12 +199,9 @@ fun ChatViewWrapper(
         model = model,
         messages = messages,
         context = context,
-        onSuccess = {
-          android.widget.Toast.makeText(
-            context,
-            "Klypt summary saved successfully!",
-            android.widget.Toast.LENGTH_SHORT
-          ).show()
+        onSuccess = { chatSummary ->
+          // Navigate to summary review screen
+          onNavigateToSummaryReview(chatSummary, model, messages)
         },
         onError = { errorMessage ->
           android.widget.Toast.makeText(
