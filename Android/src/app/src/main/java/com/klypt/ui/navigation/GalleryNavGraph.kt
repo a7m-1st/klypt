@@ -227,7 +227,9 @@ fun GalleryNavHost(
           navController.navigate("home")
         },
         onNavigateBack = {
-          navController.navigateUp()
+          navController.navigate("login") {
+            popUpTo("login") { inclusive = true }
+          }
         },
         viewModel = hiltViewModel()
       )

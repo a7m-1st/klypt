@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -306,22 +308,30 @@ fun MyClassesSection(
             }
         }
         
-        if (classes.isEmpty()) {
-            EmptyStateCard(
-                message = "No classes enrolled",
-                icon = Icons.Default.School
-            )
-        } else {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp)
-            ) {
-                items(classes) { classDoc ->
-                    ClassCard(
-                        classDocument = classDoc,
-                        onClick = { onClassClick(classDoc) }
-                    )
-                }
+        val classColors = listOf(
+            Color(0xFFB3E5FC), // Light Blue
+            Color(0xFFFFF9C4), // Light Yellow
+            Color(0xFFC8E6C9), // Light Green
+            Color(0xFFFFCCBC), // Light Orange
+            Color(0xFFD1C4E9), // Light Purple
+            Color(0xFFFFF176), // Yellow
+            Color(0xFFFFAB91)  // Orange
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            itemsIndexed(classes) { idx, classDoc ->
+                ClassCard(
+                    classDocument = classDoc,
+                    onClick = { onClassClick(classDoc) },
+                    cardColor = classColors[idx % classColors.size],
+                    showMenu = true
+                )
+            }
+            // Add Class box at the end
+            item {
+                AddClassBox(onClick = { /* TODO: Show add class dialog */ })
             }
         }
     }
@@ -332,51 +342,161 @@ fun MyClassesSection(
 private fun ClassCard(
     classDocument: ClassDocument,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cardColor: Color = MaterialTheme.colorScheme.surface,
+    showMenu: Boolean = false,
+    onDelete: (() -> Unit)? = null
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Card(
         modifier = modifier
             .width(200.dp)
             .height(120.dp)
             .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    val classTextColor = Color(0xFF44474F) // Softer dark gray
+                    Text(
+                        text = classDocument.classCode,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.2.sp
+                        ),
+                        color = classTextColor
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = classDocument.classTitle,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.1.sp
+                        ),
+                        color = classTextColor,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.People,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${classDocument.studentIds.size} students",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.1.sp
+                        ),
+                        color = Color(0xFF5C5F66)
+                    )
+                }
+            }
+            if (showMenu) {
+                Box(Modifier.fillMaxSize()) {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(32.dp)
+                    ) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        modifier = Modifier.width(160.dp)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Remove Class") },
+                            onClick = {
+                                menuExpanded = false
+                                onDelete?.invoke()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Delete, contentDescription = null)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddClassBox(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(200.dp)
+            .height(120.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F0F0)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Column {
-                Text(
-                    text = classDocument.classCode,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = classDocument.classTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add Class",
+                modifier = Modifier.size(48.dp),
+                tint = Color(0xFFB0B0B0)
+            )
+        }
+    }
+}
+
+// View All Classes Screen
+@Composable
+fun ViewAllClassesScreen(
+    classes: List<ClassDocument>,
+    onClassClick: (ClassDocument) -> Unit,
+    onDeleteClass: (ClassDocument) -> Unit,
+    onAddClass: () -> Unit
+) {
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("All Classes", style = MaterialTheme.typography.titleLarge)
+            IconButton(onClick = onAddClass) {
+                Icon(Icons.Default.Add, contentDescription = "Add Class")
+            }
+        }
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            itemsIndexed(classes) { idx, classDoc ->
+                ClassCard(
+                    classDocument = classDoc,
+                    onClick = { onClassClick(classDoc) },
+                    cardColor = Color(0xFFF5F5F5).copy(alpha = 1f - (idx % 2) * 0.05f),
+                    showMenu = true,
+                    onDelete = { onDeleteClass(classDoc) }
                 )
             }
-            
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.People,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "${classDocument.studentIds.size} students",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            item {
+                AddClassBox(onClick = onAddClass)
             }
         }
     }

@@ -90,278 +90,245 @@ fun OtpEntryScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF8F9FA),
-                        Color(0xFFE9ECEF)
-                    )
-                )
-            )
+            .padding(24.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             // App Logo/Title
-            Card(
-                modifier = Modifier.padding(bottom = 48.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
+            Text(
+                text = buildAnnotatedString {
+                    append("Klypt")
+                    withStyle(style = SpanStyle(color = Color(0xFF2FA96E))) {
+                        append(".")
+                    }
+                },
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+
+            if (isConnected) {
                 Text(
-                    text = buildAnnotatedString {
-                        append("Klypt")
-                        withStyle(style = SpanStyle(color = Color(0xFF2FA96E))) {
-                            append(".")
-                        }
-                    },
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(24.dp)
+                    text = if (uiState.isVerified) "Verification Successful!"
+                        else if (uiState.verificationSent) "Enter Verification Code"
+                        else "Sending Code...",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (uiState.isVerified) Color(0xFF2FA96E) else Color(0xFF343A40),
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-            }
+                Text(
+                    text = if (uiState.isVerified) "Your phone number has been verified successfully"
+                        else if (uiState.verificationSent) "We've sent a 6-digit code to $phoneNumber"
+                        else "Please wait while we send the verification code",
+                    fontSize = 14.sp,
+                    color = Color(0xFF6C757D),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
 
-            // Main Content Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier.padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    if (isConnected) {
-                        // Connected - Show OTP Entry
-                        Text(
-                            text = if (uiState.isVerified) "Verification Successful!" 
-                                  else if (uiState.verificationSent) "Enter Verification Code"
-                                  else "Sending Code...",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (uiState.isVerified) Color(0xFF2FA96E) else Color(0xFF343A40),
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        
-                        Text(
-                            text = if (uiState.isVerified) "Your phone number has been verified successfully"
-                                  else if (uiState.verificationSent) "We've sent a 6-digit code to $phoneNumber"
-                                  else "Please wait while we send the verification code",
-                            fontSize = 14.sp,
-                            color = Color(0xFF6C757D),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 32.dp)
-                        )
-
-                        // Show success icon if verified
-                        if (uiState.isVerified) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Verified",
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .padding(bottom = 16.dp),
-                                tint = Color(0xFF2FA96E)
-                            )
-                        } else {
-                            // OTP Input Fields
-                            BasicTextField(
-                                value = otpCode,
-                                onValueChange = { if (it.length <= otpLength) otpCode = it },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = !uiState.isLoading && uiState.verificationSent,
-                                decorationBox = { innerTextField ->
-                                    Row(
-                                        horizontalArrangement = Arrangement.SpaceEvenly,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        repeat(otpLength) { index ->
-                                            val char = otpCode.getOrNull(index)?.toString() ?: ""
-                                            val isFocused = index == otpCode.length && !uiState.isLoading
-                                            val hasError = uiState.error != null && otpCode.length == otpLength
-                                            
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(50.dp)
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(
-                                                        when {
-                                                            hasError -> Color(0xFFFFEBEE)
-                                                            char.isNotEmpty() -> Color(0xFFE3F2FD)
-                                                            else -> Color(0xFFF5F5F5)
-                                                        }
-                                                    )
-                                                    .border(
-                                                        width = if (isFocused) 2.dp else 1.dp,
-                                                        color = when {
-                                                            hasError -> Color(0xFFE57373)
-                                                            isFocused -> Color(0xFF2FA96E)
-                                                            char.isNotEmpty() -> Color(0xFF2196F3)
-                                                            else -> Color(0xFFE0E0E0)
-                                                        },
-                                                        shape = RoundedCornerShape(12.dp)
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                if (uiState.isLoading && char.isNotEmpty()) {
-                                                    CircularProgressIndicator(
-                                                        modifier = Modifier.size(20.dp),
-                                                        strokeWidth = 2.dp,
-                                                        color = Color(0xFF2FA96E)
-                                                    )
-                                                } else {
-                                                    Text(
-                                                        text = char,
-                                                        fontSize = 20.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = when {
-                                                            hasError -> Color(0xFFE57373)
-                                                            char.isNotEmpty() -> Color(0xFF1976D2)
-                                                            else -> Color(0xFF9E9E9E)
-                                                        }
-                                                    )
+                if (uiState.isVerified) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Verified",
+                        modifier = Modifier
+                            .size(64.dp)
+                            .padding(bottom = 16.dp),
+                        tint = Color(0xFF2FA96E)
+                    )
+                } else {
+                    BasicTextField(
+                        value = otpCode,
+                        onValueChange = { if (it.length <= otpLength) otpCode = it },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isLoading && uiState.verificationSent,
+                        decorationBox = { innerTextField ->
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                repeat(otpLength) { index ->
+                                    val char = otpCode.getOrNull(index)?.toString() ?: ""
+                                    val isFocused = index == otpCode.length && !uiState.isLoading
+                                    val hasError = uiState.error != null && otpCode.length == otpLength
+                                    Box(
+                                        modifier = Modifier
+                                            .size(50.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                when {
+                                                    hasError -> Color(0xFFFFEBEE)
+                                                    char.isNotEmpty() -> Color(0xFFE3F2FD)
+                                                    else -> Color(0xFFF5F5F5)
                                                 }
-                                            }
+                                            )
+                                            .border(
+                                                width = if (isFocused) 2.dp else 1.dp,
+                                                color = when {
+                                                    hasError -> Color(0xFFE57373)
+                                                    char.isNotEmpty() -> Color(0xFF2196F3)
+                                                    else -> Color(0xFFE0E0E0)
+                                                },
+                                                shape = RoundedCornerShape(12.dp)
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (uiState.isLoading && char.isNotEmpty()) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color(0xFF2FA96E)
+                                            )
+                                        } else {
+                                            Text(
+                                                text = char,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = when {
+                                                    hasError -> Color(0xFFE57373)
+                                                    char.isNotEmpty() -> Color(0xFF1976D2)
+                                                    else -> Color(0xFF9E9E9E)
+                                                }
+                                            )
                                         }
                                     }
-                                    Box(modifier = Modifier.size(0.dp)) { innerTextField() }
-                                }
-                            )
-
-                            // Error message
-                            if (uiState.error != null) {
-                                Text(
-                                    text = uiState.error!!,
-                                    color = Color(0xFFE57373),
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(top = 8.dp),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(32.dp))
-
-                            // Action buttons
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Back button
-                                OutlinedButton(
-//                                    onClick = onNavigateBack,
-                                    onClick = onNavigateToHome,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(52.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    enabled = !uiState.isLoading
-                                ) {
-                                    Text(
-                                        text = "Back",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-
-                                // Resend button
-                                Button(
-                                    onClick = { 
-                                        otpCode = ""
-                                        viewModel.clearError()
-                                        viewModel.sendVerificationCode(phoneNumber)
-                                    },
-                                    enabled = !uiState.isLoading && uiState.verificationSent,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(52.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF2FA96E),
-                                        disabledContainerColor = Color(0xFFE0E0E0)
-                                    )
-                                ) {
-                                    if (uiState.isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            strokeWidth = 2.dp,
-                                            color = Color.White
-                                        )
-                                    } else {
-                                        Text(
-                                            text = "Resend",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
                                 }
                             }
+                            Box(modifier = Modifier.size(0.dp)) { innerTextField() }
                         }
+                    )
 
-                    } else {
-                        // No Connection - Show Error State
-                        Icon(
-                            imageVector = Icons.Default.WifiOff,
-                            contentDescription = "No Internet",
-                            modifier = Modifier
-                                .size(64.dp)
-                                .padding(bottom = 16.dp),
-                            tint = Color(0xFFFF5722)
-                        )
-
+                    if (uiState.error != null) {
                         Text(
-                            text = "No Internet Connection",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF343A40),
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            text = uiState.error!!,
+                            color = Color(0xFFE57373),
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 8.dp),
+                            textAlign = TextAlign.Center
                         )
+                    }
 
-                        Text(
-                            text = "CONNECT TO INTERNET TO RECEIVE OTP",
-                            fontSize = 14.sp,
-                            color = Color(0xFF6C757D),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 32.dp),
-                            fontWeight = FontWeight.Medium
-                        )
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                        // Refresh Button
-                        OutlinedButton(
-                            onClick = { 
-                                refreshTrigger++
-                                viewModel.clearError()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Back button: filled, blue background, white text
+                        Button(
+                            onClick = {
+                                // Navigate back to Login page (phone entry)
+                                onNavigateBack()
                             },
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .weight(1f)
                                 .height(52.dp),
                             shape = RoundedCornerShape(16.dp),
-                            border = ButtonDefaults.outlinedButtonBorder.copy(
-                                width = 2.dp,
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFF2FA96E), Color(0xFF4CAF50))
-                                )
+                            enabled = !uiState.isLoading,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                disabledContainerColor = Color(0xFFE0E0E0),
+                                disabledContentColor = Color(0xFF9E9E9E)
                             )
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Refresh",
-                                modifier = Modifier.padding(end = 8.dp),
-                                tint = Color(0xFF2FA96E)
-                            )
                             Text(
-                                text = "Try Again",
+                                text = "Back",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF2FA96E)
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
+                        // Verify button: filled, green background, white text
+                        Button(
+                            onClick = {
+                                if (otpCode.length == otpLength) viewModel.verifyCode(otpCode)
+                            },
+                            enabled = !uiState.isLoading && otpCode.length == otpLength && uiState.verificationSent,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2FA96E),
+                                contentColor = Color(0xFF343A40),
+                                disabledContainerColor = Color(0xFFE0E0E0),
+                                disabledContentColor = Color(0xFF9E9E9E)
+                            )
+                        ) {
+                            if (uiState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                color = Color(0xFF343A40)
+                                )
+                            } else {
+                                Text(
+                                    text = "Verify",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.Black
+                                )
+                            }
+                        }
                     }
+                }
+            } else {
+                Icon(
+                    imageVector = Icons.Default.WifiOff,
+                    contentDescription = "No Internet",
+                    modifier = Modifier
+                        .size(64.dp)
+                        .padding(bottom = 16.dp),
+                    tint = Color(0xFFFF5722)
+                )
+                Text(
+                    text = "No Internet Connection",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF343A40),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "CONNECT TO INTERNET TO RECEIVE OTP",
+                    fontSize = 14.sp,
+                    color = Color(0xFF6C757D),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 32.dp),
+                    fontWeight = FontWeight.Medium
+                )
+                OutlinedButton(
+                    onClick = {
+                        refreshTrigger++
+                        viewModel.clearError()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        width = 2.dp,
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(Color(0xFF2FA96E), Color(0xFF4CAF50))
+                        )
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        modifier = Modifier.padding(end = 8.dp),
+                        tint = Color(0xFF2FA96E)
+                    )
+                    Text(
+                        text = "Try Again",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF2FA96E)
+                    )
                 }
             }
         }
