@@ -564,7 +564,7 @@ object DummyDataGenerator {
     )
 
     // Populate tasks with sample models
-    fun populateTasksWithModels() {
+    private fun populateTasksWithModels() {
         val models = generateSampleModels()
         
         // Clear existing models
@@ -652,7 +652,6 @@ object DummyDataGenerator {
      * Initialize all dummy data for the application
      */
     fun initializeDummyData() {
-        populateTasksWithModels()
         processTasks()
     }
 }

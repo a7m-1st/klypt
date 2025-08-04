@@ -1,11 +1,14 @@
 package com.klypt
 
 import android.app.Application
+import android.util.Log
 import com.klypt.common.writeLaunchInfo
 import com.klypt.data.DataStoreRepository
 import com.klypt.data.database.DatabaseInitializer
 import com.klypt.ui.theme.ThemeSettings
 import com.google.firebase.FirebaseApp
+import com.klypt.ui.common.ApiKeyConfig
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +35,17 @@ class GalleryApplication : Application() {
     
     // Initialize CouchDB database
     databaseInitializer.initializeOnStartup()
+
+    if(ApiKeyConfig.isHuggingFaceConfigured()) {
+      dataStoreRepository.saveAccessTokenData(
+        accessToken = ApiKeyConfig.huggingFaceApiKey,
+        refreshToken = "",
+        expiresAt = System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 365 * 10,
+      )
+      Log.d("Settings", "Configuring HuggingFace API key")
+    } else {
+      Log.d("Settings", "HuggingFace API key not configured")
+    }
   }
   
   override fun onTerminate() {

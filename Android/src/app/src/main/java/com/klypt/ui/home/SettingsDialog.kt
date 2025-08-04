@@ -20,6 +20,7 @@ import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import android.app.UiModeManager
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -70,6 +71,7 @@ import androidx.compose.ui.window.Dialog
 import com.klypt.BuildConfig
 import com.klypt.R
 import com.klypt.proto.Theme
+import com.klypt.ui.common.ApiKeyConfig
 import com.klypt.ui.common.tos.TosDialog
 import com.klypt.ui.modelmanager.ModelManagerViewModel
 import com.klypt.ui.theme.ThemeSettings

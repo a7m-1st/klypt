@@ -400,46 +400,6 @@ private fun IntroText() {
 }
 
 @Composable
-internal fun TaskList(
-  tasks: List<Task>,
-  navigateToTaskScreen: (Task) -> Unit,
-  loadingModelAllowlist: Boolean,
-) {
-  // Label to show when in the process of loading model allowlist.
-  if (loadingModelAllowlist) {
-    Row(
-      horizontalArrangement = Arrangement.Center,
-      modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
-    ) {
-      CircularProgressIndicator(
-        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        strokeWidth = 3.dp,
-        modifier = Modifier.padding(end = 8.dp).size(20.dp),
-      )
-      Text(stringResource(R.string.loading_model_list), style = MaterialTheme.typography.bodyMedium)
-    }
-  }
-  // Model list.
-  else {
-    Column(
-      modifier = Modifier.fillMaxWidth().padding(16.dp),
-      verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-      for (task in tasks) {
-        // Skip audio task for now.
-        if (task.type != TaskType.LLM_ASK_AUDIO) {
-          TaskCard(
-            task = task,
-            onClick = { navigateToTaskScreen(task) },
-            modifier = Modifier.fillMaxWidth(),
-          )
-        }
-      }
-    }
-  }
-}
-
-@Composable
 private fun TaskCard(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
   // Observes the model count and updates the model count label with a fade-in/fade-out animation
   // whenever the count changes.

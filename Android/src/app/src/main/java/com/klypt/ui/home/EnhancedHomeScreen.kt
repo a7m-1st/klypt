@@ -16,21 +16,28 @@
 
 package com.klypt.ui.home
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -41,13 +48,19 @@ import com.klypt.R
 import com.klypt.data.AppBarAction
 import com.klypt.data.AppBarActionType
 import com.klypt.data.Task
+import com.klypt.data.TaskType
 import com.klypt.data.UserRole
 import com.klypt.data.DummyDataGenerator
 import com.klypt.data.models.ClassDocument
 import com.klypt.data.models.Klyp
+import com.klypt.ui.common.TaskIcon
 import com.klypt.ui.common.tos.TosDialog
 import com.klypt.ui.common.tos.TosViewModel
 import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.theme.customColors
+import kotlinx.coroutines.delay
+
+private const val TASK_COUNT_ANIMATION_DURATION = 250
 
 /**
  * Enhanced Home Screen that displays educational content based on user role
@@ -66,7 +79,6 @@ fun EnhancedHomeScreen(
     val homeUiState by homeContentViewModel.uiState.collectAsState()
     
     var showSettingsDialog by remember { mutableStateOf(false) }
-    var showUserSwitchDialog by remember { mutableStateOf(false) }
     var showTosDialog by remember { mutableStateOf(!tosViewModel.getIsTosAccepted()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -103,15 +115,21 @@ fun EnhancedHomeScreen(
                 )
             },
             floatingActionButton = {
-                // Switch user role for demo purposes
+                // Navigate to LLM Chat for quick AI assistance
                 ExtendedFloatingActionButton(
-                    onClick = { showUserSwitchDialog = true },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.secondary,
+                    onClick = { 
+                        // Navigate to LLM Chat with the first available model
+                        val llmChatTask = modelManagerUiState.tasks.find { it.type == TaskType.LLM_CHAT }
+                        if (llmChatTask != null && llmChatTask.models.isNotEmpty()) {
+                            navigateToTaskScreen(llmChatTask)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary,
                 ) {
-                    Icon(Icons.Filled.Person, contentDescription = "Switch User")
+                    Icon(Icons.Filled.Chat, contentDescription = "AI Chat")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Switch Role")
+                    Text("Ask AI")
                 }
             },
         ) { innerPadding ->
@@ -205,6 +223,16 @@ fun EnhancedHomeScreen(
                                 loadingModelAllowlist = modelManagerUiState.loadingModelAllowlist
                             )
                         }
+
+                        // Role Switch section (for demo purposes)
+                        item {
+                            RoleSwitchSection(
+                                currentRole = homeUiState.userRole,
+                                onRoleSelected = { role ->
+                                    homeContentViewModel.switchToDemoUser(role)
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -235,18 +263,6 @@ fun EnhancedHomeScreen(
             curThemeOverride = modelManagerViewModel.readThemeOverride(),
             modelManagerViewModel = modelManagerViewModel,
             onDismissed = { showSettingsDialog = false },
-        )
-    }
-
-    // User Switch Dialog (for demo purposes)
-    if (showUserSwitchDialog) {
-        UserSwitchDialog(
-            currentRole = homeUiState.userRole,
-            onRoleSelected = { role ->
-                homeContentViewModel.switchToDemoUser(role)
-                showUserSwitchDialog = false
-            },
-            onDismiss = { showUserSwitchDialog = false }
         )
     }
 }
@@ -284,60 +300,168 @@ private fun AIFeaturesSection(
 }
 
 /**
- * Dialog for switching user roles (demo purposes)
+ * Role switch section for demo purposes
  */
 @Composable
-private fun UserSwitchDialog(
+private fun RoleSwitchSection(
     currentRole: UserRole,
     onRoleSelected: (UserRole) -> Unit,
-    onDismiss: () -> Unit
+    modifier: Modifier = Modifier
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Switch User Role")
-        },
-        text = {
-            Column {
-                Text("Switch between Student and Educator views to see different content.")
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        onClick = { onRoleSelected(UserRole.STUDENT) },
-                        label = { Text("Student") },
-                        selected = currentRole == UserRole.STUDENT,
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.School,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    )
-                    
-                    FilterChip(
-                        onClick = { onRoleSelected(UserRole.EDUCATOR) },
-                        label = { Text("Educator") },
-                        selected = currentRole == UserRole.EDUCATOR,
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+    Column(modifier = modifier.padding(16.dp)) {
+        Text(
+            text = "Demo Controls",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        Text(
+            text = "Switch between Student and Educator views",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                onClick = { onRoleSelected(UserRole.STUDENT) },
+                label = { Text("Student") },
+                selected = currentRole == UserRole.STUDENT,
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.School,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
-            }
+            )
+            
+            FilterChip(
+                onClick = { onRoleSelected(UserRole.EDUCATOR) },
+                label = { Text("Educator") },
+                selected = currentRole == UserRole.EDUCATOR,
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            )
         }
-    )
+    }
+}
+
+/**
+ * Task list component that displays available AI tasks
+ */
+@Composable
+internal fun TaskList(
+  tasks: List<Task>,
+  navigateToTaskScreen: (Task) -> Unit,
+  loadingModelAllowlist: Boolean,
+) {
+  // Label to show when in the process of loading model allowlist.
+  if (loadingModelAllowlist) {
+    Row(
+      horizontalArrangement = Arrangement.Center,
+      modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+    ) {
+      CircularProgressIndicator(
+        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        strokeWidth = 3.dp,
+        modifier = Modifier.padding(end = 8.dp).size(20.dp),
+      )
+      Text(stringResource(R.string.loading_model_list), style = MaterialTheme.typography.bodyMedium)
+    }
+  }
+  // Model list.
+  else {
+    Column(
+      modifier = Modifier.fillMaxWidth().padding(16.dp),
+      verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+      for (task in tasks) {
+        // Skip audio task for now.
+        if (task.type != TaskType.LLM_ASK_AUDIO) {
+          TaskCard(
+            task = task,
+            onClick = { navigateToTaskScreen(task) },
+            modifier = Modifier.fillMaxWidth(),
+          )
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Task card component that displays individual AI task information
+ */
+@Composable
+private fun TaskCard(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
+  // Observes the model count and updates the model count label with a fade-in/fade-out animation
+  // whenever the count changes.
+  val modelCount by remember {
+    derivedStateOf {
+      val trigger = task.updateTrigger.value
+      if (trigger >= 0) {
+        task.models.size
+      } else {
+        0
+      }
+    }
+  }
+  val modelCountLabel by remember {
+    derivedStateOf {
+      when (modelCount) {
+        1 -> "1 Model"
+        else -> "%d Models".format(modelCount)
+      }
+    }
+  }
+  var curModelCountLabel by remember { mutableStateOf("") }
+  var modelCountLabelVisible by remember { mutableStateOf(true) }
+
+  LaunchedEffect(modelCountLabel) {
+    if (curModelCountLabel.isEmpty()) {
+      curModelCountLabel = modelCountLabel
+    } else {
+      modelCountLabelVisible = false
+      delay(TASK_COUNT_ANIMATION_DURATION.toLong())
+      curModelCountLabel = modelCountLabel
+      modelCountLabelVisible = true
+    }
+  }
+
+  Card(
+    modifier = modifier.clip(RoundedCornerShape(24.dp)).clickable(onClick = onClick),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.customColors.taskCardBgColor),
+  ) {
+    Row(
+      modifier = Modifier.fillMaxSize().padding(24.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+      // Title and model count
+      Column {
+        Text(
+          task.type.label,
+          color = MaterialTheme.colorScheme.onSurface,
+          style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+          curModelCountLabel,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          style = MaterialTheme.typography.bodyMedium,
+        )
+      }
+
+      // Icon.
+      TaskIcon(task = task, width = 40.dp)
+    }
+  }
 }
