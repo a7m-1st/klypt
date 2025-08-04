@@ -8,18 +8,50 @@ import com.klypt.data.models.*
 object DatabaseUtils {
 
     fun mapToStudent(data: Map<String, Any>): Student? {
+        android.util.Log.d("DatabaseUtils", "mapToStudent() called with data: $data")
+        android.util.Log.d("DatabaseUtils", "enrolledClassIds raw data: ${data["enrolledClassIds"]}")
+        android.util.Log.d("DatabaseUtils", "enrolledClassIds type: ${data["enrolledClassIds"]?.javaClass?.simpleName}")
+        
         return try {
-            Student(
+            val student = Student(
                 _id = data["_id"] as? String ?: return null,
                 type = data["type"] as? String ?: "student",
                 firstName = data["firstName"] as? String ?: "",
                 lastName = data["lastName"] as? String ?: "",
                 recoveryCode = data["recoveryCode"] as? String ?: "",
-                enrolledClassIds = (data["enrolledClassIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                enrolledClassIds = when (val classIds = data["enrolledClassIds"]) {
+                    is List<*> -> classIds.filterIsInstance<String>()
+                    is com.couchbase.lite.Array -> {
+                        android.util.Log.d("DatabaseUtils", "Found CouchDB Array with ${classIds.count()} items")
+                        (0 until classIds.count()).mapNotNull { index ->
+                            classIds.getString(index)
+                        }
+                    }
+                    else -> {
+                        android.util.Log.w("DatabaseUtils", "enrolledClassIds is unknown type: ${classIds?.javaClass?.simpleName}")
+                        emptyList()
+                    }
+                },
                 createdAt = data["createdAt"] as? String ?: "",
                 updatedAt = data["updatedAt"] as? String ?: ""
             )
+            
+            android.util.Log.d("DatabaseUtils", "Successfully mapped student: $student")
+            
+            if (student.firstName.isEmpty() || student.lastName.isEmpty()) {
+                android.util.Log.w("DatabaseUtils", "WARNING: Mapped student has empty firstName or lastName!")
+                android.util.Log.w("DatabaseUtils", "  - firstName from data: '${data["firstName"]}'")
+                android.util.Log.w("DatabaseUtils", "  - lastName from data: '${data["lastName"]}'")
+            }
+            
+            if (student.enrolledClassIds.isEmpty()) {
+                android.util.Log.w("DatabaseUtils", "WARNING: Mapped student has no enrolled classes!")
+                android.util.Log.w("DatabaseUtils", "  - enrolledClassIds from data: ${data["enrolledClassIds"]}")
+            }
+            
+            student
         } catch (e: Exception) {
+            android.util.Log.e("DatabaseUtils", "Exception mapping student data", e)
             null
         }
     }
@@ -36,7 +68,11 @@ object DatabaseUtils {
                 phoneNumber = data["phoneNumber"] as? String ?: "",
                 verified = data["verified"] as? Boolean ?: false,
                 recoveryCode = data["recoveryCode"] as? String ?: "",
-                classIds = (data["classIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                classIds = when (val ids = data["classIds"]) {
+                    is List<*> -> ids.filterIsInstance<String>()
+                    is com.couchbase.lite.Array -> (0 until ids.count()).mapNotNull { index -> ids.getString(index) }
+                    else -> emptyList()
+                }
             )
         } catch (e: Exception) {
             null
@@ -53,7 +89,11 @@ object DatabaseUtils {
                 updatedAt = data["updatedAt"] as? String ?: "",
                 lastSyncedAt = data["lastSyncedAt"] as? String ?: "",
                 educatorId = data["educatorId"] as? String ?: "",
-                studentIds = (data["studentIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                studentIds = when (val ids = data["studentIds"]) {
+                    is List<*> -> ids.filterIsInstance<String>()
+                    is com.couchbase.lite.Array -> (0 until ids.count()).mapNotNull { index -> ids.getString(index) }
+                    else -> emptyList()
+                }
             )
         } catch (e: Exception) {
             null

@@ -63,7 +63,7 @@ class EducationalContentRepository @Inject constructor(
         // Force database re-seeding check on next access
         _databaseSeeded = false
     }
-
+    
     /**
      * Ensure database is seeded with initial data
      */
@@ -104,16 +104,119 @@ class EducationalContentRepository @Inject constructor(
      * Get student by ID
      */
     suspend fun getStudentById(studentId: String): Student? {
+        Log.d("EducationalContentRepository", "getStudentById() called with studentId: $studentId")
+        
         return try {
             ensureDatabaseSeeded()
+            Log.d("EducationalContentRepository", "Fetching student data from repository")
+            
             val data = studentRepository.get(studentId)
-            DatabaseUtils.mapToStudent(data)
+            Log.d("EducationalContentRepository", "Raw student data from repository: $data")
+            
+            // DIAGNOSTIC: If we only get _id, let's check what's actually in the database
+            if (data.size == 1 && data.containsKey("_id")) {
+                Log.e("EducationalContentRepository", "CRITICAL: Only _id found in student data!")
+                Log.e("EducationalContentRepository", "This indicates the student record is incomplete in the database")
+                
+                // Try to force create/update the student with proper data
+                Log.d("EducationalContentRepository", "Attempting to force create/update student...")
+                val forceCreatedStudent = forceCreateStudent(studentId)
+                if (forceCreatedStudent != null) {
+                    Log.d("EducationalContentRepository", "Successfully force created student: $forceCreatedStudent")
+                    return forceCreatedStudent
+                }
+                
+                // Try to get all students to see what's actually stored
+                try {
+                    Log.d("EducationalContentRepository", "Checking all students in database for debugging...")
+                    val allStudentsData = studentRepository.getAllStudents()
+                    Log.d("EducationalContentRepository", "Total students in database: ${allStudentsData.size}")
+                    allStudentsData.forEachIndexed { index, studentData ->
+                        Log.d("EducationalContentRepository", "Student $index: $studentData")
+                    }
+                    
+                    // Check if we have the student with correct data
+                    val foundStudent = allStudentsData.find { it["_id"] == studentId }
+                    if (foundStudent != null) {
+                        Log.d("EducationalContentRepository", "Found student in getAllStudents: $foundStudent")
+                        val mappedFromAll = DatabaseUtils.mapToStudent(foundStudent)
+                        Log.d("EducationalContentRepository", "Mapped from getAllStudents: $mappedFromAll")
+                        if (mappedFromAll != null && mappedFromAll.firstName.isNotEmpty()) {
+                            Log.d("EducationalContentRepository", "Using student data from getAllStudents instead")
+                            return mappedFromAll
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("EducationalContentRepository", "Error checking all students", e)
+                }
+                
+                // Force fallback to dummy data since database data is corrupted
+                Log.w("EducationalContentRepository", "Database has corrupted student data, falling back to dummy data")
+                if (_students == null) {
+                    _students = DummyDataGenerator.generateSampleStudents()
+                }
+                val fallbackStudent = _students?.find { it._id == studentId }
+                if (fallbackStudent != null) {
+                    Log.d("EducationalContentRepository", "Using fallback dummy student: $fallbackStudent")
+                    return fallbackStudent
+                }
+                
+                // If no dummy student matches, create a temporary student with the current user's name
+                Log.w("EducationalContentRepository", "Creating temporary student from current user context")
+                try {
+                    // Try to get the current user name from token manager
+                    val parts = studentId.split("_")
+                    if (parts.size >= 2) {
+                        val tempStudent = Student(
+                            _id = studentId,
+                            firstName = parts[0].replaceFirstChar { it.uppercase() },
+                            lastName = parts[1].replaceFirstChar { it.uppercase() },
+                            recoveryCode = "TEMP001",
+                            enrolledClassIds = listOf("class_cs101"), // Give them a default class
+                            createdAt = System.currentTimeMillis().toString(),
+                            updatedAt = System.currentTimeMillis().toString()
+                        )
+                        Log.d("EducationalContentRepository", "Created temporary student: $tempStudent")
+                        return tempStudent
+                    }
+                } catch (e: Exception) {
+                    Log.e("EducationalContentRepository", "Error creating temporary student", e)
+                }
+            }
+            
+            val student = DatabaseUtils.mapToStudent(data)
+            Log.d("EducationalContentRepository", "Mapped student: $student")
+            
+            if (student != null) {
+                Log.d("EducationalContentRepository", "Student details:")
+                Log.d("EducationalContentRepository", "  - ID: ${student._id}")
+                Log.d("EducationalContentRepository", "  - First Name: '${student.firstName}'")
+                Log.d("EducationalContentRepository", "  - Last Name: '${student.lastName}'")
+                Log.d("EducationalContentRepository", "  - Enrolled Classes: ${student.enrolledClassIds}")
+                Log.d("EducationalContentRepository", "  - Created At: '${student.createdAt}'")
+                Log.d("EducationalContentRepository", "  - Updated At: '${student.updatedAt}'")
+                
+                if (student.firstName.isEmpty() || student.lastName.isEmpty()) {
+                    Log.w("EducationalContentRepository", "WARNING: Student has empty firstName or lastName!")
+                }
+                if (student.enrolledClassIds.isEmpty()) {
+                    Log.w("EducationalContentRepository", "WARNING: Student has no enrolled classes!")
+                }
+            } else {
+                Log.w("EducationalContentRepository", "Student mapping returned null")
+            }
+            
+            student
         } catch (e: Exception) {
+            Log.e("EducationalContentRepository", "Exception getting student by ID: ${e.message}", e)
+            
             // Fallback to dummy data
             if (_students == null) {
                 _students = DummyDataGenerator.generateSampleStudents()
             }
-            _students?.find { it._id == studentId }
+            val fallbackStudent = _students?.find { it._id == studentId }
+            Log.d("EducationalContentRepository", "Using fallback student: $fallbackStudent")
+            fallbackStudent
         }
     }
 
