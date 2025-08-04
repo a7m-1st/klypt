@@ -82,7 +82,7 @@ fun LoginScreen(
                     uiState = uiState,
                     onFirstNameChange = viewModel::updateFirstName,
                     onLastNameChange = viewModel::updateLastName,
-                    onStudentLogin = onNavigateToHome,
+                    onStudentLogin = { viewModel.login(onNavigateToHome) },
                     recoverAccount = {}
                 )
             }

@@ -1,5 +1,6 @@
 package com.klypt.ui.login
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.klypt.data.UserRole
@@ -77,6 +78,8 @@ class LoginViewModel @Inject constructor(
                     _uiState.value.lastName,
                     _uiState.value.role
                 )
+
+                Log.d(Variables.TAG, "Couch DB: $localUserResult")
                 
                 // Attempt network login
                 val result = authRepository.login(
@@ -225,4 +228,8 @@ class LoginViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(localDataAvailable = false)
         }
     }
+}
+
+object Variables {
+    const val TAG:String = "Login"
 }
