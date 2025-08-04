@@ -17,6 +17,11 @@
 package com.klypt.di
 
 import com.klypt.data.repository.EducationalContentRepository
+import com.klypt.data.repositories.StudentRepository
+import com.klypt.data.repositories.EducatorRepository
+import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.KlypRepository
+import com.klypt.data.utils.DatabaseSeeder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,7 +37,19 @@ object EducationalContentModule {
 
     @Provides
     @Singleton
-    fun provideEducationalContentRepository(): EducationalContentRepository {
-        return EducationalContentRepository()
+    fun provideEducationalContentRepository(
+        studentRepository: StudentRepository,
+        educatorRepository: EducatorRepository,
+        classRepository: ClassRepository,
+        klypRepository: KlypRepository,
+        databaseSeeder: DatabaseSeeder
+    ): EducationalContentRepository {
+        return EducationalContentRepository(
+            studentRepository,
+            educatorRepository,
+            classRepository,
+            klypRepository,
+            databaseSeeder
+        )
     }
 }

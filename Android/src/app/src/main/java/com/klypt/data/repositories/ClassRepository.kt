@@ -1,13 +1,14 @@
 package com.klypt.data.repositories
 
-import com.couchbase.lite.*
+import com.couchbase.lite.CouchbaseLiteException
+import com.couchbase.lite.MutableDocument
 import com.klypt.data.DatabaseManager
 import com.klypt.data.KeyValueRepository
-
+import com.klypt.data.models.ClassDocument
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class ClassDocumentRepository(
+class ClassRepository(
     private val databaseManager: DatabaseManager
 ) : KeyValueRepository {
     private val classType = "class"
@@ -27,7 +28,7 @@ class ClassDocumentRepository(
 
             val database = databaseManager.inventoryDatabase
             database?.let { db ->
-                val documentId = getClassDocumentId(currentUser) //class::id
+                val documentId = getClassDocumentId(currentUser)
                 val doc = db.getDocument(documentId)
                 if (doc != null) {
                     if (doc.contains("type")) {
@@ -84,51 +85,13 @@ class ClassDocumentRepository(
         return withContext(Dispatchers.IO) {
             val database = databaseManager.inventoryDatabase
             database?.let { db ->
-                val query = "SELECT COUNT(*) AS count FROM _ WHERE type='$classType'"
-                val results = db.createQuery(query).execute().allResults()
-                return@withContext results[0].getInt("count")
+                val query = "SELECT COUNT(*) as count FROM _ WHERE type='$classType'"
+                val result = db.createQuery(query).execute().allResults()
+                if (result.isNotEmpty()) {
+                    return@withContext result[0].getInt("count")
+                }
             }
             return@withContext 0
-        }
-    }
-
-    suspend fun delete(documentId: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            var result = false
-            val database = databaseManager.inventoryDatabase
-            database?.let { db ->
-                val document = db.getDocument(documentId)
-                document?.let {
-                    db.delete(it)
-                    result = true
-                }
-            }
-            return@withContext result
-        }
-    }
-
-    suspend fun getAllClasses(): List<Map<String, Any>> {
-        return withContext(Dispatchers.IO) {
-            val results = mutableListOf<Map<String, Any>>()
-            val database = databaseManager.inventoryDatabase
-            database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$classType'"
-                val queryResults = db.createQuery(query).execute().allResults()
-                
-                for (result in queryResults) {
-                    val classData = mutableMapOf<String, Any>()
-                    classData["_id"] = result.getString("_id") ?: ""
-                    classData["type"] = result.getString("type") ?: ""
-                    classData["classCode"] = result.getString("classCode") ?: ""
-                    classData["classTitle"] = result.getString("classTitle") ?: ""
-                    classData["updatedAt"] = result.getString("updatedAt") ?: ""
-                    classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
-                    classData["educatorId"] = result.getString("educatorId") ?: ""
-                    classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
-                    results.add(classData)
-                }
-            }
-            return@withContext results
         }
     }
 
@@ -162,7 +125,32 @@ class ClassDocumentRepository(
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$classType' AND studentIds CONTAINS '$studentId'"
+                val query = "SELECT * FROM _ WHERE type='$classType' AND ANY student IN studentIds SATISFIES student = '$studentId' END"
+                val queryResults = db.createQuery(query).execute().allResults()
+                
+                for (result in queryResults) {
+                    val classData = mutableMapOf<String, Any>()
+                    classData["_id"] = result.getString("_id") ?: ""
+                    classData["type"] = result.getString("type") ?: ""
+                    classData["classCode"] = result.getString("classCode") ?: ""
+                    classData["classTitle"] = result.getString("classTitle") ?: ""
+                    classData["updatedAt"] = result.getString("updatedAt") ?: ""
+                    classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
+                    classData["educatorId"] = result.getString("educatorId") ?: ""
+                    classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
+                    results.add(classData)
+                }
+            }
+            return@withContext results
+        }
+    }
+
+    suspend fun getAllClasses(): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val query = "SELECT * FROM _ WHERE type='$classType'"
                 val queryResults = db.createQuery(query).execute().allResults()
                 
                 for (result in queryResults) {

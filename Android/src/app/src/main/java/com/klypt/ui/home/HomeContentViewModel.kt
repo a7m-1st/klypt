@@ -16,9 +16,9 @@
 
 package com.klypt.ui.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.klypt.data.DummyDataGenerator
 import com.klypt.data.UserRole
 import com.klypt.data.models.ClassDocument
 import com.klypt.data.models.Educator
@@ -51,41 +51,37 @@ data class HomeUiState(
  */
 @HiltViewModel
 class HomeContentViewModel @Inject constructor(
-    private val contentRepository: EducationalContentRepository
+    private val contentRepository: EducationalContentRepository,
+    private val userContextProvider: com.klypt.data.services.UserContextProvider
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        // Initialize dummy data when ViewModel is created
-        DummyDataGenerator.initializeDummyData()
-        loadInitialData()
+        // Load data for the current user from database
+        loadCurrentUserData()
     }
 
-    private fun loadInitialData() {
+    /**
+     * Load data for the current authenticated user
+     */
+    private fun loadCurrentUserData() {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
-
-                // Load featured content for general home page display
-                contentRepository.getFeaturedContent()
-                    .catch { error ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = "Failed to load content: ${error.message}"
-                        )
-                    }
-                    .collect { featured ->
-                        _uiState.value = _uiState.value.copy(
-                            featuredContent = featured,
-                            isLoading = false
-                        )
-                    }
+                
+                val currentUserId = userContextProvider.getCurrentUserId()
+                val currentUserRole = userContextProvider.getCurrentUserRole()
+                
+                when (currentUserRole) {
+                    UserRole.STUDENT -> loadStudentContent(currentUserId)
+                    UserRole.EDUCATOR -> loadEducatorContent(currentUserId)
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Failed to load initial data: ${e.message}"
+                    errorMessage = "Failed to load user data: ${e.message}"
                 )
             }
         }
@@ -101,7 +97,7 @@ class HomeContentViewModel @Inject constructor(
 
                 // Get student details
                 val student = contentRepository.getStudentById(studentId)
-                
+
                 if (student != null) {
                     // Load student's classes
                     contentRepository.getClassesForStudent(studentId)
@@ -127,7 +123,7 @@ class HomeContentViewModel @Inject constructor(
 
                     // Load upcoming assignments
                     val assignments = contentRepository.getUpcomingAssignmentsForStudent(studentId)
-                    
+
                     _uiState.value = _uiState.value.copy(
                         currentUser = student,
                         upcomingAssignments = assignments,
@@ -158,7 +154,7 @@ class HomeContentViewModel @Inject constructor(
 
                 // Get educator details
                 val educator = contentRepository.getEducatorById(educatorId)
-                
+
                 if (educator != null) {
                     // Load educator's classes
                     contentRepository.getClassesForEducator(educatorId)
@@ -173,12 +169,13 @@ class HomeContentViewModel @Inject constructor(
 
                     // Load class statistics
                     val statistics = contentRepository.getClassStatisticsForEducator(educatorId)
-                    
+
                     // Load all Klyps for educator's classes
                     val allKlyps = mutableListOf<Klyp>()
                     educator.classIds.forEach { classId ->
                         // Convert class ID to class code (simplified for dummy data)
-                        val classCode = _uiState.value.myClasses.find { it._id == classId }?.classCode
+                        val classCode =
+                            _uiState.value.myClasses.find { it._id == classId }?.classCode
                         if (classCode != null) {
                             contentRepository.getKlypsForClass(classCode)
                                 .catch { /* ignore errors for individual classes */ }
@@ -214,21 +211,8 @@ class HomeContentViewModel @Inject constructor(
      */
     fun searchContent(query: String) {
         if (query.isBlank()) {
-            // Reset to original content
-            when (_uiState.value.userRole) {
-                UserRole.STUDENT -> {
-                    val student = _uiState.value.currentUser as? Student
-                    if (student != null) {
-                        loadStudentContent(student._id)
-                    }
-                }
-                UserRole.EDUCATOR -> {
-                    val educator = _uiState.value.currentUser as? Educator
-                    if (educator != null) {
-                        loadEducatorContent(educator._id)
-                    }
-                }
-            }
+            // Reset to original content by reloading current user data
+            loadCurrentUserData()
             return
         }
 
@@ -264,24 +248,11 @@ class HomeContentViewModel @Inject constructor(
      * Refresh all data
      */
     fun refresh() {
-        when (_uiState.value.userRole) {
-            UserRole.STUDENT -> {
-                val student = _uiState.value.currentUser as? Student
-                if (student != null) {
-                    loadStudentContent(student._id)
-                } else {
-                    loadInitialData()
-                }
-            }
-            UserRole.EDUCATOR -> {
-                val educator = _uiState.value.currentUser as? Educator
-                if (educator != null) {
-                    loadEducatorContent(educator._id)
-                } else {
-                    loadInitialData()
-                }
-            }
-        }
+        // Clear cache to force refresh from database
+        contentRepository.clearCache()
+        
+        // Reload current user data
+        loadCurrentUserData()
     }
 
     /**
@@ -292,29 +263,22 @@ class HomeContentViewModel @Inject constructor(
             "totalKlyps" to _uiState.value.recentKlyps.size,
             "totalClasses" to _uiState.value.myClasses.size,
             "upcomingAssignments" to _uiState.value.upcomingAssignments.size,
-            "featuredItems" to ((_uiState.value.featuredContent["recentKlyps"] as? List<*>)?.size ?: 0)
+            "featuredItems" to ((_uiState.value.featuredContent["recentKlyps"] as? List<*>)?.size
+                ?: 0)
         )
     }
-
+    
     /**
-     * Demo method to switch between different user roles for testing
+     * Logout the current user and clear all data
      */
-    fun switchToDemoUser(role: UserRole) {
-        when (role) {
-            UserRole.STUDENT -> {
-                // Load first demo student
-                val demoStudents = DummyDataGenerator.generateSampleStudents()
-                if (demoStudents.isNotEmpty()) {
-                    loadStudentContent(demoStudents.first()._id)
-                }
-            }
-            UserRole.EDUCATOR -> {
-                // Load first demo educator
-                val demoEducators = DummyDataGenerator.generateSampleEducators()
-                if (demoEducators.isNotEmpty()) {
-                    loadEducatorContent(demoEducators.first()._id)
-                }
-            }
-        }
+    fun logout() {
+        // Clear user context which will also clear tokens and stored data
+        userContextProvider.clearUserContext()
+        
+        // Clear repository cache
+        contentRepository.clearCache()
+        
+        // Reset UI state to initial state
+        _uiState.value = HomeUiState()
     }
 }

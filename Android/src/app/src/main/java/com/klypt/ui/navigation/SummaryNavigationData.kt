@@ -29,20 +29,47 @@ object SummaryNavigationData {
     private var currentSummary: ChatSummary? = null
     private var currentModel: Model? = null
     private var currentMessages: List<ChatMessage> = emptyList()
+    private var classCreationContext: ClassCreationContext? = null
+    private var shouldRefreshHome: Boolean = false
     
-    fun storeSummaryData(summary: ChatSummary, model: Model, messages: List<ChatMessage>) {
+    data class ClassCreationContext(
+        val classCode: String,
+        val className: String
+    )
+    
+    fun storeSummaryData(
+        summary: ChatSummary,
+        model: Model,
+        messages: List<ChatMessage>,
+        classContext: ClassCreationContext? = null
+    ) {
         currentSummary = summary
         currentModel = model
         currentMessages = messages
+        classCreationContext = classContext
     }
     
     fun getSummaryData(): Triple<ChatSummary?, Model?, List<ChatMessage>> {
         return Triple(currentSummary, currentModel, currentMessages)
     }
     
+    fun getClassCreationContext(): ClassCreationContext? {
+        return classCreationContext
+    }
+    
+    fun setShouldRefreshHome(shouldRefresh: Boolean) {
+        shouldRefreshHome = shouldRefresh
+    }
+    
+    fun getShouldRefreshHome(): Boolean {
+        return shouldRefreshHome
+    }
+    
     fun clearSummaryData() {
         currentSummary = null
         currentModel = null 
         currentMessages = emptyList()
+        classCreationContext = null
+        shouldRefreshHome = false
     }
 }

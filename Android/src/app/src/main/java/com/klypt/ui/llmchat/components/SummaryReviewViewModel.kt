@@ -62,6 +62,8 @@ class SummaryReviewViewModel @Inject constructor(
                 
                 if (success) {
                     Log.d("SummaryReviewViewModel", "Successfully updated summary")
+                    // Add small delay to ensure database write is complete before navigation
+                    kotlinx.coroutines.delay(100)
                     onSuccess()
                 } else {
                     val errorMsg = "Failed to update summary in database"

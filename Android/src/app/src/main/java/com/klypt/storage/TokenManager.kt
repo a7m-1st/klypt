@@ -55,6 +55,76 @@ class TokenManager @Inject constructor(
     fun getTwilioServiceSid(): String? {
         return sharedPreferences.getString(KEY_TWILIO_SERVICE_SID, null)
     }
+    
+    /**
+     * Save student identification for session persistence
+     */
+    fun saveStudentIdentification(firstName: String, lastName: String) {
+        val studentData = mapOf(
+            "firstName" to firstName,
+            "lastName" to lastName,
+            "userType" to "STUDENT"
+        )
+        val jsonData = gson.toJson(studentData)
+        sharedPreferences.edit().putString(KEY_USER_IDENTIFICATION, jsonData).apply()
+    }
+    
+    /**
+     * Get stored student identification
+     * @return Pair of (firstName, lastName) or null if not found
+     */
+    fun getStudentIdentification(): Pair<String, String>? {
+        val jsonData = sharedPreferences.getString(KEY_USER_IDENTIFICATION, null)
+        return jsonData?.let { 
+            try {
+                val studentData = gson.fromJson(it, Map::class.java) as Map<*, *>
+                if (studentData["userType"] == "STUDENT") {
+                    val firstName = studentData["firstName"] as? String
+                    val lastName = studentData["lastName"] as? String
+                    if (firstName != null && lastName != null) {
+                        Pair(firstName, lastName)
+                    } else null
+                } else null
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+    
+    /**
+     * Save educator identification for session persistence
+     */
+    fun saveEducatorIdentification(phoneNumber: String, fullName: String?) {
+        val educatorData = mapOf(
+            "phoneNumber" to phoneNumber,
+            "fullName" to (fullName ?: ""),
+            "userType" to "EDUCATOR"
+        )
+        val jsonData = gson.toJson(educatorData)
+        sharedPreferences.edit().putString(KEY_USER_IDENTIFICATION, jsonData).apply()
+    }
+    
+    /**
+     * Get stored educator identification
+     * @return Pair of (phoneNumber, fullName) or null if not found
+     */
+    fun getEducatorIdentification(): Pair<String, String>? {
+        val jsonData = sharedPreferences.getString(KEY_USER_IDENTIFICATION, null)
+        return jsonData?.let {
+            try {
+                val educatorData = gson.fromJson(it, Map::class.java) as Map<*, *>
+                if (educatorData["userType"] == "EDUCATOR") {
+                    val phoneNumber = educatorData["phoneNumber"] as? String
+                    val fullName = educatorData["fullName"] as? String ?: ""
+                    if (phoneNumber != null) {
+                        Pair(phoneNumber, fullName)
+                    } else null
+                } else null
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
 
     fun clearAll() {
         sharedPreferences.edit().clear().apply()
@@ -63,6 +133,7 @@ class TokenManager @Inject constructor(
     companion object {
         private const val KEY_TOKEN = "auth_token"
         private const val KEY_USER = "user_data"
+        private const val KEY_USER_IDENTIFICATION = "user_identification" 
         private const val KEY_TWILIO_SID = "twilio_sid"
         private const val KEY_TWILIO_AUTH_TOKEN = "twilio_auth_token"
         private const val KEY_TWILIO_SERVICE_SID = "twilio_service_sid"

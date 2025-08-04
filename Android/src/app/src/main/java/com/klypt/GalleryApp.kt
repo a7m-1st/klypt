@@ -17,12 +17,19 @@
 package com.klypt
 
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.klypt.ui.navigation.GalleryNavHost
+import com.klypt.ui.navigation.NavigationContextViewModel
 
 /** Top level composable representing the main screen of the application. */
 @Composable
 fun GalleryApp(navController: NavHostController = rememberNavController()) {
-  GalleryNavHost(navController = navController)
+  val navigationContextViewModel: NavigationContextViewModel = hiltViewModel()
+  
+  GalleryNavHost(
+    navController = navController,
+    userContextProvider = navigationContextViewModel.userContextProvider
+  )
 }

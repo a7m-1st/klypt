@@ -59,7 +59,14 @@ class KlypRepository(
         return withContext(Dispatchers.IO) {
             val klypId = data["_id"] as String
             val documentId = getKlypDocumentId(klypId)
-            val mutableDocument = MutableDocument(documentId, data)
+            
+            // Remove _id from the data map before creating the document
+            // CouchDB Lite doesn't allow _id in the document body
+            val documentData = data.toMutableMap().apply { 
+                remove("_id") 
+            }
+            
+            val mutableDocument = MutableDocument(documentId, documentData)
             try {
                 val database = databaseManager.inventoryDatabase
                 database?.save(mutableDocument)
@@ -95,6 +102,104 @@ class KlypRepository(
                 }
             }
             return@withContext result
+        }
+    }
+
+    suspend fun getKlypsByClassCode(classCode: String): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val query = "SELECT * FROM _ WHERE type='$klypType' AND classCode='$classCode'"
+                val queryResults = db.createQuery(query).execute().allResults()
+                
+                for (result in queryResults) {
+                    val klypData = mutableMapOf<String, Any>()
+                    klypData["_id"] = result.getString("_id") ?: ""
+                    klypData["type"] = result.getString("type") ?: ""
+                    klypData["classCode"] = result.getString("classCode") ?: ""
+                    klypData["title"] = result.getString("title") ?: ""
+                    klypData["mainBody"] = result.getString("mainBody") ?: ""
+                    klypData["questions"] = result.getArray("questions") ?: emptyList<Map<String, Any>>()
+                    klypData["createdAt"] = result.getString("createdAt") ?: ""
+                    results.add(klypData)
+                }
+            }
+            return@withContext results
+        }
+    }
+
+    suspend fun getKlypsByClassCodes(classCodes: List<String>): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                for (classCode in classCodes) {
+                    val query = "SELECT * FROM _ WHERE type='$klypType' AND classCode='$classCode'"
+                    val queryResults = db.createQuery(query).execute().allResults()
+                    
+                    for (result in queryResults) {
+                        val klypData = mutableMapOf<String, Any>()
+                        klypData["_id"] = result.getString("_id") ?: ""
+                        klypData["type"] = result.getString("type") ?: ""
+                        klypData["classCode"] = result.getString("classCode") ?: ""
+                        klypData["title"] = result.getString("title") ?: ""
+                        klypData["mainBody"] = result.getString("mainBody") ?: ""
+                        klypData["questions"] = result.getArray("questions") ?: emptyList<Map<String, Any>>()
+                        klypData["createdAt"] = result.getString("createdAt") ?: ""
+                        results.add(klypData)
+                    }
+                }
+            }
+            return@withContext results
+        }
+    }
+
+    suspend fun getAllKlyps(): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val query = "SELECT * FROM _ WHERE type='$klypType'"
+                val queryResults = db.createQuery(query).execute().allResults()
+                
+                for (result in queryResults) {
+                    val klypData = mutableMapOf<String, Any>()
+                    klypData["_id"] = result.getString("_id") ?: ""
+                    klypData["type"] = result.getString("type") ?: ""
+                    klypData["classCode"] = result.getString("classCode") ?: ""
+                    klypData["title"] = result.getString("title") ?: ""
+                    klypData["mainBody"] = result.getString("mainBody") ?: ""
+                    klypData["questions"] = result.getArray("questions") ?: emptyList<Map<String, Any>>()
+                    klypData["createdAt"] = result.getString("createdAt") ?: ""
+                    results.add(klypData)
+                }
+            }
+            return@withContext results
+        }
+    }
+
+    suspend fun searchKlyps(query: String): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val searchQuery = "SELECT * FROM _ WHERE type='$klypType' AND (title LIKE '%$query%' OR mainBody LIKE '%$query%')"
+                val queryResults = db.createQuery(searchQuery).execute().allResults()
+                
+                for (result in queryResults) {
+                    val klypData = mutableMapOf<String, Any>()
+                    klypData["_id"] = result.getString("_id") ?: ""
+                    klypData["type"] = result.getString("type") ?: ""
+                    klypData["classCode"] = result.getString("classCode") ?: ""
+                    klypData["title"] = result.getString("title") ?: ""
+                    klypData["mainBody"] = result.getString("mainBody") ?: ""
+                    klypData["questions"] = result.getArray("questions") ?: emptyList<Map<String, Any>>()
+                    klypData["createdAt"] = result.getString("createdAt") ?: ""
+                    results.add(klypData)
+                }
+            }
+            return@withContext results
         }
     }
 

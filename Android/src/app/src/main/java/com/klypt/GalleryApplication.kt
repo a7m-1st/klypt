@@ -5,6 +5,7 @@ import android.util.Log
 import com.klypt.common.writeLaunchInfo
 import com.klypt.data.DataStoreRepository
 import com.klypt.data.database.DatabaseInitializer
+import com.klypt.data.utils.DatabaseSeeder
 import com.klypt.ui.theme.ThemeSettings
 import com.google.firebase.FirebaseApp
 import com.klypt.ui.common.ApiKeyConfig
@@ -13,6 +14,7 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -20,6 +22,7 @@ class GalleryApplication : Application() {
 
   @Inject lateinit var dataStoreRepository: DataStoreRepository
   @Inject lateinit var databaseInitializer: DatabaseInitializer
+  @Inject lateinit var databaseSeeder: DatabaseSeeder
   
   private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -38,6 +41,17 @@ class GalleryApplication : Application() {
     Log.d("GalleryApplication", "DatabaseInitializer instance: $databaseInitializer")
     databaseInitializer.initializeOnStartup()
     Log.d("GalleryApplication", "Database initialization call completed")
+
+    // Seed database with initial data if empty
+    applicationScope.launch {
+      Log.d("GalleryApplication", "Starting database seeding...")
+      val seeded = databaseSeeder.seedDatabaseIfEmpty()
+      if (seeded) {
+        Log.d("GalleryApplication", "Database seeded with initial data")
+      } else {
+        Log.d("GalleryApplication", "Database already contains data, no seeding needed")
+      }
+    }
 
     if(ApiKeyConfig.isHuggingFaceConfigured()) {
       dataStoreRepository.saveAccessTokenData(

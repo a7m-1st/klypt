@@ -68,7 +68,14 @@ class EducatorRepository(
         return withContext(Dispatchers.IO) {
             val educatorId = data["_id"] as String
             val documentId = getEducatorDocumentId(educatorId)
-            val mutableDocument = MutableDocument(documentId, data)
+
+            // Remove _id from the data map before creating the document
+            // CouchDB Lite doesn't allow _id in the document body
+            val documentData = data.toMutableMap().apply {
+                remove("_id")
+            }
+
+            val mutableDocument = MutableDocument(documentId, documentData)
             try {
                 val database = databaseManager.inventoryDatabase
                 database?.save(mutableDocument)

@@ -30,8 +30,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,6 +55,7 @@ import com.klypt.ui.common.TaskIcon
 import com.klypt.ui.common.tos.TosDialog
 import com.klypt.ui.common.tos.TosViewModel
 import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.navigation.SummaryNavigationData
 import com.klypt.ui.theme.customColors
 import kotlinx.coroutines.delay
 
@@ -64,6 +63,7 @@ private const val TASK_COUNT_ANIMATION_DURATION = 250
 
 /**
  * Enhanced Home Screen that displays educational content based on user role
+ * Now fetches actual data from the database using UserContextProvider and EducationalContentRepository
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,11 +83,29 @@ fun EnhancedHomeScreen(
     var showTosDialog by remember { mutableStateOf(!tosViewModel.getIsTosAccepted()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
-    // Initialize with demo data
+    // Check for refresh flag from navigation and force refresh if needed
     LaunchedEffect(Unit) {
-        // Start with a demo student for showcase
-        homeContentViewModel.switchToDemoUser(UserRole.STUDENT)
+        if (SummaryNavigationData.getShouldRefreshHome()) {
+            // Clear the flag and force a complete refresh
+            SummaryNavigationData.setShouldRefreshHome(false)
+            homeContentViewModel.refresh()
+        }
+    }
+
+    // Refresh data when screen resumes
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                // Refresh data when coming back to home screen
+                homeContentViewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // Show error message if any
@@ -225,16 +243,6 @@ fun EnhancedHomeScreen(
                                 loadingModelAllowlist = modelManagerUiState.loadingModelAllowlist
                             )
                         }
-
-                        // Role Switch section (for demo purposes)
-                        item {
-                            RoleSwitchSection(
-                                currentRole = homeUiState.userRole,
-                                onRoleSelected = { role ->
-                                    homeContentViewModel.switchToDemoUser(role)
-                                }
-                            )
-                        }
                     }
                 }
 
@@ -298,62 +306,6 @@ private fun AIFeaturesSection(
             navigateToTaskScreen = navigateToTaskScreen,
             loadingModelAllowlist = loadingModelAllowlist
         )
-    }
-}
-
-/**
- * Role switch section for demo purposes
- */
-@Composable
-private fun RoleSwitchSection(
-    currentRole: UserRole,
-    onRoleSelected: (UserRole) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.padding(16.dp)) {
-        Text(
-            text = "Demo Controls",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        Text(
-            text = "Switch between Student and Educator views",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterChip(
-                onClick = { onRoleSelected(UserRole.STUDENT) },
-                label = { Text("Student") },
-                selected = currentRole == UserRole.STUDENT,
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.School,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            )
-            
-            FilterChip(
-                onClick = { onRoleSelected(UserRole.EDUCATOR) },
-                label = { Text("Educator") },
-                selected = currentRole == UserRole.EDUCATOR,
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            )
-        }
     }
 }
 

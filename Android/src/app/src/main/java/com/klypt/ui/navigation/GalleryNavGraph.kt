@@ -59,6 +59,7 @@ import com.klypt.data.TaskType
 import com.klypt.data.UserRole
 import com.klypt.data.getModelByName
 import com.klypt.firebaseAnalytics
+import com.klypt.data.services.UserContextProvider
 import com.klypt.ui.home.EnhancedHomeScreen
 import com.klypt.ui.home.HomeScreen
 import com.klypt.ui.llmchat.LlmAskAudioDestination
@@ -85,8 +86,10 @@ import com.klypt.ui.newclass.NewClassDestination
 import com.klypt.ui.newclass.NewClassScreen
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayDestination
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayScreen
+import com.klypt.ui.classnameconfirmation.ClassNameConfirmationScreen
 import com.klypt.ui.otp.OtpEntryScreen
 import com.klypt.ui.otp.OtpViewModel
+import com.klypt.ui.signup.SignupViewModel
 
 private const val TAG = "AGGalleryNavGraph"
 private const val ROUTE_PLACEHOLDER = "placeholder"
@@ -127,6 +130,7 @@ private fun AnimatedContentTransitionScope<*>.slideExit(): ExitTransition {
 @Composable
 fun GalleryNavHost(
   navController: NavHostController,
+  userContextProvider: UserContextProvider,
   modifier: Modifier = Modifier,
   modelManagerViewModel: ModelManagerViewModel = hiltViewModel(),
 ) {
@@ -157,8 +161,8 @@ fun GalleryNavHost(
 
   NavHost(
     navController = navController,
-    // Start with role selection, then login if not authenticated, home if authenticated
-    startDestination = "role_selection",
+    // Check authentication status to determine start destination
+    startDestination = if (userContextProvider.isLoggedIn()) "home" else "role_selection",
     enterTransition = { EnterTransition.None },
     exitTransition = { ExitTransition.None },
     modifier = modifier,
@@ -191,15 +195,16 @@ fun GalleryNavHost(
           val uiState = loginViewModel.uiState.value
           when (uiState.role) {
             UserRole.STUDENT -> {
-              // Student goes directly to home
+              // For students, context is set in LoginViewModel after successful login
               navController.navigate("home") {
-                popUpTo("login") { inclusive = true }
+                popUpTo("role_selection") { inclusive = true }
               }
             }
             UserRole.EDUCATOR -> {
-              // Educator goes to OTP verification with phone number
+              // For educators, we need OTP verification first
+              // Context will be set after OTP verification
               navController.navigate("otp_verify/${uiState.phoneNumber}") {
-                popUpTo("login") { inclusive = true }
+                popUpTo("role_selection") { inclusive = true }
               }
             }
           }
@@ -213,8 +218,22 @@ fun GalleryNavHost(
 
     // Signup page route
     composable("signup") {
+      val signupViewModel: SignupViewModel = hiltViewModel()
+      
       com.klypt.ui.signup.SignupScreen(
-        onNext = { navController.navigateUp() }
+        onNext = { 
+          // After educator signup, they need to verify their phone number
+          val phoneNumber = signupViewModel.uiState.value.phoneNumber
+          if (phoneNumber.isNotEmpty()) {
+            navController.navigate("otp_verify/$phoneNumber") {
+              popUpTo("signup") { inclusive = true }
+            }
+          } else {
+            // If no phone number provided, go back to role selection
+            navController.navigateUp()
+          }
+        },
+        viewModel = signupViewModel
       )
     }
 
@@ -231,11 +250,14 @@ fun GalleryNavHost(
       OtpEntryScreen(
         phoneNumber = phoneNumber,
         onNavigateToHome = {
-          navController.navigate("home")
+          navController.navigate("home") {
+            popUpTo("role_selection") { inclusive = true }
+          }
         },
         onNavigateBack = {
           navController.navigateUp()
         },
+        userContextProvider = userContextProvider,
         viewModel = hiltViewModel()
       )
     }
@@ -309,14 +331,11 @@ fun GalleryNavHost(
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
           onNavigateToSummaryReview = { summary, model, messages ->
-            // For class creation, navigate directly to class code display instead of summary review
-            // TODO: Get actual educator ID from user session
-            val educatorId = "temp_educator_id" // Placeholder
-            val encodedClassName = java.net.URLEncoder.encode(className, "UTF-8")
-            navController.navigate("${ClassCodeDisplayDestination.route}/$classCode/$encodedClassName/$educatorId") {
-              // Clear the back stack to prevent going back to LLM chat
-              popUpTo("home") { inclusive = false }
-            }
+            // For class creation, store the class context and navigate to summary review
+            val classContext = SummaryNavigationData.ClassCreationContext(classCode, className)
+            SummaryNavigationData.storeSummaryData(summary, model, messages, classContext)
+            // Navigate to summary review screen
+            navController.navigate("${SummaryReviewDestination.route}/${model.name}")
           }
         )
       }
@@ -440,8 +459,25 @@ fun GalleryNavHost(
             navController.navigateUp() 
           },
           onSaveComplete = {
+            val classContext = SummaryNavigationData.getClassCreationContext()
+            // Mark that home should refresh when we return
+            SummaryNavigationData.setShouldRefreshHome(true)
             SummaryNavigationData.clearSummaryData()
-            navController.navigate("home")
+            
+            if (classContext != null) {
+              // We're in class creation context, navigate to class name confirmation
+              navController.navigate("class_name_confirmation/${classContext.classCode}/${java.net.URLEncoder.encode(classContext.className, "UTF-8")}") {
+                // Clear the back stack to prevent going back to intermediate screens
+                popUpTo("llm-chat-for-class/${classContext.classCode}/${java.net.URLEncoder.encode(classContext.className, "UTF-8")}") { 
+                  inclusive = true 
+                }
+              }
+            } else {
+              // Regular summary saving, go to home and force refresh
+              navController.navigate("home") {
+                popUpTo("home") { inclusive = true }
+              }
+            }
           }
         )
       } else {
@@ -462,6 +498,42 @@ fun GalleryNavHost(
           // Navigate to LLM Chat for class creation with class code and name
           navController.navigate("llm-chat-for-class/$classCode/$className")
         }
+      )
+    }
+
+    // Class Name Confirmation Screen (intermediate step in class creation)
+    composable(
+      route = "class_name_confirmation/{classCode}/{className}",
+      arguments = listOf(
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("className") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedClassName = backStackEntry.arguments?.getString("className") ?: ""
+      val className = java.net.URLDecoder.decode(encodedClassName, "UTF-8")
+      
+      // Simple confirmation screen composable
+      ClassNameConfirmationScreen(
+        classCode = classCode,
+        initialClassName = className,
+        onConfirm = { finalClassName ->
+          // Get actual educator ID from user context
+          val educatorId = if (userContextProvider.getCurrentUserRole() == UserRole.EDUCATOR) {
+            userContextProvider.getCurrentUserId()
+          } else {
+            // Fallback to demo educator if current user is not an educator
+            "educator_001"
+          }
+          val encodedFinalClassName = java.net.URLEncoder.encode(finalClassName, "UTF-8")
+          navController.navigate("${ClassCodeDisplayDestination.route}/$classCode/$encodedFinalClassName/$educatorId") {
+            // Clear the back stack to prevent going back to intermediate screens
+            popUpTo("home") { inclusive = false }
+          }
+        },
+        onCancel = { navController.navigateUp() }
       )
     }
 

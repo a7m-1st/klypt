@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.klypt.data.UserRole
+import com.klypt.data.services.UserContextProvider
 import com.klypt.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val validator: InputValidator
+    private val validator: InputValidator,
+    private val userContextProvider: UserContextProvider
 ): ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState : StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -89,6 +91,23 @@ class LoginViewModel @Inject constructor(
                 )
 
                 if(result.isSuccess) {
+                    // Set user context after successful login
+                    when (_uiState.value.role) {
+                        UserRole.STUDENT -> {
+                            userContextProvider.setCurrentStudentUser(
+                                _uiState.value.firstName,
+                                _uiState.value.lastName
+                            )
+                        }
+                        UserRole.EDUCATOR -> {
+                            // For educators, we should have phone number from the login flow
+                            userContextProvider.setCurrentEducatorUser(
+                                _uiState.value.phoneNumber,
+                                null // Full name will be retrieved from database
+                            )
+                        }
+                    }
+                    
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isOfflineMode = false
@@ -98,6 +117,22 @@ class LoginViewModel @Inject constructor(
                     // If network login fails, try offline login with local CouchDB data
                     if (localUserResult.isSuccess && localUserResult.getOrNull() != null) {
                         // User exists in local CouchDB, proceed with offline mode
+                        // Set user context for offline login too
+                        when (_uiState.value.role) {
+                            UserRole.STUDENT -> {
+                                userContextProvider.setCurrentStudentUser(
+                                    _uiState.value.firstName,
+                                    _uiState.value.lastName
+                                )
+                            }
+                            UserRole.EDUCATOR -> {
+                                userContextProvider.setCurrentEducatorUser(
+                                    _uiState.value.phoneNumber,
+                                    null
+                                )
+                            }
+                        }
+                        
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             isOfflineMode = true,

@@ -78,6 +78,13 @@ class AuthRepository @Inject constructor(
     }
     
     /**
+     * Check if user is currently logged in based on token presence
+     */
+    suspend fun isUserLoggedIn(): Boolean {
+        return tokenManager.getToken() != null
+    }
+    
+    /**
      * Get user from local CouchDB using appropriate repository based on role
      */
     suspend fun getUserFromCouchDB(firstName: String, lastName: String, userRole: UserRole = UserRole.STUDENT): Result<Map<String, Any>?> {

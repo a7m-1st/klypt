@@ -5,8 +5,13 @@ import com.klypt.data.DatabaseManager
 import com.klypt.data.database.DatabaseInitializer
 import com.klypt.data.repositories.StudentRepository
 import com.klypt.data.repositories.EducatorRepository
+import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.KlypRepository
+import com.klypt.data.repository.EducationalContentRepository
 import com.klypt.data.services.ChatSummaryService
 import com.klypt.data.services.UserContextProvider
+import com.klypt.data.utils.DatabaseSeeder
+import com.klypt.storage.TokenManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,6 +49,22 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideClassRepository(
+        databaseManager: DatabaseManager
+    ): ClassRepository {
+        return ClassRepository(databaseManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideKlypRepository(
+        databaseManager: DatabaseManager
+    ): KlypRepository {
+        return KlypRepository(databaseManager)
+    }
+
+    @Provides
+    @Singleton
     fun provideDatabaseInitializer(
         databaseManager: DatabaseManager
     ): DatabaseInitializer {
@@ -60,7 +81,21 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideUserContextProvider(): UserContextProvider {
-        return UserContextProvider()
+    fun provideUserContextProvider(
+        educationalContentRepository: EducationalContentRepository,
+        tokenManager: TokenManager
+    ): UserContextProvider {
+        return UserContextProvider(educationalContentRepository, tokenManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDatabaseSeeder(
+        studentRepository: StudentRepository,
+        educatorRepository: EducatorRepository,
+        classRepository: ClassRepository,
+        klypRepository: KlypRepository
+    ): DatabaseSeeder {
+        return DatabaseSeeder(studentRepository, educatorRepository, classRepository, klypRepository)
     }
 }

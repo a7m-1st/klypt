@@ -19,6 +19,10 @@ package com.klypt.ui.classcodedisplay
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.klypt.data.models.ClassDocument
+import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.EducatorRepository
+import com.klypt.data.services.UserContextProvider
+import com.klypt.data.UserRole
 import com.klypt.data.utils.ClassCodeGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +33,11 @@ import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
-class ClassCodeDisplayViewModel @Inject constructor() : ViewModel() {
+class ClassCodeDisplayViewModel @Inject constructor(
+    private val classRepository: ClassRepository,
+    private val educatorRepository: EducatorRepository,
+    private val userContextProvider: UserContextProvider
+) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ClassCodeDisplayUiState())
     val uiState = _uiState.asStateFlow()
@@ -67,14 +75,42 @@ class ClassCodeDisplayViewModel @Inject constructor() : ViewModel() {
                     studentIds = emptyList()
                 )
                 
-                // Here you would normally save to database
-                // For now, we'll just simulate success
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isSuccess = true
+                // Save the class to database
+                val classData = mapOf(
+                    "_id" to classDocument._id,
+                    "type" to classDocument.type,
+                    "classCode" to classDocument.classCode,
+                    "classTitle" to classDocument.classTitle,
+                    "updatedAt" to classDocument.updatedAt,
+                    "lastSyncedAt" to classDocument.lastSyncedAt,
+                    "educatorId" to classDocument.educatorId,
+                    "studentIds" to classDocument.studentIds
                 )
                 
-                onSuccess(classDocument)
+                val classSaved = classRepository.save(classData)
+                
+                if (classSaved) {
+                    // Update educator's class list
+                    val educatorData = educatorRepository.get(educatorId)
+                    val currentClassIds = (educatorData["classIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                    
+                    if (!currentClassIds.contains(classDocument._id)) {
+                        currentClassIds.add(classDocument._id)
+                        
+                        val updatedEducatorData = educatorData.toMutableMap()
+                        updatedEducatorData["classIds"] = currentClassIds
+                        educatorRepository.save(updatedEducatorData)
+                    }
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isSuccess = true
+                    )
+                    
+                    onSuccess(classDocument)
+                } else {
+                    throw Exception("Failed to save class to database")
+                }
                 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(

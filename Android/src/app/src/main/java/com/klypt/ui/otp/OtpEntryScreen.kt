@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.ui.verification.PhoneVerificationViewModel
+import com.klypt.data.services.UserContextProvider
 import kotlinx.coroutines.delay
 
 // Utility function to check network connectivity
@@ -50,6 +51,7 @@ fun OtpEntryScreen(
     phoneNumber: String,
     onNavigateToHome: () -> Unit,
     onNavigateBack: () -> Unit,
+    userContextProvider: UserContextProvider,
     viewModel: PhoneVerificationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -65,9 +67,11 @@ fun OtpEntryScreen(
         }
     }
 
-    // Navigate to home when verification is successful
+    // Navigate to home when verification is successful and set educator context
     LaunchedEffect(uiState.isVerified) {
         if (uiState.isVerified) {
+            // Set the educator user context with the verified phone number
+            userContextProvider.setCurrentEducatorUser(phoneNumber)
             delay(1000) // Show success state briefly
             onNavigateToHome()
         }
