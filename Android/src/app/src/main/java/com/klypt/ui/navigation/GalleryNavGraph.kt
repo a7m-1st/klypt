@@ -631,7 +631,9 @@ fun GalleryNavHost(
         onNavigateBack = { navController.navigateUp() },
         onNavigateToAddKlyp = { classCode ->
           // For now, we'll handle adding klyps within the screen itself
-        }
+          //TODO
+        },
+        userContextProvider = userContextProvider
       )
     }
 

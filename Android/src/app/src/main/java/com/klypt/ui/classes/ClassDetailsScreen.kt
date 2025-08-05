@@ -16,6 +16,7 @@
 
 package com.klypt.ui.classes
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.data.models.ClassDocument
 import com.klypt.data.models.Klyp
+import com.klypt.data.services.UserContextProvider
 
 /** Navigation destination data */
 object ClassDetailsDestination {
@@ -48,7 +50,8 @@ fun ClassDetailsScreen(
     onNavigateToAddKlyp: (String) -> Unit = {}, // Pass class code for klyp creation
     onNavigateToKlypDetails: (Klyp) -> Unit = {}, // Navigate to klyp details
     modifier: Modifier = Modifier,
-    viewModel: ClassDetailsViewModel = hiltViewModel()
+    viewModel: ClassDetailsViewModel = hiltViewModel(),
+    userContextProvider: UserContextProvider
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf<Klyp?>(null) }
@@ -163,7 +166,9 @@ fun ClassDetailsScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (uiState.klyps.isEmpty()) {
+                    val userId = userContextProvider.getCurrentUserId()
+                    Log.d("ClassDetailsScreen##", userId)
+                    if (uiState.klyps.isEmpty() && currentClassDocument?.educatorId == userId) {
                         item {
                             EmptyStateCard(
                                 message = "No educational content available for this class",

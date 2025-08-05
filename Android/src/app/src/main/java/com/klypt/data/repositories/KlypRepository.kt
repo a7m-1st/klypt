@@ -168,23 +168,50 @@ class KlypRepository(
                     for (result in resultsList) {
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
-                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val doc = result.getDictionary(db.name)
                             
-                            val klypData = mutableMapOf<String, Any>()
-                            
-                            // Safely extract each field
-                            klypData["_id"] = extractString(doc, "_id")
-                            klypData["type"] = extractString(doc, "type")
-                            klypData["classCode"] = extractString(doc, "classCode")
-                            klypData["title"] = extractString(doc, "title")
-                            klypData["mainBody"] = extractString(doc, "mainBody")
-                            klypData["createdAt"] = extractString(doc, "createdAt")
-                            
-                            // Handle questions array properly
-                            klypData["questions"] = extractArray(doc, "questions")
-                            
-                            android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]} in class $classCode")
-                            results.add(klypData)
+                            if (doc != null) {
+                                val klypData = mutableMapOf<String, Any>()
+                                
+                                // Eagerly copy all data to avoid Fleece object issues
+                                klypData["_id"] = doc.getString("_id") ?: ""
+                                klypData["type"] = doc.getString("type") ?: ""
+                                klypData["classCode"] = doc.getString("classCode") ?: ""
+                                klypData["title"] = doc.getString("title") ?: ""
+                                klypData["mainBody"] = doc.getString("mainBody") ?: ""
+                                klypData["createdAt"] = doc.getString("createdAt") ?: ""
+                                
+                                // Handle questions array properly by eagerly copying the data
+                                val questionsArray = doc.getArray("questions")
+                                val questionsList = mutableListOf<Map<String, Any>>()
+                                
+                                if (questionsArray != null) {
+                                    for (i in 0 until questionsArray.count()) {
+                                        val questionDict = questionsArray.getDictionary(i)
+                                        if (questionDict != null) {
+                                            val questionMap = mutableMapOf<String, Any>()
+                                            questionMap["questionText"] = questionDict.getString("questionText") ?: ""
+                                            questionMap["correctAnswer"] = questionDict.getString("correctAnswer") ?: ""
+                                            
+                                            // Handle options array
+                                            val optionsArray = questionDict.getArray("options")
+                                            val optionsList = mutableListOf<String>()
+                                            if (optionsArray != null) {
+                                                for (j in 0 until optionsArray.count()) {
+                                                    optionsArray.getString(j)?.let { optionsList.add(it) }
+                                                }
+                                            }
+                                            questionMap["options"] = optionsList
+                                            
+                                            questionsList.add(questionMap)
+                                        }
+                                    }
+                                }
+                                klypData["questions"] = questionsList
+                                
+                                android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]} in class $classCode")
+                                results.add(klypData)
+                            }
                             
                         } catch (e: Exception) {
                             android.util.Log.e("KlypRepository", "Error processing result: ${e.message}", e)
@@ -231,23 +258,50 @@ class KlypRepository(
                     for (result in resultsList) {
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
-                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val doc = result.getDictionary(db.name)
                             
-                            val klypData = mutableMapOf<String, Any>()
-                            
-                            // Safely extract each field
-                            klypData["_id"] = extractString(doc, "_id")
-                            klypData["type"] = extractString(doc, "type")
-                            klypData["classCode"] = extractString(doc, "classCode")
-                            klypData["title"] = extractString(doc, "title")
-                            klypData["mainBody"] = extractString(doc, "mainBody")
-                            klypData["createdAt"] = extractString(doc, "createdAt")
-                            
-                            // Handle questions array properly
-                            klypData["questions"] = extractArray(doc, "questions")
-                            
-                            android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]} in class ${klypData["classCode"]}")
-                            results.add(klypData)
+                            if (doc != null) {
+                                val klypData = mutableMapOf<String, Any>()
+                                
+                                // Eagerly copy all data to avoid Fleece object issues
+                                klypData["_id"] = doc.getString("_id") ?: ""
+                                klypData["type"] = doc.getString("type") ?: ""
+                                klypData["classCode"] = doc.getString("classCode") ?: ""
+                                klypData["title"] = doc.getString("title") ?: ""
+                                klypData["mainBody"] = doc.getString("mainBody") ?: ""
+                                klypData["createdAt"] = doc.getString("createdAt") ?: ""
+                                
+                                // Handle questions array properly by eagerly copying the data
+                                val questionsArray = doc.getArray("questions")
+                                val questionsList = mutableListOf<Map<String, Any>>()
+                                
+                                if (questionsArray != null) {
+                                    for (i in 0 until questionsArray.count()) {
+                                        val questionDict = questionsArray.getDictionary(i)
+                                        if (questionDict != null) {
+                                            val questionMap = mutableMapOf<String, Any>()
+                                            questionMap["questionText"] = questionDict.getString("questionText") ?: ""
+                                            questionMap["correctAnswer"] = questionDict.getString("correctAnswer") ?: ""
+                                            
+                                            // Handle options array
+                                            val optionsArray = questionDict.getArray("options")
+                                            val optionsList = mutableListOf<String>()
+                                            if (optionsArray != null) {
+                                                for (j in 0 until optionsArray.count()) {
+                                                    optionsArray.getString(j)?.let { optionsList.add(it) }
+                                                }
+                                            }
+                                            questionMap["options"] = optionsList
+                                            
+                                            questionsList.add(questionMap)
+                                        }
+                                    }
+                                }
+                                klypData["questions"] = questionsList
+                                
+                                android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]} in class ${klypData["classCode"]}")
+                                results.add(klypData)
+                            }
                             
                         } catch (e: Exception) {
                             android.util.Log.e("KlypRepository", "Error processing result: ${e.message}", e)
@@ -290,23 +344,50 @@ class KlypRepository(
                     for (result in resultsList) {
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
-                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val doc = result.getDictionary(db.name)
                             
-                            val klypData = mutableMapOf<String, Any>()
-                            
-                            // Safely extract each field
-                            klypData["_id"] = extractString(doc, "_id")
-                            klypData["type"] = extractString(doc, "type")
-                            klypData["classCode"] = extractString(doc, "classCode")
-                            klypData["title"] = extractString(doc, "title")
-                            klypData["mainBody"] = extractString(doc, "mainBody")
-                            klypData["createdAt"] = extractString(doc, "createdAt")
-                            
-                            // Handle questions array properly
-                            klypData["questions"] = extractArray(doc, "questions")
-                            
-                            android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]}")
-                            results.add(klypData)
+                            if (doc != null) {
+                                val klypData = mutableMapOf<String, Any>()
+                                
+                                // Eagerly copy all data to avoid Fleece object issues
+                                klypData["_id"] = doc.getString("_id") ?: ""
+                                klypData["type"] = doc.getString("type") ?: ""
+                                klypData["classCode"] = doc.getString("classCode") ?: ""
+                                klypData["title"] = doc.getString("title") ?: ""
+                                klypData["mainBody"] = doc.getString("mainBody") ?: ""
+                                klypData["createdAt"] = doc.getString("createdAt") ?: ""
+                                
+                                // Handle questions array properly by eagerly copying the data
+                                val questionsArray = doc.getArray("questions")
+                                val questionsList = mutableListOf<Map<String, Any>>()
+                                
+                                if (questionsArray != null) {
+                                    for (i in 0 until questionsArray.count()) {
+                                        val questionDict = questionsArray.getDictionary(i)
+                                        if (questionDict != null) {
+                                            val questionMap = mutableMapOf<String, Any>()
+                                            questionMap["questionText"] = questionDict.getString("questionText") ?: ""
+                                            questionMap["correctAnswer"] = questionDict.getString("correctAnswer") ?: ""
+                                            
+                                            // Handle options array
+                                            val optionsArray = questionDict.getArray("options")
+                                            val optionsList = mutableListOf<String>()
+                                            if (optionsArray != null) {
+                                                for (j in 0 until optionsArray.count()) {
+                                                    optionsArray.getString(j)?.let { optionsList.add(it) }
+                                                }
+                                            }
+                                            questionMap["options"] = optionsList
+                                            
+                                            questionsList.add(questionMap)
+                                        }
+                                    }
+                                }
+                                klypData["questions"] = questionsList
+                                
+                                android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]}")
+                                results.add(klypData)
+                            }
                             
                         } catch (e: Exception) {
                             android.util.Log.e("KlypRepository", "Error processing result: ${e.message}", e)
@@ -356,23 +437,50 @@ class KlypRepository(
                     for (result in resultsList) {
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
-                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val doc = result.getDictionary(db.name)
                             
-                            val klypData = mutableMapOf<String, Any>()
-                            
-                            // Safely extract each field
-                            klypData["_id"] = extractString(doc, "_id")
-                            klypData["type"] = extractString(doc, "type")
-                            klypData["classCode"] = extractString(doc, "classCode")
-                            klypData["title"] = extractString(doc, "title")
-                            klypData["mainBody"] = extractString(doc, "mainBody")
-                            klypData["createdAt"] = extractString(doc, "createdAt")
-                            
-                            // Handle questions array properly
-                            klypData["questions"] = extractArray(doc, "questions")
-                            
-                            android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]}")
-                            results.add(klypData)
+                            if (doc != null) {
+                                val klypData = mutableMapOf<String, Any>()
+                                
+                                // Eagerly copy all data to avoid Fleece object issues
+                                klypData["_id"] = doc.getString("_id") ?: ""
+                                klypData["type"] = doc.getString("type") ?: ""
+                                klypData["classCode"] = doc.getString("classCode") ?: ""
+                                klypData["title"] = doc.getString("title") ?: ""
+                                klypData["mainBody"] = doc.getString("mainBody") ?: ""
+                                klypData["createdAt"] = doc.getString("createdAt") ?: ""
+                                
+                                // Handle questions array properly by eagerly copying the data
+                                val questionsArray = doc.getArray("questions")
+                                val questionsList = mutableListOf<Map<String, Any>>()
+                                
+                                if (questionsArray != null) {
+                                    for (i in 0 until questionsArray.count()) {
+                                        val questionDict = questionsArray.getDictionary(i)
+                                        if (questionDict != null) {
+                                            val questionMap = mutableMapOf<String, Any>()
+                                            questionMap["questionText"] = questionDict.getString("questionText") ?: ""
+                                            questionMap["correctAnswer"] = questionDict.getString("correctAnswer") ?: ""
+                                            
+                                            // Handle options array
+                                            val optionsArray = questionDict.getArray("options")
+                                            val optionsList = mutableListOf<String>()
+                                            if (optionsArray != null) {
+                                                for (j in 0 until optionsArray.count()) {
+                                                    optionsArray.getString(j)?.let { optionsList.add(it) }
+                                                }
+                                            }
+                                            questionMap["options"] = optionsList
+                                            
+                                            questionsList.add(questionMap)
+                                        }
+                                    }
+                                }
+                                klypData["questions"] = questionsList
+                                
+                                android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]}")
+                                results.add(klypData)
+                            }
                             
                         } catch (e: Exception) {
                             android.util.Log.e("KlypRepository", "Error processing result: ${e.message}", e)
@@ -389,35 +497,6 @@ class KlypRepository(
             }
             
             return@withContext results
-        }
-    }
-
-    // Helper function to safely extract strings
-    private fun extractString(doc: Any, key: String): String {
-        return when (doc) {
-            is Map<*, *> -> doc[key]?.toString() ?: ""
-            is Dictionary -> doc.getString(key) ?: ""
-            else -> ""
-        }
-    }
-
-    // Helper function to safely extract arrays
-    private fun extractArray(doc: Any, key: String): List<Any> {
-        return when (doc) {
-            is Map<*, *> -> {
-                val array = doc[key]
-                when (array) {
-                    is List<*> -> array.mapNotNull { it }
-                    else -> emptyList()
-                }
-            }
-            is Dictionary -> {
-                val array = doc.getArray(key)
-                array?.let { arr ->
-                    (0 until arr.count()).mapNotNull { arr.getValue(it) }
-                } ?: emptyList()
-            }
-            else -> emptyList()
         }
     }
 
