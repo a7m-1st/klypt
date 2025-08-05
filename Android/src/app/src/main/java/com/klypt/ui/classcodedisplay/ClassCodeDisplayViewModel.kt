@@ -21,6 +21,7 @@ import androidx.lifecycle.viewModelScope
 import com.klypt.data.models.ClassDocument
 import com.klypt.data.repositories.ClassRepository
 import com.klypt.data.repositories.EducatorRepository
+import com.klypt.data.repositories.StudentRepository
 import com.klypt.data.services.UserContextProvider
 import com.klypt.data.UserRole
 import com.klypt.data.utils.ClassCodeGenerator
@@ -36,6 +37,7 @@ import javax.inject.Inject
 class ClassCodeDisplayViewModel @Inject constructor(
     private val classRepository: ClassRepository,
     private val educatorRepository: EducatorRepository,
+    private val studentRepository: StudentRepository,
     private val userContextProvider: UserContextProvider
 ) : ViewModel() {
     
@@ -64,6 +66,8 @@ class ClassCodeDisplayViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
                 
                 val currentTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
+                val currentUserId = userContextProvider.getCurrentUserId()
+                val currentUserRole = userContextProvider.getCurrentUserRole()
                 
                 val classDocument = ClassDocument(
                     _id = _uiState.value.classCode,
@@ -100,6 +104,29 @@ class ClassCodeDisplayViewModel @Inject constructor(
                         val updatedEducatorData = educatorData.toMutableMap()
                         updatedEducatorData["classIds"] = currentClassIds
                         educatorRepository.save(updatedEducatorData)
+                    }
+                    
+                    // If current user is a student and they created this class, enroll them in it
+                    if (currentUserRole == UserRole.STUDENT && currentUserId != null) {
+                        val studentData = studentRepository.get(currentUserId)
+                        val enrolledClassIds = (studentData["enrolledClassIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                        
+                        if (!enrolledClassIds.contains(classDocument._id)) {
+                            enrolledClassIds.add(classDocument._id)
+                            
+                            val updatedStudentData = studentData.toMutableMap()
+                            updatedStudentData["enrolledClassIds"] = enrolledClassIds
+                            updatedStudentData["updatedAt"] = currentTime
+                            studentRepository.save(updatedStudentData)
+                            
+                            // Also add the student to the class's student list
+                            val updatedClassData = classData.toMutableMap()
+                            updatedClassData["studentIds"] = listOf(currentUserId)
+                            updatedClassData["updatedAt"] = currentTime
+                            classRepository.save(updatedClassData)
+                            
+                            android.util.Log.d("ClassCodeDisplayVM", "Student $currentUserId enrolled in new class ${classDocument._id}")
+                        }
                     }
                     
                     _uiState.value = _uiState.value.copy(

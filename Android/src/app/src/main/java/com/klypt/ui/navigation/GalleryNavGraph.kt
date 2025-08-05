@@ -518,7 +518,6 @@ fun GalleryNavHost(
             Log.e("DEBUG_NAV", "Class context: $classContext")
             // Mark that home should refresh when we return
             SummaryNavigationData.setShouldRefreshHome(true)
-            SummaryNavigationData.clearSummaryData()
             
             if (classContext != null) {
               // We're in class creation context, navigate directly to class code display
@@ -531,9 +530,9 @@ fun GalleryNavHost(
                   Log.e("DEBUG_NAV", "Educator ID is $userId")
                   userId
                 } else {
-                  Log.e("DEBUG_NAV", "Using fallback educator ID")
-                  // Fallback to demo educator if current user is not an educator
-                  "educator_001"
+                  Log.e("DEBUG_NAV", "Student creating class - using student ID as educator for this class")
+                  // Allow students to create classes by using their ID as educator
+                  userContextProvider.getCurrentUserId() ?: "educator_001"
                 }
                 
                 val encodedClassName = java.net.URLEncoder.encode(classContext.className, "UTF-8")
@@ -617,6 +616,8 @@ fun GalleryNavHost(
         educatorId = educatorId,
         onNavigateHome = { 
           Log.e("DEBUG_NAV", "ClassCodeDisplayScreen onNavigateHome called")
+          // Mark that home should refresh to show the new class
+          SummaryNavigationData.setShouldRefreshHome(true)
           navController.navigate("home") {
             popUpTo("home") { inclusive = true }
           }
