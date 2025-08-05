@@ -1,0 +1,190 @@
+/*
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.klypt.ui.llmsingleturn
+
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.klypt.data.models.ClassDocument
+import com.klypt.data.repositories.ClassDocumentRepository
+import com.klypt.data.repositories.KlypRepository
+import com.klypt.data.services.UserContextProvider
+import com.klypt.data.utils.DatabaseUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+import javax.inject.Inject
+
+data class KlypSaveUiState(
+    val isLoading: Boolean = false,
+    val availableClasses: List<ClassDocument> = emptyList(),
+    val isLoadingClasses: Boolean = false,
+    val errorMessage: String? = null,
+    val successMessage: String? = null
+)
+
+@HiltViewModel
+class KlypSaveViewModel @Inject constructor(
+    private val classRepository: ClassDocumentRepository,
+    private val klypRepository: KlypRepository,
+    private val userContextProvider: UserContextProvider
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(KlypSaveUiState())
+    val uiState: StateFlow<KlypSaveUiState> = _uiState.asStateFlow()
+
+    private val tag = "KlypSaveViewModel"
+
+    /**
+     * Loads classes where the current user is the educator (author)
+     */
+    fun loadAvailableClasses() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoadingClasses = true, errorMessage = null)
+                
+                val currentUserId = userContextProvider.getCurrentUserId()
+                Log.d(tag, "Loading classes for educator: $currentUserId")
+                
+                if (currentUserId.isEmpty()) {
+                    Log.e(tag, "Current user ID is empty")
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingClasses = false,
+                        errorMessage = "User not authenticated"
+                    )
+                    return@launch
+                }
+
+                // Get all classes and filter by educator ID
+                val allClassesData = classRepository.getAllClasses()
+                val allClasses = allClassesData.mapNotNull { DatabaseUtils.mapToClassDocument(it) }
+                val educatorClasses = allClasses.filter { classDoc ->
+                    Log.d(
+                        tag,
+                        "Found class: ${classDoc.classCode} - ${classDoc.classTitle}"
+                    )
+                    classDoc.educatorId == currentUserId
+                }
+                
+                Log.d(tag, "Found ${educatorClasses.size} classes authored by current user")
+                
+                _uiState.value = _uiState.value.copy(
+                    isLoadingClasses = false,
+                    availableClasses = educatorClasses,
+                    errorMessage = null
+                )
+                
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to load classes", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoadingClasses = false,
+                    errorMessage = "Failed to load classes: ${e.message}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Saves a klyp to the specified class
+     */
+    fun saveKlypToClass(
+        title: String,
+        content: String,
+        classDocument: ClassDocument,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                Log.d(tag, "Saving klyp to class: ${classDocument.classCode}")
+                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                
+                // Validate inputs
+                if (title.isBlank()) {
+                    onError("Title cannot be empty")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
+                
+                if (content.isBlank()) {
+                    onError("Content cannot be empty")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
+
+                // Create klyp data
+                val currentTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
+                val klypId = "klyp_${UUID.randomUUID()}"
+                
+                val klypData = mapOf(
+                    "_id" to klypId,
+                    "type" to "klyp",
+                    "classCode" to classDocument.classCode,
+                    "title" to title,
+                    "mainBody" to content,
+                    "questions" to emptyList<Map<String, Any>>(), // Empty questions initially
+                    "createdAt" to currentTime
+                )
+                
+                Log.d(tag, "Creating klyp with ID: $klypId for class: ${classDocument.classCode}")
+                
+                // Save to repository
+                val success = klypRepository.save(klypData)
+                
+                if (success) {
+                    Log.d(tag, "Successfully saved klyp to class: ${classDocument.classCode}")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        successMessage = "Klyp saved to ${classDocument.classTitle} successfully!"
+                    )
+                    onSuccess()
+                } else {
+                    val errorMsg = "Failed to save klyp to database"
+                    Log.e(tag, errorMsg)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = errorMsg
+                    )
+                    onError(errorMsg)
+                }
+                
+            } catch (e: Exception) {
+                Log.e(tag, "Exception while saving klyp", e)
+                val errorMsg = "Error saving klyp: ${e.message}"
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = errorMsg
+                )
+                onError(errorMsg)
+            }
+        }
+    }
+
+    /**
+     * Clears any error or success messages
+     */
+    fun clearMessages() {
+        _uiState.value = _uiState.value.copy(
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+}

@@ -18,6 +18,7 @@ package com.klypt.ui.llmsingleturn
 
 import android.content.ClipData
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -59,8 +62,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.data.ConfigKey
 import com.klypt.data.Model
 import com.klypt.data.TASK_LLM_PROMPT_LAB
@@ -93,6 +98,13 @@ fun ResponsePanel(
   var selectedOptionIndex by remember { mutableIntStateOf(0) }
   val clipboard = LocalClipboard.current
   val scope = rememberCoroutineScope()
+  val context = LocalContext.current
+  
+  // State for class selection dialog
+  var showClassSelectionDialog by remember { mutableStateOf(false) }
+  val klypSaveViewModel: KlypSaveViewModel = hiltViewModel()
+  val klypSaveUiState by klypSaveViewModel.uiState.collectAsState()
+  
   val pagerState =
     rememberPagerState(initialPage = task.models.indexOf(model), pageCount = { task.models.size })
   val accelerator = model.getStringConfigValue(key = ConfigKey.ACCELERATOR, defaultValue = "")
@@ -220,26 +232,55 @@ fun ResponsePanel(
                   modifier = Modifier.padding(top = 8.dp, bottom = 40.dp),
                 )
               }
-              // Copy button.
-              IconButton(
-                onClick = {
-                  scope.launch {
-                    val clipData = ClipData.newPlainText("response", response)
-                    val clipEntry = ClipEntry(clipData = clipData)
-                    clipboard.setClipEntry(clipEntry = clipEntry)
-                  }
-                },
-                colors =
-                  IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                  ),
+              // Action buttons row
+              Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 4.dp)
               ) {
-                Icon(
-                  Icons.Outlined.ContentCopy,
-                  contentDescription = "",
-                  modifier = Modifier.size(20.dp),
-                )
+                // Save button
+                IconButton(
+                  onClick = {
+                    if (response.isNotBlank()) {
+                      showClassSelectionDialog = true
+                      klypSaveViewModel.loadAvailableClasses()
+                    } else {
+                      Toast.makeText(context, "No response to save", Toast.LENGTH_SHORT).show()
+                    }
+                  },
+                  colors =
+                    IconButtonDefaults.iconButtonColors(
+                      containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                      contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                  Icon(
+                    Icons.Outlined.BookmarkAdd,
+                    contentDescription = "Save as Klyp",
+                    modifier = Modifier.size(20.dp),
+                  )
+                }
+                
+                // Copy button
+                IconButton(
+                  onClick = {
+                    scope.launch {
+                      val clipData = ClipData.newPlainText("response", response)
+                      val clipEntry = ClipEntry(clipData = clipData)
+                      clipboard.setClipEntry(clipEntry = clipEntry)
+                    }
+                  },
+                  colors =
+                    IconButtonDefaults.iconButtonColors(
+                      containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                      contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                  Icon(
+                    Icons.Outlined.ContentCopy,
+                    contentDescription = "Copy response",
+                    modifier = Modifier.size(20.dp),
+                  )
+                }
               }
             }
           } else if (selectedOptionIndex == 1) {
@@ -249,6 +290,52 @@ fun ResponsePanel(
           }
         }
       }
+    }
+  }
+  
+  // Class Selection Dialog
+  if (showClassSelectionDialog) {
+    ClassSelectionDialog(
+      availableClasses = klypSaveUiState.availableClasses,
+      isLoadingClasses = klypSaveUiState.isLoadingClasses,
+      isLoading = klypSaveUiState.isLoading,
+      onClassSelected = { selectedClass ->
+        val title = "LLM Response - ${selectedPromptTemplateType.label}"
+        val response = uiState.responsesByModel[model.name]?.get(selectedPromptTemplateType.label) ?: ""
+        
+        klypSaveViewModel.saveKlypToClass(
+          title = title,
+          content = response,
+          classDocument = selectedClass,
+          onSuccess = {
+            showClassSelectionDialog = false
+            Toast.makeText(context, "Klyp saved successfully!", Toast.LENGTH_SHORT).show()
+          },
+          onError = { error ->
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+          }
+        )
+      },
+      onDismiss = {
+        showClassSelectionDialog = false
+        klypSaveViewModel.clearMessages()
+      }
+    )
+  }
+  
+  // Show error messages from klyp save
+  klypSaveUiState.errorMessage?.let { error ->
+    LaunchedEffect(error) {
+      Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+      klypSaveViewModel.clearMessages()
+    }
+  }
+  
+  // Show success messages from klyp save
+  klypSaveUiState.successMessage?.let { success ->
+    LaunchedEffect(success) {
+      Toast.makeText(context, success, Toast.LENGTH_SHORT).show()
+      klypSaveViewModel.clearMessages()
     }
   }
 }

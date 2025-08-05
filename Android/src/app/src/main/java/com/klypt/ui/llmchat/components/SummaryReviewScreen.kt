@@ -35,6 +35,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.data.Model
 import com.klypt.data.models.ChatSummary
 import com.klypt.ui.common.chat.ChatMessage
+import com.klypt.ui.llmsingleturn.ClassSelectionDialog
+import com.klypt.ui.llmsingleturn.KlypSaveViewModel
+import com.klypt.ui.navigation.SummaryNavigationData
 
 /**
  * Screen for reviewing and editing the generated Klypt summary before saving
@@ -54,6 +57,14 @@ fun SummaryReviewScreen(
     val uiState by viewModel.uiState.collectAsState()
     var editedSummary by remember { mutableStateOf(summary.bulletPointSummary) }
     var editedTitle by remember { mutableStateOf(summary.sessionTitle) }
+    
+    // Check if we have class context (from Summary Page or Create New Class page)
+    val hasClassContext = remember { SummaryNavigationData.getClassCreationContext() != null }
+    
+    // State for class selection dialog (only when no class context)
+    var showClassSelectionDialog by remember { mutableStateOf(false) }
+    val klypSaveViewModel: KlypSaveViewModel? = if (!hasClassContext) hiltViewModel() else null
+    val klypSaveUiState by (klypSaveViewModel?.uiState?.collectAsState() ?: remember { mutableStateOf(null) })
 
     Scaffold(
         modifier = modifier,
@@ -250,20 +261,27 @@ fun SummaryReviewScreen(
                 
                 Button(
                     onClick = {
-                        viewModel.updateSummary(
-                            summary = summary.copy(
-                                bulletPointSummary = editedSummary,
-                                sessionTitle = editedTitle
-                            ),
-                            onSuccess = onSaveComplete,
-                            onError = { error ->
-                                android.widget.Toast.makeText(
-                                    context,
-                                    "Failed to update summary: $error",
-                                    android.widget.Toast.LENGTH_LONG
-                                ).show()
-                            }
-                        )
+                        if (hasClassContext) {
+                            // Direct save when we have class context
+                            viewModel.updateSummary(
+                                summary = summary.copy(
+                                    bulletPointSummary = editedSummary,
+                                    sessionTitle = editedTitle
+                                ),
+                                onSuccess = onSaveComplete,
+                                onError = { error ->
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Failed to update summary: $error",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            )
+                        } else {
+                            // Show class selection dialog when no class context
+                            showClassSelectionDialog = true
+                            klypSaveViewModel?.loadAvailableClasses()
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     enabled = !uiState.isLoading && editedSummary.isNotBlank() && editedTitle.isNotBlank()
@@ -280,5 +298,44 @@ fun SummaryReviewScreen(
                 }
             }
         }
+    }
+    
+    // Class Selection Dialog - only shown when no class context
+    if (!hasClassContext && showClassSelectionDialog && klypSaveViewModel != null && klypSaveUiState != null) {
+        ClassSelectionDialog(
+            availableClasses = klypSaveUiState!!.availableClasses,
+            isLoadingClasses = klypSaveUiState!!.isLoadingClasses,
+            isLoading = klypSaveUiState!!.isLoading,
+            onClassSelected = { selectedClass ->
+                val title = editedTitle.ifBlank { "Chat Summary" }
+                val content = editedSummary
+                
+                klypSaveViewModel.saveKlypToClass(
+                    title = title,
+                    content = content,
+                    classDocument = selectedClass,
+                    onSuccess = {
+                        showClassSelectionDialog = false
+                        android.widget.Toast.makeText(
+                            context,
+                            "Summary saved successfully!",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                        onSaveComplete()
+                    },
+                    onError = { error ->
+                        android.widget.Toast.makeText(
+                            context,
+                            error,
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            },
+            onDismiss = {
+                showClassSelectionDialog = false
+                klypSaveViewModel.clearMessages()
+            }
+        )
     }
 }
