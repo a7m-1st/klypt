@@ -69,8 +69,11 @@ class ClassCodeDisplayViewModel @Inject constructor(
                 val currentUserId = userContextProvider.getCurrentUserId()
                 val currentUserRole = userContextProvider.getCurrentUserRole()
                 
+                // Generate a unique class ID
+                val classId = "class_${java.util.UUID.randomUUID().toString().replace("-", "").take(8)}"
+                
                 val classDocument = ClassDocument(
-                    _id = _uiState.value.classCode,
+                    _id = classId,
                     classCode = _uiState.value.classCode,
                     classTitle = _uiState.value.className.ifBlank { "Untitled Class" }.toString(),
                     updatedAt = currentTime,

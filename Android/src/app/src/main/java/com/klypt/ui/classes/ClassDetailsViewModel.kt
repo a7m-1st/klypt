@@ -16,6 +16,7 @@
 
 package com.klypt.ui.classes
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.klypt.data.models.ClassDocument
@@ -52,6 +53,8 @@ class ClassDetailsViewModel @Inject constructor(
     val uiState: StateFlow<ClassDetailsUiState> = _uiState.asStateFlow()
 
     fun initializeWithClass(classDocument: ClassDocument) {
+        Log.d("ClassDetailsViewModel", "Initializing with class document: $classDocument")
+        Log.d("ClassDetailsViewModel", "Class code: '${classDocument.classCode}' (length: ${classDocument.classCode.length})")
         _uiState.value = _uiState.value.copy(
             classDocument = classDocument,
             isLoading = true,
@@ -63,24 +66,32 @@ class ClassDetailsViewModel @Inject constructor(
     fun initializeWithClassId(classId: String) {
         viewModelScope.launch {
             try {
+                Log.d("ClassDetailsViewModel", "Initializing with classId: '$classId'")
                 _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
                 
                 // First try to get by ID
                 val classData = classRepository.get(classId)
+                Log.d("ClassDetailsViewModel", "Got class data by ID: $classData")
                 var classDocument = DatabaseUtils.mapToClassDocument(classData)
+                Log.d("ClassDetailsViewModel", "Mapped to class document: $classDocument")
                 
                 // If not found by ID, try to get by class code (in case classId is actually a class code)
                 if (classDocument == null) {
+                    Log.d("ClassDetailsViewModel", "Class document is null, trying by class code")
                     val classDataByCode = classRepository.getClassByCode(classId)
+                    Log.d("ClassDetailsViewModel", "Got class data by code: $classDataByCode")
                     if (classDataByCode != null) {
                         classDocument = DatabaseUtils.mapToClassDocument(classDataByCode)
+                        Log.d("ClassDetailsViewModel", "Mapped class data by code to document: $classDocument")
                     }
                 }
                 
                 if (classDocument != null) {
+                    Log.d("ClassDetailsViewModel", "Found class document with code: '${classDocument.classCode}'")
                     _uiState.value = _uiState.value.copy(classDocument = classDocument)
                     loadKlypsForClass(classDocument.classCode)
                 } else {
+                    Log.e("ClassDetailsViewModel", "Class document is still null after all attempts")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = "Class not found"
@@ -98,6 +109,15 @@ class ClassDetailsViewModel @Inject constructor(
     private fun loadKlypsForClass(classCode: String) {
         viewModelScope.launch {
             try {
+                Log.d("ClassDetailsViewModel", "Loading klyps for class: '$classCode' (length: ${classCode.length})")
+                if (classCode.isEmpty()) {
+                    Log.e("ClassDetailsViewModel", "ERROR: classCode is empty!")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Class code is empty"
+                    )
+                    return@launch
+                }
                 _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
                 
                 val klypDataList = klypRepository.getKlypsByClassCode(classCode)
