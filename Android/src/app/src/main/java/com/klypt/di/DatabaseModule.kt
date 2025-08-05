@@ -5,7 +5,7 @@ import com.klypt.data.DatabaseManager
 import com.klypt.data.database.DatabaseInitializer
 import com.klypt.data.repositories.StudentRepository
 import com.klypt.data.repositories.EducatorRepository
-import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.repositories.KlypRepository
 import com.klypt.data.repository.EducationalContentRepository
 import com.klypt.data.services.ChatSummaryService
@@ -51,8 +51,8 @@ object DatabaseModule {
     @Singleton
     fun provideClassRepository(
         databaseManager: DatabaseManager
-    ): ClassRepository {
-        return ClassRepository(databaseManager)
+    ): ClassDocumentRepository {
+        return ClassDocumentRepository(databaseManager)
     }
 
     @Provides
@@ -93,7 +93,7 @@ object DatabaseModule {
     fun provideDatabaseSeeder(
         studentRepository: StudentRepository,
         educatorRepository: EducatorRepository,
-        classRepository: ClassRepository,
+        classRepository: ClassDocumentRepository,
         klypRepository: KlypRepository
     ): DatabaseSeeder {
         return DatabaseSeeder(studentRepository, educatorRepository, classRepository, klypRepository)

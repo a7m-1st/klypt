@@ -19,7 +19,7 @@ package com.klypt.ui.classcodedisplay
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.klypt.data.models.ClassDocument
-import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.repositories.EducatorRepository
 import com.klypt.data.repositories.StudentRepository
 import com.klypt.data.services.UserContextProvider
@@ -35,7 +35,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ClassCodeDisplayViewModel @Inject constructor(
-    private val classRepository: ClassRepository,
+    private val classRepository: ClassDocumentRepository,
     private val educatorRepository: EducatorRepository,
     private val studentRepository: StudentRepository,
     private val userContextProvider: UserContextProvider
@@ -72,7 +72,7 @@ class ClassCodeDisplayViewModel @Inject constructor(
                 val classDocument = ClassDocument(
                     _id = _uiState.value.classCode,
                     classCode = _uiState.value.classCode,
-                    classTitle = _uiState.value.className.ifBlank { "Untitled Class" },
+                    classTitle = _uiState.value.className.ifBlank { "Untitled Class" }.toString(),
                     updatedAt = currentTime,
                     lastSyncedAt = currentTime,
                     educatorId = educatorId,
@@ -106,8 +106,9 @@ class ClassCodeDisplayViewModel @Inject constructor(
                         educatorRepository.save(updatedEducatorData)
                     }
                     
-                    // If current user is a student and they created this class, enroll them in it
-                    if (currentUserRole == UserRole.STUDENT && currentUserId != null) {
+                    // Enroll the class creator in the class (both as student and educator depending on role)
+                    if (currentUserId != null) {
+                        // Always enroll creator as student
                         val studentData = studentRepository.get(currentUserId)
                         val enrolledClassIds = (studentData["enrolledClassIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
                         
@@ -119,15 +120,38 @@ class ClassCodeDisplayViewModel @Inject constructor(
                             updatedStudentData["updatedAt"] = currentTime
                             studentRepository.save(updatedStudentData)
                             
-                            // Also add the student to the class's student list
-                            val updatedClassData = classData.toMutableMap()
-                            updatedClassData["studentIds"] = listOf(currentUserId)
+                            android.util.Log.d("ClassCodeDisplayVM", "Creator $currentUserId enrolled as student in class ${classDocument._id}")
+                        }
+                        
+                        // If creator is an educator, also ensure they're added to the educator's class list
+                        if (currentUserRole == UserRole.EDUCATOR) {
+                            try {
+                                val educatorData = educatorRepository.get(currentUserId)
+                                val currentEducatorClassIds = (educatorData["classIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                                
+                                if (!currentEducatorClassIds.contains(classDocument._id)) {
+                                    currentEducatorClassIds.add(classDocument._id)
+                                    
+                                    val updatedEducatorData = educatorData.toMutableMap()
+                                    updatedEducatorData["classIds"] = currentEducatorClassIds
+                                    updatedEducatorData["updatedAt"] = currentTime
+                                    educatorRepository.save(updatedEducatorData)
+                                    
+                                    android.util.Log.d("ClassCodeDisplayVM", "Creator $currentUserId enrolled as educator in class ${classDocument._id}")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.w("ClassCodeDisplayVM", "Could not enroll creator as educator: ${e.message}")
+                            }
+                        }
+                        
+                        // Also add the creator to the class's student list
+                        val updatedClassData = classData.toMutableMap()
+                        updatedClassData["studentIds"] = listOf(currentUserId)
                             updatedClassData["updatedAt"] = currentTime
                             classRepository.save(updatedClassData)
                             
                             android.util.Log.d("ClassCodeDisplayVM", "Student $currentUserId enrolled in new class ${classDocument._id}")
                         }
-                    }
                     
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

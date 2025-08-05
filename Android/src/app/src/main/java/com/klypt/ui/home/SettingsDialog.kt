@@ -50,6 +50,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +75,7 @@ import com.klypt.R
 import com.klypt.proto.Theme
 import com.klypt.ui.common.ApiKeyConfig
 import com.klypt.ui.common.tos.TosDialog
+import com.klypt.ui.debug.DebugMenuButton
 import com.klypt.ui.modelmanager.ModelManagerViewModel
 import com.klypt.ui.theme.ThemeSettings
 import com.klypt.ui.theme.labelSmallNarrow
@@ -90,6 +93,7 @@ fun SettingsDialog(
   curThemeOverride: Theme,
   modelManagerViewModel: ModelManagerViewModel,
   onDismissed: () -> Unit,
+  onLogout: (() -> Unit)? = null,
 ) {
   var selectedTheme by remember { mutableStateOf(curThemeOverride) }
   var hfToken by remember { mutableStateOf(modelManagerViewModel.getTokenStatusAndData().data) }
@@ -103,6 +107,7 @@ fun SettingsDialog(
   val focusRequester = remember { FocusRequester() }
   val interactionSource = remember { MutableInteractionSource() }
   var showTos by remember { mutableStateOf(false) }
+  var showLogoutDialog by remember { mutableStateOf(false) }
 
   Dialog(onDismissRequest = onDismissed) {
     val focusManager = LocalFocusManager.current
@@ -310,6 +315,26 @@ fun SettingsDialog(
             )
             OutlinedButton(onClick = { showTos = true }) { Text("View Terms of Services") }
           }
+
+          // Logout section - only show if logout callback is provided
+          if (onLogout != null) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+              Text(
+                "Account",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+              )
+              OutlinedButton(
+                onClick = { showLogoutDialog = true },
+                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                  contentColor = MaterialTheme.colorScheme.error
+                )
+              ) { 
+                Text("Logout") 
+              }
+
+              DebugMenuButton()
+            }
+          }
         }
 
         // Button row.
@@ -326,6 +351,31 @@ fun SettingsDialog(
 
   if (showTos) {
     TosDialog(onTosAccepted = { showTos = false }, viewingMode = true)
+  }
+
+  // Logout confirmation dialog
+  if (showLogoutDialog) {
+    AlertDialog(
+      onDismissRequest = { showLogoutDialog = false },
+      title = { Text("Logout") },
+      text = { Text("Are you sure you want to logout? You will need to sign in again to access your account.") },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            showLogoutDialog = false
+            onDismissed() // Close settings dialog
+            onLogout?.invoke() // Call logout function
+          }
+        ) {
+          Text("Logout")
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = { showLogoutDialog = false }) {
+          Text("Cancel")
+        }
+      }
+    )
   }
 }
 

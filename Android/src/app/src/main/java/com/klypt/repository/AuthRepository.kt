@@ -73,6 +73,7 @@ class AuthRepository @Inject constructor(
         return tokenManager.getToken() != null
     }
 
+    //TODO(); SEE WHY THIS IS NOT USED
     suspend fun logout() {
         tokenManager.clearAll()
     }

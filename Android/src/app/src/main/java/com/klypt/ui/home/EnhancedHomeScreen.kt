@@ -54,6 +54,7 @@ import com.klypt.data.models.Klyp
 import com.klypt.ui.common.TaskIcon
 import com.klypt.ui.common.tos.TosDialog
 import com.klypt.ui.common.tos.TosViewModel
+import com.klypt.ui.debug.DebugMenuButton
 import com.klypt.ui.modelmanager.ModelManagerViewModel
 import com.klypt.ui.navigation.SummaryNavigationData
 import com.klypt.ui.theme.customColors
@@ -72,6 +73,10 @@ fun EnhancedHomeScreen(
     tosViewModel: TosViewModel,
     navigateToTaskScreen: (Task) -> Unit,
     onNavigateToNewClass: () -> Unit,
+    onNavigateToViewAllClasses: () -> Unit = {},
+    onNavigateToClassDetails: (ClassDocument) -> Unit = {},
+    onNavigateToKlypDetails: (Klyp) -> Unit = {},
+    onLogout: () -> Unit = {},
     modifier: Modifier = Modifier,
     homeContentViewModel: HomeContentViewModel = hiltViewModel()
 ) {
@@ -209,10 +214,9 @@ fun EnhancedHomeScreen(
                         item {
                             MyClassesSection(
                                 classes = homeUiState.myClasses,
-                                onClassClick = { classDoc ->
-                                    // Navigate to class details
-                                },
-                                onAddNewClassClick = onNavigateToNewClass
+                                onClassClick = onNavigateToClassDetails,
+                                onAddNewClassClick = onNavigateToNewClass,
+                                onViewAllClick = onNavigateToViewAllClasses
                             )
                         }
 
@@ -222,6 +226,7 @@ fun EnhancedHomeScreen(
                                 klyps = homeUiState.recentKlyps,
                                 onKlypClick = { klyp ->
                                     // Navigate to Klyp details
+                                    onNavigateToKlypDetails(klyp)
                                 }
                             )
                         }
@@ -273,6 +278,12 @@ fun EnhancedHomeScreen(
             curThemeOverride = modelManagerViewModel.readThemeOverride(),
             modelManagerViewModel = modelManagerViewModel,
             onDismissed = { showSettingsDialog = false },
+            onLogout = {
+                // Call the logout function from HomeContentViewModel
+                homeContentViewModel.logout()
+                // Navigate to login
+                onLogout()
+            }
         )
     }
 }

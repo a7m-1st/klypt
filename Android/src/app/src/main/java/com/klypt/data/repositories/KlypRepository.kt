@@ -1,7 +1,6 @@
 package com.klypt.data.repositories
 
-import com.couchbase.lite.CouchbaseLiteException
-import com.couchbase.lite.MutableDocument
+import com.couchbase.lite.*
 import com.klypt.data.DatabaseManager
 import com.klypt.data.KeyValueRepository
 
@@ -14,11 +13,11 @@ class KlypRepository(
     private val klypType = "klyp"
 
     override fun inventoryDatabaseName(): String {
-        return databaseManager.currentInventoryDatabaseName
+        return "klypts" // Use the klyp database name directly
     }
 
     override fun inventoryDatabaseLocation(): String? {
-        return databaseManager.inventoryDatabase?.path
+        return databaseManager.klyptDatabase?.path
     }
 
     override suspend fun get(currentUser: String): Map<String, Any> {
@@ -26,7 +25,7 @@ class KlypRepository(
             val results = HashMap<String, Any>()
             results["_id"] = currentUser as Any
 
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
             database?.let { db ->
                 val documentId = getKlypDocumentId(currentUser) //klyp::id
                 val doc = db.getDocument(documentId)
@@ -63,15 +62,20 @@ class KlypRepository(
             // Remove _id from the data map before creating the document
             // CouchDB Lite doesn't allow _id in the document body
             val documentData = data.toMutableMap().apply { 
-                remove("_id") 
+                remove("_id")
+                // Ensure the type field exists for querying
+                if (!containsKey("type")) {
+                    put("type", klypType)
+                }
             }
             
             val mutableDocument = MutableDocument(documentId, documentData)
             try {
-                val database = databaseManager.inventoryDatabase
+                val database = databaseManager.klyptDatabase
                 database?.save(mutableDocument)
+                android.util.Log.d("KlypRepository", "Successfully saved klyp document with ID: $documentId")
             } catch (e: CouchbaseLiteException) {
-                android.util.Log.e(e.message, e.stackTraceToString())
+                android.util.Log.e("KlypRepository", "Failed to save klyp document: ${e.message}", e)
                 return@withContext false
             }
             return@withContext true
@@ -88,12 +92,45 @@ class KlypRepository(
             }
             return@withContext 0
         }
+//        return withContext(Dispatchers.IO) {
+//            val database = databaseManager.klyptDatabase
+//            database?.let { db ->
+//                try {
+//                    // More standard CouchbaseLite query syntax for count
+//                    val query = QueryBuilder
+//                        .select(SelectResult.expression(Function.count(Expression.all())).as("count"))
+//                        .from(DataSource.database(db))
+//                        .where(Expression.property("type").equalTo(Expression.string(klypType)))
+//
+//                    android.util.Log.d("KlypRepository", "Executing count query for klyps")
+//
+//                    val queryResults = query.execute()
+//                    val resultsList = queryResults.allResults()
+//
+//                    val count = if (resultsList.isNotEmpty()) {
+//                        resultsList[0].getInt("count")
+//                    } else {
+//                        0
+//                    }
+//
+//                    queryResults.close() // Important: close the result set
+//
+//                    android.util.Log.d("KlypRepository", "Found $count klyps")
+//                    return@withContext count
+//
+//                } catch (e: Exception) {
+//                    android.util.Log.e("KlypRepository", "Count query execution failed: ${e.message}", e)
+//                    return@withContext 0
+//                }
+//            }
+//            return@withContext 0
+//        }
     }
 
     suspend fun delete(documentId: String): Boolean {
         return withContext(Dispatchers.IO) {
             var result = false
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
             database?.let { db ->
                 val document = db.getDocument(documentId)
                 document?.let {
@@ -108,23 +145,61 @@ class KlypRepository(
     suspend fun getKlypsByClassCode(classCode: String): List<Map<String, Any>> {
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
+            
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$klypType' AND classCode='$classCode'"
-                val queryResults = db.createQuery(query).execute().allResults()
-                
-                for (result in queryResults) {
-                    val klypData = mutableMapOf<String, Any>()
-                    klypData["_id"] = result.getString("_id") ?: ""
-                    klypData["type"] = result.getString("type") ?: ""
-                    klypData["classCode"] = result.getString("classCode") ?: ""
-                    klypData["title"] = result.getString("title") ?: ""
-                    klypData["mainBody"] = result.getString("mainBody") ?: ""
-                    klypData["questions"] = result.getArray("questions") ?: emptyList<Map<String, Any>>()
-                    klypData["createdAt"] = result.getString("createdAt") ?: ""
-                    results.add(klypData)
+                try {
+                    // More standard CouchbaseLite query syntax
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(
+                            Expression.property("type").equalTo(Expression.string(klypType))
+                                .and(Expression.property("classCode").equalTo(Expression.string(classCode)))
+                        )
+                    
+                    android.util.Log.d("KlypRepository", "Executing query for klyps in class: $classCode")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("KlypRepository", "Query returned ${resultsList.size} klyps for class $classCode")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val klypData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            klypData["_id"] = extractString(doc, "_id")
+                            klypData["type"] = extractString(doc, "type")
+                            klypData["classCode"] = extractString(doc, "classCode")
+                            klypData["title"] = extractString(doc, "title")
+                            klypData["mainBody"] = extractString(doc, "mainBody")
+                            klypData["createdAt"] = extractString(doc, "createdAt")
+                            
+                            // Handle questions array properly
+                            klypData["questions"] = extractArray(doc, "questions")
+                            
+                            android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]} in class $classCode")
+                            results.add(klypData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("KlypRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("KlypRepository", "Query execution failed: ${e.message}", e)
                 }
+            } ?: run {
+                android.util.Log.w("KlypRepository", "Klyp database is null!")
             }
+            
             return@withContext results
         }
     }
@@ -132,25 +207,62 @@ class KlypRepository(
     suspend fun getKlypsByClassCodes(classCodes: List<String>): List<Map<String, Any>> {
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
+            
             database?.let { db ->
-                for (classCode in classCodes) {
-                    val query = "SELECT * FROM _ WHERE type='$klypType' AND classCode='$classCode'"
-                    val queryResults = db.createQuery(query).execute().allResults()
+                try {
+                    // Use QueryBuilder with IN expression for multiple class codes
+                    val classCodeExpressions = classCodes.map { Expression.string(it) }
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(
+                            Expression.property("type").equalTo(Expression.string(klypType))
+                                .and(Expression.property("classCode").`in`(*classCodeExpressions.toTypedArray()))
+                        )
                     
-                    for (result in queryResults) {
-                        val klypData = mutableMapOf<String, Any>()
-                        klypData["_id"] = result.getString("_id") ?: ""
-                        klypData["type"] = result.getString("type") ?: ""
-                        klypData["classCode"] = result.getString("classCode") ?: ""
-                        klypData["title"] = result.getString("title") ?: ""
-                        klypData["mainBody"] = result.getString("mainBody") ?: ""
-                        klypData["questions"] = result.getArray("questions") ?: emptyList<Map<String, Any>>()
-                        klypData["createdAt"] = result.getString("createdAt") ?: ""
-                        results.add(klypData)
+                    android.util.Log.d("KlypRepository", "Executing query for klyps in classes: $classCodes")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("KlypRepository", "Query returned ${resultsList.size} klyps for classes $classCodes")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val klypData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            klypData["_id"] = extractString(doc, "_id")
+                            klypData["type"] = extractString(doc, "type")
+                            klypData["classCode"] = extractString(doc, "classCode")
+                            klypData["title"] = extractString(doc, "title")
+                            klypData["mainBody"] = extractString(doc, "mainBody")
+                            klypData["createdAt"] = extractString(doc, "createdAt")
+                            
+                            // Handle questions array properly
+                            klypData["questions"] = extractArray(doc, "questions")
+                            
+                            android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]} in class ${klypData["classCode"]}")
+                            results.add(klypData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("KlypRepository", "Error processing result: ${e.message}", e)
+                        }
                     }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("KlypRepository", "Query execution failed: ${e.message}", e)
                 }
+            } ?: run {
+                android.util.Log.w("KlypRepository", "Klyp database is null!")
             }
+            
             return@withContext results
         }
     }
@@ -158,23 +270,59 @@ class KlypRepository(
     suspend fun getAllKlyps(): List<Map<String, Any>> {
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
+            
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$klypType'"
-                val queryResults = db.createQuery(query).execute().allResults()
-                
-                for (result in queryResults) {
-                    val klypData = mutableMapOf<String, Any>()
-                    klypData["_id"] = result.getString("_id") ?: ""
-                    klypData["type"] = result.getString("type") ?: ""
-                    klypData["classCode"] = result.getString("classCode") ?: ""
-                    klypData["title"] = result.getString("title") ?: ""
-                    klypData["mainBody"] = result.getString("mainBody") ?: ""
-                    klypData["questions"] = result.getArray("questions") ?: emptyList<Map<String, Any>>()
-                    klypData["createdAt"] = result.getString("createdAt") ?: ""
-                    results.add(klypData)
+                try {
+                    // More standard CouchbaseLite query syntax
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(Expression.property("type").equalTo(Expression.string(klypType)))
+                    
+                    android.util.Log.d("KlypRepository", "Executing query for all klyps")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("KlypRepository", "Query returned ${resultsList.size} total klyps")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val klypData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            klypData["_id"] = extractString(doc, "_id")
+                            klypData["type"] = extractString(doc, "type")
+                            klypData["classCode"] = extractString(doc, "classCode")
+                            klypData["title"] = extractString(doc, "title")
+                            klypData["mainBody"] = extractString(doc, "mainBody")
+                            klypData["createdAt"] = extractString(doc, "createdAt")
+                            
+                            // Handle questions array properly
+                            klypData["questions"] = extractArray(doc, "questions")
+                            
+                            android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]}")
+                            results.add(klypData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("KlypRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("KlypRepository", "Query execution failed: ${e.message}", e)
                 }
+            } ?: run {
+                android.util.Log.w("KlypRepository", "Klyp database is null when getting all klyps!")
             }
+            
+            android.util.Log.d("KlypRepository", "Returning ${results.size} klyps")
             return@withContext results
         }
     }
@@ -182,24 +330,94 @@ class KlypRepository(
     suspend fun searchKlyps(query: String): List<Map<String, Any>> {
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
+            
             database?.let { db ->
-                val searchQuery = "SELECT * FROM _ WHERE type='$klypType' AND (title LIKE '%$query%' OR mainBody LIKE '%$query%')"
-                val queryResults = db.createQuery(searchQuery).execute().allResults()
-                
-                for (result in queryResults) {
-                    val klypData = mutableMapOf<String, Any>()
-                    klypData["_id"] = result.getString("_id") ?: ""
-                    klypData["type"] = result.getString("type") ?: ""
-                    klypData["classCode"] = result.getString("classCode") ?: ""
-                    klypData["title"] = result.getString("title") ?: ""
-                    klypData["mainBody"] = result.getString("mainBody") ?: ""
-                    klypData["questions"] = result.getArray("questions") ?: emptyList<Map<String, Any>>()
-                    klypData["createdAt"] = result.getString("createdAt") ?: ""
-                    results.add(klypData)
+                try {
+                    // More standard CouchbaseLite query syntax with LIKE expressions for search
+                    val searchQuery = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(
+                            Expression.property("type").equalTo(Expression.string(klypType))
+                                .and(
+                                    Expression.property("title").like(Expression.string("%$query%"))
+                                        .or(Expression.property("mainBody").like(Expression.string("%$query%")))
+                                )
+                        )
+                    
+                    android.util.Log.d("KlypRepository", "Executing search query for: $query")
+                    
+                    val queryResults = searchQuery.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("KlypRepository", "Search query returned ${resultsList.size} results")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val klypData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            klypData["_id"] = extractString(doc, "_id")
+                            klypData["type"] = extractString(doc, "type")
+                            klypData["classCode"] = extractString(doc, "classCode")
+                            klypData["title"] = extractString(doc, "title")
+                            klypData["mainBody"] = extractString(doc, "mainBody")
+                            klypData["createdAt"] = extractString(doc, "createdAt")
+                            
+                            // Handle questions array properly
+                            klypData["questions"] = extractArray(doc, "questions")
+                            
+                            android.util.Log.d("KlypRepository", "Found klyp: ${klypData["title"]}")
+                            results.add(klypData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("KlypRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("KlypRepository", "Search query execution failed: ${e.message}", e)
+                }
+            } ?: run {
+                android.util.Log.w("KlypRepository", "Klyp database is null!")
+            }
+            
+            return@withContext results
+        }
+    }
+
+    // Helper function to safely extract strings
+    private fun extractString(doc: Any, key: String): String {
+        return when (doc) {
+            is Map<*, *> -> doc[key]?.toString() ?: ""
+            is Dictionary -> doc.getString(key) ?: ""
+            else -> ""
+        }
+    }
+
+    // Helper function to safely extract arrays
+    private fun extractArray(doc: Any, key: String): List<Any> {
+        return when (doc) {
+            is Map<*, *> -> {
+                val array = doc[key]
+                when (array) {
+                    is List<*> -> array.mapNotNull { it }
+                    else -> emptyList()
                 }
             }
-            return@withContext results
+            is Dictionary -> {
+                val array = doc.getArray(key)
+                array?.let { arr ->
+                    (0 until arr.count()).mapNotNull { arr.getValue(it) }
+                } ?: emptyList()
+            }
+            else -> emptyList()
         }
     }
 

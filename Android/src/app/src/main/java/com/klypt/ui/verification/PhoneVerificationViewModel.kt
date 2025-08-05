@@ -65,20 +65,26 @@ class PhoneVerificationViewModel @Inject constructor(
                 error = null
             )
 
-            twilioRepository.verifyCode(phoneNumber, code)
-                .onSuccess { response ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isVerified = response.valid,
-                        error = if (!response.valid) "Invalid verification code" else null
-                    )
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = exception.message ?: "Failed to verify code"
-                    )
-                }
+//            twilioRepository.verifyCode(phoneNumber, code)
+//                .onSuccess { response ->
+//                    _uiState.value = _uiState.value.copy(
+//                        isLoading = false,
+//                        isVerified = response.valid,
+//                        error = if (!response.valid) "Invalid verification code" else null
+//                    )
+//                }
+//                .onFailure { exception ->
+//                    _uiState.value = _uiState.value.copy(
+//                        isLoading = false,
+//                        error = exception.message ?: "Failed to verify code"
+//                    )
+//                }
+
+            //TODO() For now just pass verificataion
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                isVerified = true
+            )
         }
     }
 

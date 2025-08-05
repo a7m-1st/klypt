@@ -88,6 +88,10 @@ import com.klypt.ui.modelmanager.ModelManager
 import com.klypt.ui.modelmanager.ModelManagerViewModel
 import com.klypt.ui.newclass.NewClassDestination
 import com.klypt.ui.newclass.NewClassScreen
+import com.klypt.ui.classes.ViewAllClassesDestination
+import com.klypt.ui.classes.ViewAllClassesScreen
+import com.klypt.ui.classes.ClassDetailsDestination
+import com.klypt.ui.classes.ClassDetailsScreen
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayDestination
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayScreen
 import com.klypt.ui.otp.OtpEntryScreen
@@ -335,6 +339,19 @@ fun GalleryNavHost(
         },
         onNavigateToNewClass = {
           navController.navigate(NewClassDestination.route)
+        },
+        onNavigateToViewAllClasses = {
+          navController.navigate(ViewAllClassesDestination.route)
+        },
+        onNavigateToClassDetails = { classDoc ->
+          val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
+          navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
+        },
+        onLogout = {
+          // Navigate back to login screen, clearing the back stack
+          navController.navigate("splash") {
+            popUpTo(0) { inclusive = true }
+          }
         }
       )
 
@@ -577,6 +594,43 @@ fun GalleryNavHost(
         onNavigateToLLMChat = { classCode, className ->
           // Navigate to LLM Chat for class creation with class code and name
           navController.navigate("llm-chat-for-class/$classCode/$className")
+        }
+      )
+    }
+
+    // View All Classes Screen
+    composable(
+      route = ViewAllClassesDestination.route,
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) {
+      ViewAllClassesScreen(
+        onNavigateBack = { navController.navigateUp() },
+        onNavigateToAddClass = {
+          navController.navigate(NewClassDestination.route)
+        },
+        onClassClick = { classDoc ->
+          val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
+          navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
+        }
+      )
+    }
+
+    // Class Details Screen
+    composable(
+      route = "${ClassDetailsDestination.route}/{classId}",
+      arguments = listOf(navArgument("classId") { type = NavType.StringType }),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val encodedClassId = backStackEntry.arguments?.getString("classId") ?: ""
+      val classId = java.net.URLDecoder.decode(encodedClassId, "UTF-8")
+      
+      ClassDetailsScreen(
+        classId = classId,
+        onNavigateBack = { navController.navigateUp() },
+        onNavigateToAddKlyp = { classCode ->
+          // For now, we'll handle adding klyps within the screen itself
         }
       )
     }

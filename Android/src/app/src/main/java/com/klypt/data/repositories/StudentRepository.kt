@@ -1,7 +1,6 @@
 package com.klypt.data.repositories
 
-import com.couchbase.lite.CouchbaseLiteException
-import com.couchbase.lite.MutableDocument
+import com.couchbase.lite.*
 import com.klypt.data.DatabaseManager
 import com.klypt.data.KeyValueRepository
 
@@ -112,23 +111,64 @@ class StudentRepository(
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
+            
             database?.let { db ->
-                val searchQuery = "SELECT * FROM _ WHERE type='$studentType' AND (firstName LIKE '%$query%' OR lastName LIKE '%$query%')"
-                val queryResults = db.createQuery(searchQuery).execute().allResults()
-                
-                for (result in queryResults) {
-                    val studentData = mutableMapOf<String, Any>()
-                    studentData["_id"] = result.getString("_id") ?: ""
-                    studentData["type"] = result.getString("type") ?: ""
-                    studentData["firstName"] = result.getString("firstName") ?: ""
-                    studentData["lastName"] = result.getString("lastName") ?: ""
-                    studentData["recoveryCode"] = result.getString("recoveryCode") ?: ""
-                    studentData["enrolledClassIds"] = result.getArray("enrolledClassIds") ?: emptyList<String>()
-                    studentData["createdAt"] = result.getString("createdAt") ?: ""
-                    studentData["updatedAt"] = result.getString("updatedAt") ?: ""
-                    results.add(studentData)
+                try {
+                    // More standard CouchbaseLite query syntax with LIKE expression for both firstName and lastName
+                    val searchQuery = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(
+                            Expression.property("type").equalTo(Expression.string(studentType))
+                                .and(
+                                    Expression.property("firstName").like(Expression.string("%$query%"))
+                                        .or(Expression.property("lastName").like(Expression.string("%$query%")))
+                                )
+                        )
+                    
+                    android.util.Log.d("StudentRepository", "Executing search query for: $query")
+                    
+                    val queryResults = searchQuery.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("StudentRepository", "Search query returned ${resultsList.size} results")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val studentData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            studentData["_id"] = extractString(doc, "_id")
+                            studentData["type"] = extractString(doc, "type")
+                            studentData["firstName"] = extractString(doc, "firstName")
+                            studentData["lastName"] = extractString(doc, "lastName")
+                            studentData["recoveryCode"] = extractString(doc, "recoveryCode")
+                            studentData["createdAt"] = extractString(doc, "createdAt")
+                            studentData["updatedAt"] = extractString(doc, "updatedAt")
+                            
+                            // Handle enrolledClassIds array properly
+                            studentData["enrolledClassIds"] = extractStringArray(doc, "enrolledClassIds")
+                            
+                            android.util.Log.d("StudentRepository", "Found student: ${studentData["firstName"]} ${studentData["lastName"]}")
+                            results.add(studentData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("StudentRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("StudentRepository", "Search query execution failed: ${e.message}", e)
                 }
+            } ?: run {
+                android.util.Log.w("StudentRepository", "Inventory database is null!")
             }
+            
             return@withContext results
         }
     }
@@ -137,24 +177,89 @@ class StudentRepository(
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
+            
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$studentType'"
-                val queryResults = db.createQuery(query).execute().allResults()
-                
-                for (result in queryResults) {
-                    val studentData = mutableMapOf<String, Any>()
-                    studentData["_id"] = result.getString("_id") ?: ""
-                    studentData["type"] = result.getString("type") ?: ""
-                    studentData["firstName"] = result.getString("firstName") ?: ""
-                    studentData["lastName"] = result.getString("lastName") ?: ""
-                    studentData["recoveryCode"] = result.getString("recoveryCode") ?: ""
-                    studentData["enrolledClassIds"] = result.getArray("enrolledClassIds") ?: emptyList<String>()
-                    studentData["createdAt"] = result.getString("createdAt") ?: ""
-                    studentData["updatedAt"] = result.getString("updatedAt") ?: ""
-                    results.add(studentData)
+                try {
+                    // More standard CouchbaseLite query syntax
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(Expression.property("type").equalTo(Expression.string(studentType)))
+                    
+                    android.util.Log.d("StudentRepository", "Executing query for all students")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("StudentRepository", "Query returned ${resultsList.size} results")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val studentData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            studentData["_id"] = extractString(doc, "_id")
+                            studentData["type"] = extractString(doc, "type")
+                            studentData["firstName"] = extractString(doc, "firstName")
+                            studentData["lastName"] = extractString(doc, "lastName")
+                            studentData["recoveryCode"] = extractString(doc, "recoveryCode")
+                            studentData["createdAt"] = extractString(doc, "createdAt")
+                            studentData["updatedAt"] = extractString(doc, "updatedAt")
+                            
+                            // Handle enrolledClassIds array properly
+                            studentData["enrolledClassIds"] = extractStringArray(doc, "enrolledClassIds")
+                            
+                            android.util.Log.d("StudentRepository", "Found student: ${studentData["firstName"]} ${studentData["lastName"]}")
+                            results.add(studentData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("StudentRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("StudentRepository", "Query execution failed: ${e.message}", e)
+                }
+            } ?: run {
+                android.util.Log.w("StudentRepository", "Inventory database is null!")
+            }
+            
+            android.util.Log.d("StudentRepository", "Returning ${results.size} students")
+            return@withContext results
+        }
+    }
+
+    // Helper function to safely extract strings
+    private fun extractString(doc: Any, key: String): String {
+        return when (doc) {
+            is Map<*, *> -> doc[key]?.toString() ?: ""
+            is Dictionary -> doc.getString(key) ?: ""
+            else -> ""
+        }
+    }
+
+    // Helper function to safely extract string arrays
+    private fun extractStringArray(doc: Any, key: String): List<String> {
+        return when (doc) {
+            is Map<*, *> -> {
+                val array = doc[key]
+                when (array) {
+                    is List<*> -> array.mapNotNull { it?.toString() }
+                    else -> emptyList()
                 }
             }
-            return@withContext results
+            is Dictionary -> {
+                val array = doc.getArray(key)
+                array?.let { arr ->
+                    (0 until arr.count()).mapNotNull { arr.getString(it) }
+                } ?: emptyList()
+            }
+            else -> emptyList()
         }
     }
 

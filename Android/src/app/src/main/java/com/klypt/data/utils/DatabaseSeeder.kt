@@ -3,7 +3,7 @@ package com.klypt.data.utils
 import com.klypt.data.DummyDataGenerator
 import com.klypt.data.repositories.StudentRepository
 import com.klypt.data.repositories.EducatorRepository
-import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.repositories.KlypRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,7 +17,7 @@ import javax.inject.Singleton
 class DatabaseSeeder @Inject constructor(
     private val studentRepository: StudentRepository,
     private val educatorRepository: EducatorRepository,
-    private val classRepository: ClassRepository,
+    private val classRepository: ClassDocumentRepository,
     private val klypRepository: KlypRepository
 ) {
 
@@ -27,10 +27,10 @@ class DatabaseSeeder @Inject constructor(
                 android.util.Log.d("DatabaseSeeder", "Checking if database needs seeding...")
                 
                 // Check if database has any data
-                val studentCount = studentRepository.count()
-                val educatorCount = educatorRepository.count()
-                val classCount = classRepository.count()
-                val klypCount = klypRepository.count()
+                val studentCount: Int = studentRepository.count()
+                val educatorCount: Int = educatorRepository.count()
+                val classCount: Int = classRepository.count()
+                val klypCount: Int= klypRepository.count()
                 
                 android.util.Log.d("DatabaseSeeder", "Current counts - Students: $studentCount, Educators: $educatorCount, Classes: $classCount, Klyps: $klypCount")
                 

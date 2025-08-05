@@ -1,7 +1,6 @@
 package com.klypt.data.repositories
 
-import com.couchbase.lite.CouchbaseLiteException
-import com.couchbase.lite.MutableDocument
+import com.couchbase.lite.*
 import com.klypt.data.DatabaseManager
 import com.klypt.data.KeyValueRepository
 
@@ -118,25 +117,63 @@ class EducatorRepository(
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
+            
             database?.let { db ->
-                val searchQuery = "SELECT * FROM _ WHERE type='$educatorType' AND fullName LIKE '%$query%'"
-                val queryResults = db.createQuery(searchQuery).execute().allResults()
-                
-                for (result in queryResults) {
-                    val educatorData = mutableMapOf<String, Any>()
-                    educatorData["_id"] = result.getString("_id") ?: ""
-                    educatorData["type"] = result.getString("type") ?: ""
-                    educatorData["fullName"] = result.getString("fullName") ?: ""
-                    educatorData["age"] = result.getInt("age") ?: 0
-                    educatorData["currentJob"] = result.getString("currentJob") ?: ""
-                    educatorData["instituteName"] = result.getString("instituteName") ?: ""
-                    educatorData["phoneNumber"] = result.getString("phoneNumber") ?: ""
-                    educatorData["verified"] = result.getBoolean("verified") ?: false
-                    educatorData["recoveryCode"] = result.getString("recoveryCode") ?: ""
-                    educatorData["classIds"] = result.getArray("classIds") ?: emptyList<String>()
-                    results.add(educatorData)
+                try {
+                    // More standard CouchbaseLite query syntax with LIKE expression
+                    val searchQuery = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(
+                            Expression.property("type").equalTo(Expression.string(educatorType))
+                                .and(Expression.property("fullName").like(Expression.string("%$query%")))
+                        )
+                    
+                    android.util.Log.d("EducatorRepository", "Executing search query for: $query")
+                    
+                    val queryResults = searchQuery.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("EducatorRepository", "Search query returned ${resultsList.size} results")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val educatorData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            educatorData["_id"] = extractString(doc, "_id")
+                            educatorData["type"] = extractString(doc, "type")
+                            educatorData["fullName"] = extractString(doc, "fullName")
+                            educatorData["age"] = extractInt(doc, "age")
+                            educatorData["currentJob"] = extractString(doc, "currentJob")
+                            educatorData["instituteName"] = extractString(doc, "instituteName")
+                            educatorData["phoneNumber"] = extractString(doc, "phoneNumber")
+                            educatorData["verified"] = extractBoolean(doc, "verified")
+                            educatorData["recoveryCode"] = extractString(doc, "recoveryCode")
+                            
+                            // Handle classIds array properly
+                            educatorData["classIds"] = extractStringArray(doc, "classIds")
+                            
+                            android.util.Log.d("EducatorRepository", "Found educator: ${educatorData["fullName"]}")
+                            results.add(educatorData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("EducatorRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("EducatorRepository", "Search query execution failed: ${e.message}", e)
                 }
+            } ?: run {
+                android.util.Log.w("EducatorRepository", "Inventory database is null!")
             }
+            
             return@withContext results
         }
     }
@@ -145,26 +182,123 @@ class EducatorRepository(
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
+            
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$educatorType'"
-                val queryResults = db.createQuery(query).execute().allResults()
-                
-                for (result in queryResults) {
-                    val educatorData = mutableMapOf<String, Any>()
-                    educatorData["_id"] = result.getString("_id") ?: ""
-                    educatorData["type"] = result.getString("type") ?: ""
-                    educatorData["fullName"] = result.getString("fullName") ?: ""
-                    educatorData["age"] = result.getInt("age") ?: 0
-                    educatorData["currentJob"] = result.getString("currentJob") ?: ""
-                    educatorData["instituteName"] = result.getString("instituteName") ?: ""
-                    educatorData["phoneNumber"] = result.getString("phoneNumber") ?: ""
-                    educatorData["verified"] = result.getBoolean("verified") ?: false
-                    educatorData["recoveryCode"] = result.getString("recoveryCode") ?: ""
-                    educatorData["classIds"] = result.getArray("classIds") ?: emptyList<String>()
-                    results.add(educatorData)
+                try {
+                    // More standard CouchbaseLite query syntax
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(Expression.property("type").equalTo(Expression.string(educatorType)))
+                    
+                    android.util.Log.d("EducatorRepository", "Executing query for all educators")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("EducatorRepository", "Query returned ${resultsList.size} results")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val educatorData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            educatorData["_id"] = extractString(doc, "_id")
+                            educatorData["type"] = extractString(doc, "type")
+                            educatorData["fullName"] = extractString(doc, "fullName")
+                            educatorData["age"] = extractInt(doc, "age")
+                            educatorData["currentJob"] = extractString(doc, "currentJob")
+                            educatorData["instituteName"] = extractString(doc, "instituteName")
+                            educatorData["phoneNumber"] = extractString(doc, "phoneNumber")
+                            educatorData["verified"] = extractBoolean(doc, "verified")
+                            educatorData["recoveryCode"] = extractString(doc, "recoveryCode")
+                            
+                            // Handle classIds array properly
+                            educatorData["classIds"] = extractStringArray(doc, "classIds")
+                            
+                            android.util.Log.d("EducatorRepository", "Found educator: ${educatorData["fullName"]}")
+                            results.add(educatorData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("EducatorRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("EducatorRepository", "Query execution failed: ${e.message}", e)
+                }
+            } ?: run {
+                android.util.Log.w("EducatorRepository", "Inventory database is null!")
+            }
+            
+            android.util.Log.d("EducatorRepository", "Returning ${results.size} educators")
+            return@withContext results
+        }
+    }
+
+    // Helper function to safely extract strings
+    private fun extractString(doc: Any, key: String): String {
+        return when (doc) {
+            is Map<*, *> -> doc[key]?.toString() ?: ""
+            is Dictionary -> doc.getString(key) ?: ""
+            else -> ""
+        }
+    }
+
+    // Helper function to safely extract integers
+    private fun extractInt(doc: Any, key: String): Int {
+        return when (doc) {
+            is Map<*, *> -> {
+                val value = doc[key]
+                when (value) {
+                    is Number -> value.toInt()
+                    is String -> value.toIntOrNull() ?: 0
+                    else -> 0
                 }
             }
-            return@withContext results
+            is Dictionary -> doc.getInt(key)
+            else -> 0
+        }
+    }
+
+    // Helper function to safely extract booleans
+    private fun extractBoolean(doc: Any, key: String): Boolean {
+        return when (doc) {
+            is Map<*, *> -> {
+                val value = doc[key]
+                when (value) {
+                    is Boolean -> value
+                    is String -> value.toBoolean()
+                    else -> false
+                }
+            }
+            is Dictionary -> doc.getBoolean(key)
+            else -> false
+        }
+    }
+
+    // Helper function to safely extract string arrays
+    private fun extractStringArray(doc: Any, key: String): List<String> {
+        return when (doc) {
+            is Map<*, *> -> {
+                val array = doc[key]
+                when (array) {
+                    is List<*> -> array.mapNotNull { it?.toString() }
+                    else -> emptyList()
+                }
+            }
+            is Dictionary -> {
+                val array = doc.getArray(key)
+                array?.let { arr ->
+                    (0 until arr.count()).mapNotNull { arr.getString(it) }
+                } ?: emptyList()
+            }
+            else -> emptyList()
         }
     }
 
