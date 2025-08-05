@@ -18,6 +18,7 @@ package com.klypt.ui.llmchat
 
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,6 +36,7 @@ import com.klypt.ui.llmchat.components.SummaryLoadingScreen
 import com.klypt.ui.common.chat.ChatMessageAudioClip
 import com.klypt.ui.common.chat.ChatMessageImage
 import com.klypt.ui.common.chat.ChatMessageText
+import com.klypt.ui.common.chat.ChatSide
 import com.klypt.ui.common.chat.ChatView
 import com.klypt.ui.llmchat.components.ChatSummaryUiState
 import com.klypt.ui.modelmanager.ModelManagerViewModel
@@ -64,6 +66,7 @@ fun LlmChatScreen(
   onNavigateToSummaryReview: (ChatSummary, Model, List<ChatMessage>) -> Unit = { _, _, _ -> },
   modifier: Modifier = Modifier,
   viewModel: LlmChatViewModel,
+  initialContent: String = ""
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -71,6 +74,7 @@ fun LlmChatScreen(
     navigateUp = navigateUp,
     onNavigateToSummaryReview = onNavigateToSummaryReview,
     modifier = modifier,
+    initialContent = initialContent
   )
 }
 
@@ -115,11 +119,23 @@ fun ChatViewWrapper(
   navigateUp: () -> Unit,
   onNavigateToSummaryReview: (ChatSummary, Model, List<ChatMessage>) -> Unit = { _, _, _ -> },
   modifier: Modifier = Modifier,
-  chatSummaryViewModel: ChatSummaryViewModel = hiltViewModel()
+  chatSummaryViewModel: ChatSummaryViewModel = hiltViewModel(),
+  initialContent: String = ""
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val summaryUiState by chatSummaryViewModel.uiState.collectAsState()
+  
+  // Add initial content as a user message if provided
+  LaunchedEffect(initialContent) {
+    if (initialContent.isNotEmpty()) {
+      val selectedModel = modelManagerViewModel.uiState.value.selectedModel
+      viewModel.addMessage(
+        model = selectedModel,
+        message = ChatMessageText(content = initialContent, side = ChatSide.USER)
+      )
+    }
+  }
   
   // Show loading screen when generating summary
   if (summaryUiState.isLoading) {

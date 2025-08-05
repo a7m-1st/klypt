@@ -17,25 +17,40 @@
 package com.klypt.ui.klypdetails
 
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.data.TASK_LLM_CHAT
+import com.klypt.data.Model
 import com.klypt.data.models.Klyp
 import com.klypt.ui.modelmanager.ModelManagerViewModel
+import com.klypt.ui.common.humanReadableSize
+import com.klypt.ui.common.modelitem.StatusIcon
 
 private const val TAG = "KlypDetailsScreen"
 
@@ -57,7 +72,7 @@ fun KlypDetailsScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-    var showModelSelectionDialog by remember { mutableStateOf(false) }
+    var showQuizGenerationModelDialog by remember { mutableStateOf(false) }
     
     // Initialize the view model with the klyp data
     LaunchedEffect(klyp) {
@@ -100,7 +115,15 @@ fun KlypDetailsScreen(
                 }
             } else if (uiState.isInitializingModel) {
                 QuizLoadingScreen(
-                    isInitializingModel = true
+                    isInitializingModel = true,
+                    showStopButton = uiState.showStopButton,
+                    elapsedTimeMs = uiState.modelInitElapsedTime,
+                    onStopClicked = if (uiState.showStopButton) {
+                        {
+                            Log.d(TAG, "Stop model initialization clicked")
+                            viewModel.stopModelInitialization()
+                        }
+                    } else null
                 )
             } else {
                 // Main content
@@ -231,7 +254,9 @@ fun KlypDetailsScreen(
                                     Log.d(TAG, "Transfer to Chat clicked for klyp: ${klyp.title}")
                                     Log.d(TAG, "Class code: ${klyp.classCode}, Title: ${klyp.title}")
                                     Log.d(TAG, "Content length: ${klyp.mainBody.length}")
-                                    showModelSelectionDialog = true
+                                    // Create the context content with title and body
+                                    val contextContent = "Title: ${klyp.title}\n\nContent:\n${klyp.mainBody}"
+                                    onNavigateToLLMChat(klyp.classCode, klyp.title, contextContent, "")
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
@@ -258,19 +283,8 @@ fun KlypDetailsScreen(
                                             return@Button
                                         }
                                         
-                                        // Start quiz generation and navigation
-                                        viewModel.generateQuizQuestions(
-                                            klyp = klyp,
-                                            context = context,
-                                            onSuccess = { updatedKlyp ->
-                                                Log.d(TAG, "Quiz generation successful, navigating to quiz")
-                                                onNavigateToQuiz(updatedKlyp)
-                                            },
-                                            onError = { error ->
-                                                Log.e(TAG, "Quiz generation failed: $error")
-                                                // Error handling is done in ViewModel
-                                            }
-                                        )
+                                        // Show model selection for quiz generation
+                                        showQuizGenerationModelDialog = true
                                     },
                                     modifier = Modifier.weight(1f),
                                     enabled = !uiState.isGeneratingQuiz,
@@ -418,19 +432,246 @@ fun KlypDetailsScreen(
         }
     }
     
-    // Model Selection Dialog
-    if (showModelSelectionDialog) {
-        ModelSelectionDialog(
+    // Quiz Generation Model Selection Dialog
+    if (showQuizGenerationModelDialog) {
+        QuizGenerationModelSelectionDialog(
             modelManagerViewModel = modelManagerViewModel,
+            klypTitle = klyp.title,
             onModelSelected = { selectedModel ->
-                Log.d(TAG, "Model selected: ${selectedModel.name}")
-                showModelSelectionDialog = false
-                onNavigateToLLMChat(klyp.classCode, klyp.title, klyp.mainBody, selectedModel.name)
+                Log.d(TAG, "Model selected for quiz generation: ${selectedModel.name}")
+                showQuizGenerationModelDialog = false
+                
+                // Start quiz generation with selected model
+                viewModel.generateQuizQuestions(
+                    klyp = klyp,
+                    context = context,
+                    onSuccess = { updatedKlyp ->
+                        Log.d(TAG, "Quiz generation successful, navigating to quiz")
+                        onNavigateToQuiz(updatedKlyp)
+                    },
+                    onError = { error ->
+                        Log.e(TAG, "Quiz generation failed: $error")
+                        // Error handling is done in ViewModel
+                    }
+                )
             },
             onDismiss = {
-                Log.d(TAG, "Model selection dialog dismissed")
-                showModelSelectionDialog = false
+                Log.d(TAG, "Quiz generation model selection dismissed")
+                showQuizGenerationModelDialog = false
             }
         )
+    }
+}
+
+@Composable
+private fun QuizGenerationModelSelectionDialog(
+    modelManagerViewModel: ModelManagerViewModel,
+    klypTitle: String,
+    onModelSelected: (Model) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
+    val availableModels = com.klypt.data.TASK_LLM_CHAT.models
+    var selectedModel by remember { mutableStateOf<Model?>(null) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 500.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Choose AI Model",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "for generating \"$klypTitle\" quiz",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Select which AI model to use for generating quiz questions from the content. More powerful models may create better questions.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp
+                )
+
+                // Model List
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, false),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(availableModels) { model ->
+                        QuizGenerationModelSelectionItem(
+                            model = model,
+                            isSelected = selectedModel == model,
+                            downloadStatus = modelManagerUiState.modelDownloadStatus[model.name],
+                            onSelect = { selectedModel = model }
+                        )
+                    }
+                }
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel")
+                    }
+                    
+                    Button(
+                        onClick = {
+                            selectedModel?.let { model ->
+                                onModelSelected(model)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = selectedModel != null
+                    ) {
+                        Text("Generate Quiz")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuizGenerationModelSelectionItem(
+    model: Model,
+    isSelected: Boolean,
+    downloadStatus: com.klypt.data.ModelDownloadStatus?,
+    onSelect: () -> Unit
+) {
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    
+    val contentColor = if (isSelected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelect() },
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Selection indicator
+            if (isSelected) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                )
+            }
+            
+            // Model info
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = model.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatusIcon(downloadStatus = downloadStatus)
+                    
+                    Text(
+                        text = model.sizeInBytes.humanReadableSize(),
+                        style = com.klypt.ui.theme.labelSmallNarrow.copy(
+                            color = contentColor.copy(alpha = 0.7f),
+                            lineHeight = 12.sp
+                        )
+                    )
+                }
+                
+                if (model.info.isNotEmpty()) {
+                    Text(
+                        text = model.info,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.8f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        }
     }
 }

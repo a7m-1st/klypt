@@ -410,10 +410,11 @@ fun GalleryNavHost(
 
     // LLM chat for klyp discussion with model selection
     composable(
-      route = "llm-chat-for-class/{classCode}/{title}/{modelName}",
+      route = "llm-chat-for-class/{classCode}/{title}/{content}/{modelName}",
       arguments = listOf(
         navArgument("classCode") { type = NavType.StringType },
         navArgument("title") { type = NavType.StringType },
+        navArgument("content") { type = NavType.StringType },
         navArgument("modelName") { type = NavType.StringType }
       ),
       enterTransition = { slideEnter() },
@@ -423,6 +424,8 @@ fun GalleryNavHost(
       val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
       val encodedTitle = backStackEntry.arguments?.getString("title") ?: ""
       val title = java.net.URLDecoder.decode(encodedTitle, "UTF-8")
+      val encodedContent = backStackEntry.arguments?.getString("content") ?: ""
+      val content = java.net.URLDecoder.decode(encodedContent, "UTF-8")
       val encodedModelName = backStackEntry.arguments?.getString("modelName") ?: ""
       val modelName = java.net.URLDecoder.decode(encodedModelName, "UTF-8")
 
@@ -441,7 +444,8 @@ fun GalleryNavHost(
             SummaryNavigationData.storeSummaryData(summary, model, messages, classContext)
             // Navigate to summary review screen
             navController.navigate("${SummaryReviewDestination.route}/${model.name}")
-          }
+          },
+          initialContent = content
         )
       }
     }
@@ -820,8 +824,9 @@ fun GalleryNavHost(
         onNavigateToLLMChat = { classCode, title, content, modelName ->
           // Navigate to LLM Chat with class context and selected model
           val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
+          val encodedContent = java.net.URLEncoder.encode(content, "UTF-8")
           val encodedModelName = java.net.URLEncoder.encode(modelName, "UTF-8")
-          navController.navigate("llm-chat-for-class/$classCode/$encodedTitle/$encodedModelName")
+          navController.navigate("llm-chat-for-class/$classCode/$encodedTitle/$encodedContent/$encodedModelName")
         },
         onNavigateToQuiz = { klypForQuiz ->
           // Navigate to Quiz screen

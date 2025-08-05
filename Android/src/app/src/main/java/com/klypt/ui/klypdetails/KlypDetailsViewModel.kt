@@ -48,7 +48,9 @@ data class KlypDetailsUiState(
     val isGeneratingQuiz: Boolean = false,
     val isInitializingModel: Boolean = false,
     val currentKlyp: Klyp? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val showStopButton: Boolean = false,
+    val modelInitElapsedTime: Long = 0L
 )
 
 @HiltViewModel
@@ -129,27 +131,48 @@ class KlypDetailsViewModel @Inject constructor(
                 // Check if model needs initialization and wait for it
                 if (model.instance == null) {
                     Log.d(TAG, "Model ${model.name} not initialized, showing loading screen...")
-                    _uiState.value = _uiState.value.copy(isInitializingModel = true)
+                    val startInitTime = System.currentTimeMillis()
+                    _uiState.value = _uiState.value.copy(
+                        isInitializingModel = true,
+                        showStopButton = false,
+                        modelInitElapsedTime = 0L
+                    )
                     
-                    // Wait for model initialization to complete
-                    var initializationAttempts = 0
-                    val maxAttempts = 120 // Wait up to 120 seconds
-                    
-                    while (model.instance == null && initializationAttempts < maxAttempts) {
-                        kotlinx.coroutines.delay(1000) // Wait 1 second
-                        initializationAttempts++
-                        Log.d(TAG, "Waiting for model initialization... attempt $initializationAttempts/$maxAttempts")
+                    // Start timer for elapsed time and stop button
+                    val timerJob = launch {
+                        while (_uiState.value.isInitializingModel && model.instance == null) {
+                            val elapsed = System.currentTimeMillis() - startInitTime
+                            _uiState.value = _uiState.value.copy(
+                                modelInitElapsedTime = elapsed,
+                                showStopButton = elapsed > 10000L // Show stop button after 10 seconds
+                            )
+                            kotlinx.coroutines.delay(1000L)
+                        }
                     }
                     
-                    _uiState.value = _uiState.value.copy(isInitializingModel = false)
+                    // Wait for model initialization to complete
+                    val initJob = launch {
+                        while (model.instance == null && _uiState.value.isInitializingModel) {
+                            kotlinx.coroutines.delay(1000) // Wait 1 second
+                            Log.d(TAG, "Waiting for model initialization... elapsed time: ${_uiState.value.modelInitElapsedTime / 1000}s")
+                        }
+                    }
+                    
+                    initJob.join()
+                    timerJob.cancel()
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isInitializingModel = false,
+                        showStopButton = false
+                    )
                     
                     if (model.instance == null) {
-                        Log.e(TAG, "Model initialization failed after $maxAttempts attempts")
+                        Log.e(TAG, "Model initialization was cancelled or failed")
                         _uiState.value = _uiState.value.copy(
                             isGeneratingQuiz = false,
-                            errorMessage = "AI model initialization timed out. Please ensure the model is loaded and try again."
+                            errorMessage = "AI model initialization was cancelled or failed. Please try again."
                         )
-                        onError("AI model initialization timed out. Please ensure the model is loaded and try again.")
+                        onError("AI model initialization was cancelled or failed. Please try again.")
                         return@launch
                     }
                     
@@ -421,5 +444,18 @@ class KlypDetailsViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+    
+    /**
+     * Stop the AI model initialization process
+     */
+    fun stopModelInitialization() {
+        Log.d(TAG, "Stopping AI model initialization by user request")
+        _uiState.value = _uiState.value.copy(
+            isGeneratingQuiz = false,
+            isInitializingModel = false,
+            showStopButton = false,
+            errorMessage = "AI model initialization was cancelled."
+        )
     }
 }
