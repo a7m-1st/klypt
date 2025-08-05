@@ -90,7 +90,6 @@ import com.klypt.ui.newclass.NewClassDestination
 import com.klypt.ui.newclass.NewClassScreen
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayDestination
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayScreen
-import com.klypt.ui.classnameconfirmation.ClassNameConfirmationScreen
 import com.klypt.ui.otp.OtpEntryScreen
 import com.klypt.ui.otp.OtpViewModel
 import com.klypt.ui.signup.SignupViewModel
@@ -514,21 +513,46 @@ fun GalleryNavHost(
             navController.navigateUp() 
           },
           onSaveComplete = {
+            Log.e("DEBUG_NAV", "=== SummaryReviewScreen onSaveComplete called ===")
             val classContext = SummaryNavigationData.getClassCreationContext()
+            Log.e("DEBUG_NAV", "Class context: $classContext")
             // Mark that home should refresh when we return
             SummaryNavigationData.setShouldRefreshHome(true)
             SummaryNavigationData.clearSummaryData()
             
             if (classContext != null) {
-              // We're in class creation context, navigate to class name confirmation
-              navController.navigate("class_name_confirmation/${classContext.classCode}/${java.net.URLEncoder.encode(classContext.className, "UTF-8")}") {
-                // Clear the back stack to prevent going back to intermediate screens
-                popUpTo("llm-chat-for-class/${classContext.classCode}/${java.net.URLEncoder.encode(classContext.className, "UTF-8")}") { 
-                  inclusive = true 
+              // We're in class creation context, navigate directly to class code display
+              try {
+                val userRole = userContextProvider.getCurrentUserRole()
+                Log.e("DEBUG_NAV", "User role is $userRole")
+                
+                val educatorId = if (userRole == UserRole.EDUCATOR) {
+                  val userId = userContextProvider.getCurrentUserId()
+                  Log.e("DEBUG_NAV", "Educator ID is $userId")
+                  userId
+                } else {
+                  Log.e("DEBUG_NAV", "Using fallback educator ID")
+                  // Fallback to demo educator if current user is not an educator
+                  "educator_001"
+                }
+                
+                val encodedClassName = java.net.URLEncoder.encode(classContext.className, "UTF-8")
+                val route = "${ClassCodeDisplayDestination.route}/${classContext.classCode}/$encodedClassName/$educatorId"
+                Log.e("DEBUG_NAV", "Navigating directly to class code display: $route")
+                navController.navigate(route) {
+                  launchSingleTop = true
+                }
+                Log.e("DEBUG_NAV", "=== Navigation to class code display completed ===")
+              } catch (e: Exception) {
+                Log.e("DEBUG_NAV", "ERROR during navigation: ${e.message}", e)
+                // Fallback to home if there's an error
+                navController.navigate("home") {
+                  popUpTo("home") { inclusive = true }
                 }
               }
             } else {
               // Regular summary saving, go to home and force refresh
+              Log.e("DEBUG_NAV", "No class context, navigating to home")
               navController.navigate("home") {
                 popUpTo("home") { inclusive = true }
               }
@@ -556,42 +580,6 @@ fun GalleryNavHost(
       )
     }
 
-    // Class Name Confirmation Screen (intermediate step in class creation)
-    composable(
-      route = "class_name_confirmation/{classCode}/{className}",
-      arguments = listOf(
-        navArgument("classCode") { type = NavType.StringType },
-        navArgument("className") { type = NavType.StringType }
-      ),
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
-    ) { backStackEntry ->
-      val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
-      val encodedClassName = backStackEntry.arguments?.getString("className") ?: ""
-      val className = java.net.URLDecoder.decode(encodedClassName, "UTF-8")
-      
-      // Simple confirmation screen composable
-      ClassNameConfirmationScreen(
-        classCode = classCode,
-        initialClassName = className,
-        onConfirm = { finalClassName ->
-          // Get actual educator ID from user context
-          val educatorId = if (userContextProvider.getCurrentUserRole() == UserRole.EDUCATOR) {
-            userContextProvider.getCurrentUserId()
-          } else {
-            // Fallback to demo educator if current user is not an educator
-            "educator_001"
-          }
-          val encodedFinalClassName = java.net.URLEncoder.encode(finalClassName, "UTF-8")
-          navController.navigate("${ClassCodeDisplayDestination.route}/$classCode/$encodedFinalClassName/$educatorId") {
-            // Clear the back stack to prevent going back to intermediate screens
-            popUpTo("home") { inclusive = false }
-          }
-        },
-        onCancel = { navController.navigateUp() }
-      )
-    }
-
     // Class Code Display Screen
     composable(
       route = "${ClassCodeDisplayDestination.route}/{classCode}/{className}/{educatorId}",
@@ -600,24 +588,43 @@ fun GalleryNavHost(
         navArgument("className") { type = NavType.StringType },
         navArgument("educatorId") { type = NavType.StringType }
       ),
-      enterTransition = { slideEnter() },
-      exitTransition = { slideExit() },
+      enterTransition = { EnterTransition.None },
+      exitTransition = { ExitTransition.None },
     ) { backStackEntry ->
+      Log.e("DEBUG_NAV", "=== ClassCodeDisplayScreen entered ===")
       val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
       val encodedClassName = backStackEntry.arguments?.getString("className") ?: ""
       val className = java.net.URLDecoder.decode(encodedClassName, "UTF-8")
       val educatorId = backStackEntry.arguments?.getString("educatorId") ?: ""
       
+      Log.e("DEBUG_NAV", "ClassCodeDisplayScreen arguments - classCode: '$classCode', className: '$className', educatorId: '$educatorId'")
+      
+      // Validate arguments before proceeding
+      if (classCode.isBlank() || className.isBlank() || educatorId.isBlank()) {
+        Log.e("DEBUG_NAV", "INVALID ARGUMENTS - navigating to home")
+        LaunchedEffect(Unit) {
+          navController.navigate("home") {
+            popUpTo("home") { inclusive = true }
+          }
+        }
+        return@composable
+      }
+      
+      Log.e("DEBUG_NAV", "Arguments valid, showing ClassCodeDisplayScreen")
       ClassCodeDisplayScreen(
         classCode = classCode,
         className = className,
         educatorId = educatorId,
         onNavigateHome = { 
+          Log.e("DEBUG_NAV", "ClassCodeDisplayScreen onNavigateHome called")
           navController.navigate("home") {
             popUpTo("home") { inclusive = true }
           }
         },
-        onNavigateBack = { navController.navigateUp() }
+        onNavigateBack = { 
+          Log.e("DEBUG_NAV", "ClassCodeDisplayScreen onNavigateBack called")
+          navController.navigateUp() 
+        }
       )
     }
   }

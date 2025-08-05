@@ -57,7 +57,7 @@ fun SummaryLoadingScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Generating Summary",
+                    text = "Generating Klyp!",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
