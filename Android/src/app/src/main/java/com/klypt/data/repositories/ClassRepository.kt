@@ -95,6 +95,21 @@ class ClassRepository(
         }
     }
 
+    suspend fun delete(documentId: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            var result = false
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val document = db.getDocument(documentId)
+                document?.let {
+                    db.delete(it)
+                    result = true
+                }
+            }
+            return@withContext result
+        }
+    }
+
     suspend fun getClassesByEducatorId(educatorId: String): List<Map<String, Any>> {
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()

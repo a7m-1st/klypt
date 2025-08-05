@@ -16,6 +16,7 @@
 
 package com.klypt.ui.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -290,6 +291,7 @@ fun MyClassesSection(
     classes: List<ClassDocument>,
     onClassClick: (ClassDocument) -> Unit,
     onAddNewClassClick: () -> Unit,
+    onViewAllClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -304,8 +306,10 @@ fun MyClassesSection(
                 text = "My Classes",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
             )
-            TextButton(onClick = { /* Navigate to all classes */ }) {
-                Text("View All")
+            if (onViewAllClick != null) {
+                TextButton(onClick = onViewAllClick) {
+                    Text("View All")
+                }
             }
         }
         
@@ -356,7 +360,7 @@ fun MyClassesSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ClassCard(
+fun ClassCard(
     classDocument: ClassDocument,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -474,47 +478,6 @@ private fun AddClassBox(onClick: () -> Unit) {
                 modifier = Modifier.size(48.dp),
                 tint = Color(0xFFB0B0B0)
             )
-        }
-    }
-}
-
-// View All Classes Screen
-@Composable
-fun ViewAllClassesScreen(
-    classes: List<ClassDocument>,
-    onClassClick: (ClassDocument) -> Unit,
-    onDeleteClass: (ClassDocument) -> Unit,
-    onAddClass: () -> Unit
-) {
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("All Classes", style = MaterialTheme.typography.titleLarge)
-            IconButton(onClick = onAddClass) {
-                Icon(Icons.Default.Add, contentDescription = "Add Class")
-            }
-        }
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            itemsIndexed(classes) { idx, classDoc ->
-                ClassCard(
-                    classDocument = classDoc,
-                    onClick = { onClassClick(classDoc) },
-                    cardColor = Color(0xFFF5F5F5).copy(alpha = 1f - (idx % 2) * 0.05f),
-                    showMenu = true,
-                    onDelete = { onDeleteClass(classDoc) }
-                )
-            }
-            item {
-                AddClassBox(onClick = onAddClass)
-            }
         }
     }
 }
@@ -704,7 +667,7 @@ private fun AddNewClassCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             2.dp, 
             MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
         ),

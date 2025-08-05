@@ -7,6 +7,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import com.klypt.data.models.ChatSummary
 
 class DatabaseManager(private val context: Context) {
 
@@ -545,7 +546,7 @@ class DatabaseManager(private val context: Context) {
         }
     }
 
-    fun saveChatSummary(chatSummary: com.klypt.data.models.ChatSummary): Boolean {
+    fun saveChatSummary(chatSummary: ChatSummary): Boolean {
         android.util.Log.d("DatabaseManager", "saveChatSummary called for ID: ${chatSummary._id}")
         return try {
             android.util.Log.d("DatabaseManager", "klyptDatabase is null: ${klyptDatabase == null}")

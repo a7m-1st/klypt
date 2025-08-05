@@ -27,6 +27,7 @@ import com.klypt.data.repositories.EducatorRepository
 import com.klypt.data.repositories.ClassRepository
 import com.klypt.data.repositories.KlypRepository
 import com.klypt.data.utils.DatabaseUtils
+import com.klypt.data.utils.DatabaseSeeder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -42,7 +43,7 @@ class EducationalContentRepository @Inject constructor(
     private val educatorRepository: EducatorRepository,
     private val classRepository: ClassRepository,
     private val klypRepository: KlypRepository,
-    private val databaseSeeder: com.klypt.data.utils.DatabaseSeeder
+    private val databaseSeeder: DatabaseSeeder
 ) {
 
     // Cache for database data
