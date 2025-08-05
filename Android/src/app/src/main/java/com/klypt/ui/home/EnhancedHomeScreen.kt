@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -139,21 +140,42 @@ fun EnhancedHomeScreen(
                 )
             },
             floatingActionButton = {
-                // Navigate to LLM Chat for quick AI assistance
-                ExtendedFloatingActionButton(
-                    onClick = { 
-                        // Navigate to LLM Chat with the first available model
-                        val llmChatTask = modelManagerUiState.tasks.find { it.type == TaskType.LLM_CHAT }
-                        if (llmChatTask != null && llmChatTask.models.isNotEmpty()) {
-                            navigateToTaskScreen(llmChatTask)
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.primary,
+                // Column with two floating action buttons
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.End
                 ) {
-                    Icon(Icons.Filled.Chat, contentDescription = "AI Chat")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Ask AI")
+                    // Camera button for LLM with Image
+                    FloatingActionButton(
+                        onClick = { 
+                            // Navigate to LLM ASK IMAGE task
+                            val llmImageTask = modelManagerUiState.tasks.find { it.type == TaskType.LLM_ASK_IMAGE }
+                            if (llmImageTask != null && llmImageTask.models.isNotEmpty()) {
+                                navigateToTaskScreen(llmImageTask)
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.tertiary,
+                    ) {
+                        Icon(Icons.Filled.CameraAlt, contentDescription = "AI Camera")
+                    }
+                    
+                    // Chat button for LLM Chat (existing functionality)
+                    ExtendedFloatingActionButton(
+                        onClick = { 
+                            // Navigate to LLM Chat with the first available model
+                            val llmChatTask = modelManagerUiState.tasks.find { it.type == TaskType.LLM_CHAT }
+                            if (llmChatTask != null && llmChatTask.models.isNotEmpty()) {
+                                navigateToTaskScreen(llmChatTask)
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ) {
+                        Icon(Icons.Filled.Chat, contentDescription = "AI Chat")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Klypt AI")
+                    }
                 }
             },
         ) { innerPadding ->
@@ -239,15 +261,6 @@ fun EnhancedHomeScreen(
                                 )
                             }
                         }
-
-                        // AI Features section (existing task list)
-                        item {
-                            AIFeaturesSection(
-                                tasks = modelManagerUiState.tasks,
-                                navigateToTaskScreen = navigateToTaskScreen,
-                                loadingModelAllowlist = modelManagerUiState.loadingModelAllowlist
-                            )
-                        }
                     }
                 }
 
@@ -284,38 +297,6 @@ fun EnhancedHomeScreen(
                 // Navigate to login
                 onLogout()
             }
-        )
-    }
-}
-
-/**
- * AI Features section that wraps the existing task list
- */
-@Composable
-private fun AIFeaturesSection(
-    tasks: List<Task>,
-    navigateToTaskScreen: (Task) -> Unit,
-    loadingModelAllowlist: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "AI-Powered Features",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-            )
-        }
-        
-        TaskList(
-            tasks = tasks,
-            navigateToTaskScreen = navigateToTaskScreen,
-            loadingModelAllowlist = loadingModelAllowlist
         )
     }
 }
