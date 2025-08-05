@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -212,7 +213,8 @@ class NewClassViewModel @Inject constructor(
                     putAll(classData)
                     put("type", "class")
                     if (!containsKey("_id")) {
-                        put("_id", classData["classCode"] as String)
+                        // Generate a unique class ID
+                        put("_id", "class_${java.util.UUID.randomUUID().toString().replace("-", "").take(8)}")
                     }
                     if (!containsKey("updatedAt")) {
                         put("updatedAt", System.currentTimeMillis().toString())

@@ -114,9 +114,9 @@ class StudentRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax with LIKE expression for both firstName and lastName
+                    // More standard CouchbaseLite query syntax with LIKE expression for both firstName and lastName - include document ID
                     val searchQuery = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(
                             Expression.property("type").equalTo(Expression.string(studentType))
@@ -137,11 +137,19 @@ class StudentRepository(
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val docId = result.getString("docId") ?: ""
                             
                             val studentData = mutableMapOf<String, Any>()
                             
+                            // Extract the actual student ID from the document ID (remove "student::" prefix)
+                            val actualStudentId = if (docId.startsWith("student::")) {
+                                docId.removePrefix("student::")
+                            } else {
+                                docId
+                            }
+                            
                             // Safely extract each field
-                            studentData["_id"] = extractString(doc, "_id")
+                            studentData["_id"] = actualStudentId
                             studentData["type"] = extractString(doc, "type")
                             studentData["firstName"] = extractString(doc, "firstName")
                             studentData["lastName"] = extractString(doc, "lastName")
@@ -180,9 +188,9 @@ class StudentRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax
+                    // More standard CouchbaseLite query syntax - include document ID in selection
                     val query = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(Expression.property("type").equalTo(Expression.string(studentType)))
                     
@@ -197,11 +205,19 @@ class StudentRepository(
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val docId = result.getString("docId") ?: ""
                             
                             val studentData = mutableMapOf<String, Any>()
                             
+                            // Extract the actual student ID from the document ID (remove "student::" prefix)
+                            val actualStudentId = if (docId.startsWith("student::")) {
+                                docId.removePrefix("student::")
+                            } else {
+                                docId
+                            }
+                            
                             // Safely extract each field
-                            studentData["_id"] = extractString(doc, "_id")
+                            studentData["_id"] = actualStudentId
                             studentData["type"] = extractString(doc, "type")
                             studentData["firstName"] = extractString(doc, "firstName")
                             studentData["lastName"] = extractString(doc, "lastName")

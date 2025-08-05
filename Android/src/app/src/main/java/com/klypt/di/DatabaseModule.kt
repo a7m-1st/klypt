@@ -7,6 +7,7 @@ import com.klypt.data.repositories.StudentRepository
 import com.klypt.data.repositories.EducatorRepository
 import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.repositories.KlypRepository
+import com.klypt.data.repositories.QuizAttemptRepository
 import com.klypt.data.repository.EducationalContentRepository
 import com.klypt.data.services.ChatSummaryService
 import com.klypt.data.services.UserContextProvider
@@ -61,6 +62,14 @@ object DatabaseModule {
         databaseManager: DatabaseManager
     ): KlypRepository {
         return KlypRepository(databaseManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideQuizAttemptRepository(
+        databaseManager: DatabaseManager
+    ): QuizAttemptRepository {
+        return QuizAttemptRepository(databaseManager)
     }
 
     @Provides
