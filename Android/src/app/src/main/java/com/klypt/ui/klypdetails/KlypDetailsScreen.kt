@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.data.TASK_LLM_CHAT
 import com.klypt.data.models.Klyp
-import com.klypt.data.services.UserContextProvider
+import com.klypt.ui.modelmanager.ModelManagerViewModel
 
 private const val TAG = "KlypDetailsScreen"
 
@@ -49,14 +49,15 @@ object KlypDetailsDestination {
 fun KlypDetailsScreen(
     klyp: Klyp,
     onNavigateBack: () -> Unit,
-    onNavigateToLLMChat: (String, String, String) -> Unit, // classCode, title, content
+    onNavigateToLLMChat: (String, String, String, String) -> Unit, // classCode, title, content, modelName
     onNavigateToQuiz: (Klyp) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: KlypDetailsViewModel = hiltViewModel(),
-    userContextProvider: UserContextProvider
+    modelManagerViewModel: ModelManagerViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    var showModelSelectionDialog by remember { mutableStateOf(false) }
     
     // Initialize the view model with the klyp data
     LaunchedEffect(klyp) {
@@ -97,6 +98,10 @@ fun KlypDetailsScreen(
                 ) {
                     CircularProgressIndicator()
                 }
+            } else if (uiState.isInitializingModel) {
+                QuizLoadingScreen(
+                    isInitializingModel = true
+                )
             } else {
                 // Main content
                 Column(
@@ -226,7 +231,7 @@ fun KlypDetailsScreen(
                                     Log.d(TAG, "Transfer to Chat clicked for klyp: ${klyp.title}")
                                     Log.d(TAG, "Class code: ${klyp.classCode}, Title: ${klyp.title}")
                                     Log.d(TAG, "Content length: ${klyp.mainBody.length}")
-                                    onNavigateToLLMChat(klyp.classCode, klyp.title, klyp.mainBody)
+                                    showModelSelectionDialog = true
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
@@ -290,51 +295,142 @@ fun KlypDetailsScreen(
                                     Text(if (uiState.isGeneratingQuiz) "Generating..." else "Generate Quiz")
                                 }
                             } else {
-                                // Play Quiz button when questions already exist
-                                Button(
-                                    onClick = {
-                                        Log.d(TAG, "Play Quiz clicked for klyp: ${klyp.title}")
-                                        Log.d(TAG, "Number of questions: ${klyp.questions.size}")
-                                        // Directly navigate to quiz since questions already exist
-                                        onNavigateToQuiz(klyp)
-                                    },
+                                // Play Quiz and Regenerate Quiz buttons when questions already exist
+                                Column(
                                     modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    )
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Default.PlayArrow,
-                                        contentDescription = "Play Quiz",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Play Quiz")
+                                    Button(
+                                        onClick = {
+                                            Log.d(TAG, "Play Quiz clicked for klyp: ${klyp.title}")
+                                            Log.d(TAG, "Number of questions: ${klyp.questions.size}")
+                                            // Directly navigate to quiz since questions already exist
+                                            onNavigateToQuiz(klyp)
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    ) {
+                                        Icon(
+                                            Icons.Default.PlayArrow,
+                                            contentDescription = "Play Quiz",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Play Quiz")
+                                    }
+                                    
+                                    OutlinedButton(
+                                        onClick = {
+                                            Log.d(TAG, "Regenerate Quiz clicked for klyp: ${klyp.title}")
+                                            if (uiState.isGeneratingQuiz) {
+                                                Log.w(TAG, "Quiz regeneration already in progress, ignoring click")
+                                                return@OutlinedButton
+                                            }
+                                            
+                                            // Start quiz regeneration
+                                            viewModel.regenerateQuizQuestions(
+                                                klyp = klyp,
+                                                context = context,
+                                                onSuccess = { updatedKlyp ->
+                                                    Log.d(TAG, "Quiz regeneration successful")
+                                                    // Update local klyp state if needed
+                                                },
+                                                onError = { error ->
+                                                    Log.e(TAG, "Quiz regeneration failed: $error")
+                                                    // Error handling is done in ViewModel
+                                                }
+                                            )
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = !uiState.isGeneratingQuiz
+                                    ) {
+                                        if (uiState.isGeneratingQuiz) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        } else {
+                                            Icon(
+                                                Icons.Default.PlayArrow,
+                                                contentDescription = "Regenerate Quiz",
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(if (uiState.isGeneratingQuiz) "Regenerating..." else "Regenerate Quiz")
+                                    }
                                 }
                             }
                         }
                         
                         // Status messages
                         uiState.errorMessage?.let { error ->
-                            Text(
-                                text = error,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                )
+                            ) {
+                                Text(
+                                    text = error,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
                         }
                         
                         if (uiState.isGeneratingQuiz) {
-                            Text(
-                                text = "Generating quiz questions using AI...",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (klyp.questions.isEmpty()) {
+                                            "Generating quiz questions using AI..."
+                                        } else {
+                                            "Regenerating quiz questions with new AI content..."
+                                        },
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+    
+    // Model Selection Dialog
+    if (showModelSelectionDialog) {
+        ModelSelectionDialog(
+            modelManagerViewModel = modelManagerViewModel,
+            onModelSelected = { selectedModel ->
+                Log.d(TAG, "Model selected: ${selectedModel.name}")
+                showModelSelectionDialog = false
+                onNavigateToLLMChat(klyp.classCode, klyp.title, klyp.mainBody, selectedModel.name)
+            },
+            onDismiss = {
+                Log.d(TAG, "Model selection dialog dismissed")
+                showModelSelectionDialog = false
+            }
+        )
     }
 }

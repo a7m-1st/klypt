@@ -408,6 +408,44 @@ fun GalleryNavHost(
       }
     }
 
+    // LLM chat for klyp discussion with model selection
+    composable(
+      route = "llm-chat-for-class/{classCode}/{title}/{modelName}",
+      arguments = listOf(
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("title") { type = NavType.StringType },
+        navArgument("modelName") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val viewModel: LlmChatViewModel = hiltViewModel(backStackEntry)
+      val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedTitle = backStackEntry.arguments?.getString("title") ?: ""
+      val title = java.net.URLDecoder.decode(encodedTitle, "UTF-8")
+      val encodedModelName = backStackEntry.arguments?.getString("modelName") ?: ""
+      val modelName = java.net.URLDecoder.decode(encodedModelName, "UTF-8")
+
+      // Find and select the chosen model
+      val selectedModel = TASK_LLM_CHAT.models.find { it.name == modelName } ?: TASK_LLM_CHAT.models.firstOrNull()
+      selectedModel?.let { model ->
+        modelManagerViewModel.selectModel(model)
+
+        LlmChatScreen(
+          viewModel = viewModel,
+          modelManagerViewModel = modelManagerViewModel,
+          navigateUp = { navController.navigateUp() },
+          onNavigateToSummaryReview = { summary, model, messages ->
+            // For klyp discussion, store the class context and navigate to summary review
+            val classContext = SummaryNavigationData.ClassCreationContext(classCode, title)
+            SummaryNavigationData.storeSummaryData(summary, model, messages, classContext)
+            // Navigate to summary review screen
+            navController.navigate("${SummaryReviewDestination.route}/${model.name}")
+          }
+        )
+      }
+    }
+
     // LLM chat demos.
     composable(
       route = "${LlmChatDestination.route}/{modelName}",
@@ -779,10 +817,11 @@ fun GalleryNavHost(
       KlypDetailsScreen(
         klyp = klyp,
         onNavigateBack = { navController.navigateUp() },
-        onNavigateToLLMChat = { classCode, title, content ->
-          // Navigate to LLM Chat with class context
+        onNavigateToLLMChat = { classCode, title, content, modelName ->
+          // Navigate to LLM Chat with class context and selected model
           val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
-          navController.navigate("llm-chat-for-class/$classCode/$encodedTitle")
+          val encodedModelName = java.net.URLEncoder.encode(modelName, "UTF-8")
+          navController.navigate("llm-chat-for-class/$classCode/$encodedTitle/$encodedModelName")
         },
         onNavigateToQuiz = { klypForQuiz ->
           // Navigate to Quiz screen
@@ -797,8 +836,7 @@ fun GalleryNavHost(
           val encodedQuizCreatedAt = java.net.URLEncoder.encode(klypForQuiz.createdAt, "UTF-8")
           
           navController.navigate("${QuizDestination.route}/$encodedQuizKlypId/$encodedQuizKlypTitle/$encodedQuizClassCode/$encodedQuizMainBody/$encodedQuizQuestions/$encodedQuizCreatedAt")
-        },
-        userContextProvider = userContextProvider
+        }
       )
     }
 
