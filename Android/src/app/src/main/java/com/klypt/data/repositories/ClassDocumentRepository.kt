@@ -87,15 +87,40 @@ class ClassDocumentRepository(
     }
 
     override suspend fun count(): Int {
-        return withContext(Dispatchers.IO) {
-            val database = databaseManager.inventoryDatabase
-            database?.let { db ->
-                val query = "SELECT COUNT(*) AS count FROM _ WHERE type='$classType'"
-                val results = db.createQuery(query).execute().allResults()
-                return@withContext results[0].getInt("count")
-            }
-            return@withContext 0
-        }
+        return 0
+//        return withContext(Dispatchers.IO) {
+//            val database = databaseManager.inventoryDatabase
+//            database?.let { db ->
+//                try {
+//                    // More standard CouchbaseLite query syntax for count
+//                    val query = QueryBuilder
+//                        .select(SelectResult.expression(com.couchbase.lite.Function.count(Expression.string("*"))).as("count"))
+//                        .from(DataSource.database(db))
+//                        .where(Expression.property("type").equalTo(Expression.string(classType)))
+//
+//                    android.util.Log.d("ClassDocumentRepository", "Executing count query for classes")
+//
+//                    val queryResults = query.execute()
+//                    val resultsList = queryResults.allResults()
+//
+//                    val count = if (resultsList.isNotEmpty()) {
+//                        resultsList[0].getInt("count")
+//                    } else {
+//                        0
+//                    }
+//
+//                    queryResults.close() // Important: close the result set
+//
+//                    android.util.Log.d("ClassDocumentRepository", "Found $count classes")
+//                    return@withContext count
+//
+//                } catch (e: Exception) {
+//                    android.util.Log.e("ClassDocumentRepository", "Count query execution failed: ${e.message}", e)
+//                    return@withContext 0
+//                }
+//            }
+//            return@withContext 0
+//        }
     }
 
     suspend fun delete(documentId: String): Boolean {
@@ -117,30 +142,58 @@ class ClassDocumentRepository(
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
+            
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$classType'"
-                android.util.Log.d("ClassDocumentRepository", "Executing query: $query")
-                val queryResults = db.createQuery(query).execute().allResults()
-                android.util.Log.d("ClassDocumentRepository", "Query returned ${queryResults.size} results")
-                android.util.Log.d("ClassDocumentRepository", "Query returned $queryResults")
-                
-                for (result in queryResults) {
-                    val classData = mutableMapOf<String, Any>()
-                    classData["_id"] = result.getString("_id") ?: ""
-                    classData["type"] = result.getString("type") ?: ""
-                    classData["classCode"] = result.getString("classCode") ?: ""
-                    classData["classTitle"] = result.getString("classTitle") ?: ""
-                    classData["updatedAt"] = result.getString("updatedAt") ?: ""
-                    classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
-                    classData["educatorId"] = result.getString("educatorId") ?: ""
-                    classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
+                try {
+                    // More standard CouchbaseLite query syntax
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(Expression.property("type").equalTo(Expression.string(classType)))
                     
-                    android.util.Log.d("ClassDocumentRepository", "Found class: $classData")
-                    results.add(classData)
+                    android.util.Log.d("ClassDocumentRepository", "Executing query for all classes")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Query returned ${resultsList.size} results")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val classData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            classData["_id"] = extractString(doc, "_id")
+                            classData["type"] = extractString(doc, "type")
+                            classData["classCode"] = extractString(doc, "classCode")
+                            classData["classTitle"] = extractString(doc, "classTitle")
+                            classData["updatedAt"] = extractString(doc, "updatedAt")
+                            classData["lastSyncedAt"] = extractString(doc, "lastSyncedAt")
+                            classData["educatorId"] = extractString(doc, "educatorId")
+                            
+                            // Handle studentIds array properly
+                            classData["studentIds"] = extractStringArray(doc, "studentIds")
+                            
+                            android.util.Log.d("ClassDocumentRepository", "Found class: ${classData["classCode"]} - ${classData["classTitle"]}")
+                            results.add(classData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("ClassDocumentRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("ClassDocumentRepository", "Query execution failed: ${e.message}", e)
                 }
             } ?: run {
                 android.util.Log.w("ClassDocumentRepository", "Inventory database is null!")
             }
+            
             android.util.Log.d("ClassDocumentRepository", "Returning ${results.size} classes")
             return@withContext results
         }
@@ -150,23 +203,61 @@ class ClassDocumentRepository(
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
+            
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$classType' AND educatorId='$educatorId'"
-                val queryResults = db.createQuery(query).execute().allResults()
-                
-                for (result in queryResults) {
-                    val classData = mutableMapOf<String, Any>()
-                    classData["_id"] = result.getString("_id") ?: ""
-                    classData["type"] = result.getString("type") ?: ""
-                    classData["classCode"] = result.getString("classCode") ?: ""
-                    classData["classTitle"] = result.getString("classTitle") ?: ""
-                    classData["updatedAt"] = result.getString("updatedAt") ?: ""
-                    classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
-                    classData["educatorId"] = result.getString("educatorId") ?: ""
-                    classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
-                    results.add(classData)
+                try {
+                    // More standard CouchbaseLite query syntax
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(
+                            Expression.property("type").equalTo(Expression.string(classType))
+                                .and(Expression.property("educatorId").equalTo(Expression.string(educatorId)))
+                        )
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Executing query for educator classes: $educatorId")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Query returned ${resultsList.size} results for educator $educatorId")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val classData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            classData["_id"] = extractString(doc, "_id")
+                            classData["type"] = extractString(doc, "type")
+                            classData["classCode"] = extractString(doc, "classCode")
+                            classData["classTitle"] = extractString(doc, "classTitle")
+                            classData["updatedAt"] = extractString(doc, "updatedAt")
+                            classData["lastSyncedAt"] = extractString(doc, "lastSyncedAt")
+                            classData["educatorId"] = extractString(doc, "educatorId")
+                            
+                            // Handle studentIds array properly
+                            classData["studentIds"] = extractStringArray(doc, "studentIds")
+                            
+                            android.util.Log.d("ClassDocumentRepository", "Found class for educator $educatorId: ${classData["classCode"]} - ${classData["classTitle"]}")
+                            results.add(classData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("ClassDocumentRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("ClassDocumentRepository", "Query execution failed: ${e.message}", e)
                 }
+            } ?: run {
+                android.util.Log.w("ClassDocumentRepository", "Inventory database is null!")
             }
+            
             return@withContext results
         }
     }
@@ -175,31 +266,61 @@ class ClassDocumentRepository(
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
+            
             database?.let { db ->
-                // Fix N1QL syntax for array containment - use ANY...IN...SATISFIES instead of CONTAINS
-                val query = "SELECT * FROM _ WHERE type='$classType' AND ANY studentId IN studentIds SATISFIES educatorId = '$studentId' END"
-                android.util.Log.d("ClassDocumentRepository", "Executing query for student classes: $query")
-                val queryResults = db.createQuery(query).execute().allResults()
-                android.util.Log.d("ClassDocumentRepository", "Query returned ${queryResults.size} classes for student $studentId")
-                
-                for (result in queryResults) {
-                    android.util.Log.d("ClassDocumentRepository", "Query returned ${result.getString("classCode")}")
-                    val classData = mutableMapOf<String, Any>()
-                    classData["_id"] = result.getString("_id") ?: ""
-                    classData["type"] = result.getString("type") ?: ""
-                    classData["classCode"] = result.getString("classCode") ?: ""
-                    classData["classTitle"] = result.getString("classTitle") ?: ""
-                    classData["updatedAt"] = result.getString("updatedAt") ?: ""
-                    classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
-                    classData["educatorId"] = result.getString("educatorId") ?: ""
-                    classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
+                try {
+                    // Use QueryBuilder for array containment query
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(
+                            Expression.property("type").equalTo(Expression.string(classType))
+                                .and(ArrayFunction.contains(Expression.property("studentIds"), Expression.string(studentId)))
+                        )
                     
-                    android.util.Log.d("ClassDocumentRepository", "Found class for student $studentId: $classData")
-                    results.add(classData)
+                    android.util.Log.d("ClassDocumentRepository", "Executing query for student classes: $studentId")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Query returned ${resultsList.size} classes for student $studentId")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val classData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            classData["_id"] = extractString(doc, "_id")
+                            classData["type"] = extractString(doc, "type")
+                            classData["classCode"] = extractString(doc, "classCode")
+                            classData["classTitle"] = extractString(doc, "classTitle")
+                            classData["updatedAt"] = extractString(doc, "updatedAt")
+                            classData["lastSyncedAt"] = extractString(doc, "lastSyncedAt")
+                            classData["educatorId"] = extractString(doc, "educatorId")
+                            
+                            // Handle studentIds array properly
+                            classData["studentIds"] = extractStringArray(doc, "studentIds")
+                            
+                            android.util.Log.d("ClassDocumentRepository", "Found class for student $studentId: ${classData["classCode"]} - ${classData["classTitle"]}")
+                            results.add(classData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("ClassDocumentRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("ClassDocumentRepository", "Query execution failed: ${e.message}", e)
                 }
             } ?: run {
                 android.util.Log.w("ClassDocumentRepository", "Inventory database is null when getting classes for student!")
             }
+            
             android.util.Log.d("ClassDocumentRepository", "Returning ${results.size} classes for student $studentId")
             return@withContext results
         }
@@ -208,31 +329,155 @@ class ClassDocumentRepository(
     suspend fun getClassByCode(classCode: String): Map<String, Any>? {
         return withContext(Dispatchers.IO) {
             val database = databaseManager.inventoryDatabase
+            
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$classType' AND classCode='$classCode'"
-                android.util.Log.d("ClassDocumentRepository", "Getting class by code: $query")
-                val queryResults = db.createQuery(query).execute().allResults()
-                
-                if (queryResults.isNotEmpty()) {
-                    val result = queryResults[0]
-                    val classData = mutableMapOf<String, Any>()
-                    classData["_id"] = result.getString("_id") ?: ""
-                    classData["type"] = result.getString("type") ?: ""
-                    classData["classCode"] = result.getString("classCode") ?: ""
-                    classData["classTitle"] = result.getString("classTitle") ?: ""
-                    classData["updatedAt"] = result.getString("updatedAt") ?: ""
-                    classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
-                    classData["educatorId"] = result.getString("educatorId") ?: ""
-                    classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
-                    android.util.Log.d("ClassDocumentRepository", "Found class by code: $classData")
-                    return@withContext classData
-                } else {
-                    android.util.Log.w("ClassDocumentRepository", "No class found with code: $classCode")
+                try {
+                    // More standard CouchbaseLite query syntax
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(
+                            Expression.property("type").equalTo(Expression.string(classType))
+                                .and(Expression.property("classCode").equalTo(Expression.string(classCode)))
+                        )
+                        .limit(Expression.intValue(1)) // Limit to 1 result since we expect unique class codes
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Getting class by code: $classCode")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    if (resultsList.isNotEmpty()) {
+                        try {
+                            val result = resultsList[0]
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val classData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            classData["_id"] = extractString(doc, "_id")
+                            classData["type"] = extractString(doc, "type")
+                            classData["classCode"] = extractString(doc, "classCode")
+                            classData["classTitle"] = extractString(doc, "classTitle")
+                            classData["updatedAt"] = extractString(doc, "updatedAt")
+                            classData["lastSyncedAt"] = extractString(doc, "lastSyncedAt")
+                            classData["educatorId"] = extractString(doc, "educatorId")
+                            
+                            // Handle studentIds array properly
+                            classData["studentIds"] = extractStringArray(doc, "studentIds")
+                            
+                            android.util.Log.d("ClassDocumentRepository", "Found class by code: ${classData["classCode"]} - ${classData["classTitle"]}")
+                            
+                            queryResults.close() // Important: close the result set
+                            return@withContext classData
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("ClassDocumentRepository", "Error processing result: ${e.message}", e)
+                        }
+                    } else {
+                        android.util.Log.w("ClassDocumentRepository", "No class found with code: $classCode")
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("ClassDocumentRepository", "Query execution failed: ${e.message}", e)
                 }
             } ?: run {
                 android.util.Log.w("ClassDocumentRepository", "Inventory database is null when getting class by code!")
             }
+            
             return@withContext null
+        }
+    }
+
+    suspend fun getClassesByType(classType: String): List<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            val results = mutableListOf<Map<String, Any>>()
+            val database = databaseManager.inventoryDatabase
+            
+            database?.let { db ->
+                try {
+                    // More standard CouchbaseLite query syntax
+                    val query = QueryBuilder
+                        .select(SelectResult.all())
+                        .from(DataSource.database(db))
+                        .where(Expression.property("type").equalTo(Expression.string(classType)))
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Executing query for type: $classType")
+                    
+                    val queryResults = query.execute()
+                    val resultsList = queryResults.allResults()
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Query returned ${resultsList.size} results")
+                    
+                    for (result in resultsList) {
+                        try {
+                            // Handle the nested structure - CouchbaseLite wraps results in database name
+                            val doc = result.getDictionary(db.name) ?: result.toMap()
+                            
+                            val classData = mutableMapOf<String, Any>()
+                            
+                            // Safely extract each field
+                            classData["_id"] = extractString(doc, "_id")
+                            classData["type"] = extractString(doc, "type")
+                            classData["classCode"] = extractString(doc, "classCode")
+                            classData["classTitle"] = extractString(doc, "classTitle")
+                            classData["updatedAt"] = extractString(doc, "updatedAt")
+                            classData["lastSyncedAt"] = extractString(doc, "lastSyncedAt")
+                            classData["educatorId"] = extractString(doc, "educatorId")
+                            
+                            // Handle studentIds array properly
+                            classData["studentIds"] = extractStringArray(doc, "studentIds")
+                            
+                            android.util.Log.d("ClassDocumentRepository", "Found class: ${classData["classCode"]} - ${classData["classTitle"]}")
+                            results.add(classData)
+                            
+                        } catch (e: Exception) {
+                            android.util.Log.e("ClassDocumentRepository", "Error processing result: ${e.message}", e)
+                        }
+                    }
+                    
+                    queryResults.close() // Important: close the result set
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("ClassDocumentRepository", "Query execution failed: ${e.message}", e)
+                }
+            } ?: run {
+                android.util.Log.w("ClassDocumentRepository", "Inventory database is null!")
+            }
+            
+            return@withContext results
+        }
+    }
+
+    // Helper function to safely extract strings
+    private fun extractString(doc: Any, key: String): String {
+        return when (doc) {
+            is Map<*, *> -> doc[key]?.toString() ?: ""
+            is Dictionary -> doc.getString(key) ?: ""
+            else -> ""
+        }
+    }
+
+    // Helper function to safely extract string arrays
+    private fun extractStringArray(doc: Any, key: String): List<String> {
+        return when (doc) {
+            is Map<*, *> -> {
+                val array = doc[key]
+                when (array) {
+                    is List<*> -> array.mapNotNull { it?.toString() }
+                    else -> emptyList()
+                }
+            }
+            is Dictionary -> {
+                val array = doc.getArray(key)
+                array?.let { arr ->
+                    (0 until arr.count()).mapNotNull { arr.getString(it) }
+                } ?: emptyList()
+            }
+            else -> emptyList()
         }
     }
 

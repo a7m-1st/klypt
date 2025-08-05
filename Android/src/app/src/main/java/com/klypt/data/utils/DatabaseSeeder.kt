@@ -27,10 +27,10 @@ class DatabaseSeeder @Inject constructor(
                 android.util.Log.d("DatabaseSeeder", "Checking if database needs seeding...")
                 
                 // Check if database has any data
-                val studentCount = studentRepository.count()
-                val educatorCount = educatorRepository.count()
-                val classCount = classRepository.count()
-                val klypCount = klypRepository.count()
+                val studentCount: Int = studentRepository.count()
+                val educatorCount: Int = educatorRepository.count()
+                val classCount: Int = classRepository.count()
+                val klypCount: Int= klypRepository.count()
                 
                 android.util.Log.d("DatabaseSeeder", "Current counts - Students: $studentCount, Educators: $educatorCount, Classes: $classCount, Klyps: $klypCount")
                 
