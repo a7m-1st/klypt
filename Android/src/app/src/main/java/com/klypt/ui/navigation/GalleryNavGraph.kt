@@ -1,22 +1,5 @@
-/*
- * Copyright 2025 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.klypt.ui.navigation
 
-import androidx.hilt.navigation.compose.hiltViewModel
 import android.util.Log
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
@@ -44,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import androidx.core.os.bundleOf
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -62,6 +46,8 @@ import com.klypt.data.Task
 import com.klypt.data.TaskType
 import com.klypt.data.UserRole
 import com.klypt.data.getModelByName
+import com.klypt.data.models.Klyp
+import com.klypt.data.models.Question
 import com.klypt.firebaseAnalytics
 import com.klypt.data.services.UserContextProvider
 import com.klypt.ui.home.EnhancedHomeScreen
@@ -94,8 +80,12 @@ import com.klypt.ui.classes.ClassDetailsDestination
 import com.klypt.ui.classes.ClassDetailsScreen
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayDestination
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayScreen
+import com.klypt.ui.klypdetails.KlypDetailsDestination
+import com.klypt.ui.klypdetails.KlypDetailsScreen
 import com.klypt.ui.otp.OtpEntryScreen
 import com.klypt.ui.otp.OtpViewModel
+import com.klypt.ui.quiz.QuizDestination
+import com.klypt.ui.quiz.QuizScreen
 import com.klypt.ui.signup.SignupViewModel
 
 private const val TAG = "AGGalleryNavGraph"
@@ -649,6 +639,25 @@ fun GalleryNavHost(
           // For now, we'll handle adding klyps within the screen itself
           //TODO
         },
+        onNavigateToKlypDetails = { klyp ->
+          Log.d(TAG, "=== onNavigateToKlypDetails clicked ===")
+          Log.d(TAG, "Klyp ID: ${klyp._id}, Title: ${klyp.title}")
+          Log.d(TAG, "Class Code: ${klyp.classCode}")
+          Log.d(TAG, "Questions: ${klyp.questions.size}")
+          
+          // Navigate to KlypDetailsScreen with klyp data
+          val encodedKlypId = java.net.URLEncoder.encode(klyp._id, "UTF-8")  
+          val encodedKlypTitle = java.net.URLEncoder.encode(klyp.title, "UTF-8")
+          val encodedClassCode = java.net.URLEncoder.encode(klyp.classCode, "UTF-8")
+          val encodedMainBody = java.net.URLEncoder.encode(klyp.mainBody, "UTF-8")
+          val questionsJson = klyp.questions.joinToString("|") { question ->
+            "${question.questionText}~${question.options.joinToString(",")}~${question.correctAnswer}"
+          }
+          val encodedQuestions = java.net.URLEncoder.encode(questionsJson, "UTF-8")
+          val encodedCreatedAt = java.net.URLEncoder.encode(klyp.createdAt, "UTF-8")
+          
+          navController.navigate("${KlypDetailsDestination.route}/$encodedKlypId/$encodedKlypTitle/$encodedClassCode/$encodedMainBody/$encodedQuestions/$encodedCreatedAt")
+        },
         userContextProvider = userContextProvider
       )
     }
@@ -700,6 +709,172 @@ fun GalleryNavHost(
           Log.e("DEBUG_NAV", "ClassCodeDisplayScreen onNavigateBack called")
           navController.navigateUp() 
         }
+      )
+    }
+
+    // Klyp Details Screen
+    composable(
+      route = "${KlypDetailsDestination.route}/{klypId}/{klypTitle}/{classCode}/{mainBody}/{questions}/{createdAt}",
+      arguments = listOf(
+        navArgument("klypId") { type = NavType.StringType },
+        navArgument("klypTitle") { type = NavType.StringType },
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("mainBody") { type = NavType.StringType },
+        navArgument("questions") { type = NavType.StringType },
+        navArgument("createdAt") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val encodedKlypId = backStackEntry.arguments?.getString("klypId") ?: ""
+      val encodedKlypTitle = backStackEntry.arguments?.getString("klypTitle") ?: ""
+      val encodedClassCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedMainBody = backStackEntry.arguments?.getString("mainBody") ?: ""
+      val encodedQuestions = backStackEntry.arguments?.getString("questions") ?: ""
+      val encodedCreatedAt = backStackEntry.arguments?.getString("createdAt") ?: ""
+      
+      // Decode the parameters
+      val klypId = java.net.URLDecoder.decode(encodedKlypId, "UTF-8")
+      val klypTitle = java.net.URLDecoder.decode(encodedKlypTitle, "UTF-8")
+      val classCode = java.net.URLDecoder.decode(encodedClassCode, "UTF-8")
+      val mainBody = java.net.URLDecoder.decode(encodedMainBody, "UTF-8")
+      val questionsString = java.net.URLDecoder.decode(encodedQuestions, "UTF-8")
+      val createdAt = java.net.URLDecoder.decode(encodedCreatedAt, "UTF-8")
+      
+      // Parse questions from the encoded string
+      val questions = if (questionsString.isNotEmpty()) {
+        questionsString.split("|").mapNotNull { questionData ->
+          val parts = questionData.split("~")
+          if (parts.size >= 3) {
+            val questionText = parts[0]
+            val options = parts[1].split(",")
+            val correctAnswer = parts[2].firstOrNull() ?: 'A'
+            Question(
+              questionText = questionText,
+              options = options,
+              correctAnswer = correctAnswer
+            )
+          } else null
+        }
+      } else emptyList()
+      
+      // Create the Klyp object
+      val klyp = Klyp(
+        _id = klypId,
+        title = klypTitle,
+        classCode = classCode,
+        mainBody = mainBody,
+        questions = questions,
+        createdAt = createdAt
+      )
+      
+      if (klypId.isBlank()) {
+        Log.e("GalleryNavGraph", "KlypDetailsScreen received blank klypId, navigating back")
+        LaunchedEffect(Unit) {
+          navController.navigateUp()
+        }
+        return@composable
+      }
+      
+      KlypDetailsScreen(
+        klyp = klyp,
+        onNavigateBack = { navController.navigateUp() },
+        onNavigateToLLMChat = { classCode, title, content ->
+          // Navigate to LLM Chat with class context
+          val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
+          navController.navigate("llm-chat-for-class/$classCode/$encodedTitle")
+        },
+        onNavigateToQuiz = { klypForQuiz ->
+          // Navigate to Quiz screen
+          val encodedQuizKlypId = java.net.URLEncoder.encode(klypForQuiz._id, "UTF-8")
+          val encodedQuizKlypTitle = java.net.URLEncoder.encode(klypForQuiz.title, "UTF-8")
+          val encodedQuizClassCode = java.net.URLEncoder.encode(klypForQuiz.classCode, "UTF-8")
+          val encodedQuizMainBody = java.net.URLEncoder.encode(klypForQuiz.mainBody, "UTF-8")
+          val quizQuestionsJson = klypForQuiz.questions.joinToString("|") { question ->
+            "${question.questionText}~${question.options.joinToString(",")}~${question.correctAnswer}"
+          }
+          val encodedQuizQuestions = java.net.URLEncoder.encode(quizQuestionsJson, "UTF-8")
+          val encodedQuizCreatedAt = java.net.URLEncoder.encode(klypForQuiz.createdAt, "UTF-8")
+          
+          navController.navigate("${QuizDestination.route}/$encodedQuizKlypId/$encodedQuizKlypTitle/$encodedQuizClassCode/$encodedQuizMainBody/$encodedQuizQuestions/$encodedQuizCreatedAt")
+        },
+        userContextProvider = userContextProvider
+      )
+    }
+
+    // Quiz Screen
+    composable(
+      route = "${QuizDestination.route}/{klypId}/{klypTitle}/{classCode}/{mainBody}/{questions}/{createdAt}",
+      arguments = listOf(
+        navArgument("klypId") { type = NavType.StringType },
+        navArgument("klypTitle") { type = NavType.StringType },
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("mainBody") { type = NavType.StringType },
+        navArgument("questions") { type = NavType.StringType },
+        navArgument("createdAt") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val encodedKlypId = backStackEntry.arguments?.getString("klypId") ?: ""
+      val encodedKlypTitle = backStackEntry.arguments?.getString("klypTitle") ?: ""
+      val encodedClassCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedMainBody = backStackEntry.arguments?.getString("mainBody") ?: ""
+      val encodedQuestions = backStackEntry.arguments?.getString("questions") ?: ""
+      val encodedCreatedAt = backStackEntry.arguments?.getString("createdAt") ?: ""
+      
+      // Decode the parameters
+      val klypId = java.net.URLDecoder.decode(encodedKlypId, "UTF-8")
+      val klypTitle = java.net.URLDecoder.decode(encodedKlypTitle, "UTF-8")
+      val classCode = java.net.URLDecoder.decode(encodedClassCode, "UTF-8")
+      val mainBody = java.net.URLDecoder.decode(encodedMainBody, "UTF-8")
+      val questionsString = java.net.URLDecoder.decode(encodedQuestions, "UTF-8")
+      val createdAt = java.net.URLDecoder.decode(encodedCreatedAt, "UTF-8")
+      
+      // Parse questions from the encoded string
+      val questions = if (questionsString.isNotEmpty()) {
+        questionsString.split("|").mapNotNull { questionData ->
+          val parts = questionData.split("~")
+          if (parts.size >= 3) {
+            val questionText = parts[0]
+            val options = parts[1].split(",")
+            val correctAnswer = parts[2].firstOrNull() ?: 'A'
+            Question(
+              questionText = questionText,
+              options = options,
+              correctAnswer = correctAnswer
+            )
+          } else null
+        }
+      } else emptyList()
+      
+      // Create the Klyp object
+      val klyp = Klyp(
+        _id = klypId,
+        title = klypTitle,
+        classCode = classCode,
+        mainBody = mainBody,
+        questions = questions,
+        createdAt = createdAt
+      )
+      
+      if (klypId.isBlank()) {
+        Log.e("GalleryNavGraph", "QuizScreen received blank klypId, navigating back")
+        LaunchedEffect(Unit) {
+          navController.navigateUp()
+        }
+        return@composable
+      }
+      
+      QuizScreen(
+        klyp = klyp,
+        onNavigateBack = { navController.navigateUp() },
+        onQuizCompleted = { score, totalQuestions ->
+          Log.d("GalleryNavGraph", "Quiz completed with score: $score/$totalQuestions")
+          // Navigate back to the klyp details screen
+          navController.navigateUp()
+        },
+        userContextProvider = userContextProvider
       )
     }
   }
