@@ -145,7 +145,7 @@ object DummyDataGenerator {
             updatedAt = currentTime,
             lastSyncedAt = currentTime,
             educatorId = "educator_001",
-            studentIds = listOf("student_001", "student_002", "student_004")
+            studentIds = listOf("student_001", "student_002", "student_004", "a_a") // Include current user
         ),
         ClassDocument(
             _id = "class_math201",
@@ -154,16 +154,16 @@ object DummyDataGenerator {
             updatedAt = currentTime,
             lastSyncedAt = currentTime,
             educatorId = "educator_002",
-            studentIds = listOf("student_001", "student_003", "student_004")
+            studentIds = listOf("student_001", "student_003", "student_004", "a_a") // Include current user
         ),
         ClassDocument(
             _id = "class_phys101",
-            classCode = "PHYS101",
+            classCode = "PHYS101", 
             classTitle = "General Physics I",
             updatedAt = currentTime,
             lastSyncedAt = currentTime,
             educatorId = "educator_003",
-            studentIds = listOf("student_001", "student_003")
+            studentIds = listOf("student_001", "student_003", "a_a") // Include current user
         ),
         ClassDocument(
             _id = "class_eng101",

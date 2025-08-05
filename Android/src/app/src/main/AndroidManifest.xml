@@ -77,6 +77,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Database Explorer Activity for debugging -->
+        <activity
+            android:name="com.klypt.ui.debug.DatabaseExplorerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Gallery"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity" />
+
         <!-- Set themes for activities that are used for viewing open source licenses -->
         <activity
             android:name="com.google.android.gms.oss.licenses.OssLicensesMenuActivity"

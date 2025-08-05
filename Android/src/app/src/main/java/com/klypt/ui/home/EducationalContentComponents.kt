@@ -16,6 +16,7 @@
 
 package com.klypt.ui.home
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -294,6 +295,7 @@ fun MyClassesSection(
     onViewAllClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    Log.d("MyClassesSection", "classes: $classes")
     Column(modifier = modifier) {
         Row(
             modifier = Modifier

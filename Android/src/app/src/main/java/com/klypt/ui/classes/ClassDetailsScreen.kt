@@ -46,6 +46,7 @@ fun ClassDetailsScreen(
     classId: String? = null,
     onNavigateBack: () -> Unit,
     onNavigateToAddKlyp: (String) -> Unit = {}, // Pass class code for klyp creation
+    onNavigateToKlypDetails: (Klyp) -> Unit = {}, // Navigate to klyp details
     modifier: Modifier = Modifier,
     viewModel: ClassDetailsViewModel = hiltViewModel()
 ) {
@@ -174,7 +175,8 @@ fun ClassDetailsScreen(
                         items(uiState.klyps) { klyp ->
                             KlypCard(
                                 klyp = klyp,
-                                onDelete = { showDeleteDialog = klyp }
+                                onDelete = { showDeleteDialog = klyp },
+                                onClick = { onNavigateToKlypDetails(klyp) }
                             )
                         }
                     }
@@ -238,17 +240,20 @@ fun ClassDetailsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KlypCard(
     klyp: Klyp,
     onDelete: () -> Unit,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        ),
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier.padding(16.dp)

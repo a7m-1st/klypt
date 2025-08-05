@@ -17,6 +17,7 @@
 package com.klypt.data.repository
 
 import android.util.Log
+import com.klypt.data.utils.DatabaseUtils
 import com.klypt.data.DummyDataGenerator
 import com.klypt.data.models.ClassDocument
 import com.klypt.data.models.Educator
@@ -24,9 +25,8 @@ import com.klypt.data.models.Klyp
 import com.klypt.data.models.Student
 import com.klypt.data.repositories.StudentRepository
 import com.klypt.data.repositories.EducatorRepository
-import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.repositories.KlypRepository
-import com.klypt.data.utils.DatabaseUtils
 import com.klypt.data.utils.DatabaseSeeder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -41,7 +41,7 @@ import javax.inject.Singleton
 class EducationalContentRepository @Inject constructor(
     private val studentRepository: StudentRepository,
     private val educatorRepository: EducatorRepository,
-    private val classRepository: ClassRepository,
+    private val classRepository: ClassDocumentRepository,
     private val klypRepository: KlypRepository,
     private val databaseSeeder: DatabaseSeeder
 ) {
@@ -280,9 +280,21 @@ class EducationalContentRepository @Inject constructor(
         try {
             val classData = classRepository.getAllClasses()
             val classes = classData.mapNotNull { DatabaseUtils.mapToClassDocument(it) }
+            
+            // If database returns classes but they have empty fields, fall back to dummy data
+            if (classes.isNotEmpty() && classes.all { it.classTitle.isBlank() || it.classCode.isBlank() }) {
+                android.util.Log.w("EducationalContentRepository", "Database returned classes with empty fields, falling back to dummy data")
+                if (_classes == null) {
+                    _classes = DummyDataGenerator.generateSampleClasses()
+                }
+                emit(_classes!!)
+                return@flow
+            }
+            
             _classes = classes
             emit(classes)
         } catch (e: Exception) {
+            android.util.Log.e("EducationalContentRepository", "Database query failed, falling back to dummy data", e)
             // Fallback to dummy data if database fails
             if (_classes == null) {
                 _classes = DummyDataGenerator.generateSampleClasses()
@@ -296,10 +308,51 @@ class EducationalContentRepository @Inject constructor(
      */
     fun getClassesForStudent(studentId: String): Flow<List<ClassDocument>> = flow {
         try {
+            android.util.Log.d("EducationalContentRepository", "Getting classes for student: $studentId")
             val classData = classRepository.getClassesByStudentId(studentId)
+            android.util.Log.d("EducationalContentRepository", "Raw class data for student: $classData")
+            
             val classes = classData.mapNotNull { DatabaseUtils.mapToClassDocument(it) }
+            android.util.Log.d("EducationalContentRepository", "Mapped classes for student: $classes")
+            
+            // If database returns classes but they have empty fields, fall back to dummy data
+            if (classes.isNotEmpty() && classes.all { it.classTitle.isBlank() || it.classCode.isBlank() }) {
+                android.util.Log.w("EducationalContentRepository", "Database returned student classes with empty fields, falling back to dummy data")
+                if (_classes == null) {
+                    _classes = DummyDataGenerator.generateSampleClasses()
+                }
+                val studentClasses = _classes?.filter { classDoc ->
+                    classDoc.studentIds.contains(studentId)
+                } ?: emptyList()
+                android.util.Log.d("EducationalContentRepository", "Using dummy classes for student: $studentClasses")
+                emit(studentClasses)
+                return@flow
+            }
+            
+            // If database returns no classes, check if the student is enrolled in classes that don't exist
+            if (classes.isEmpty()) {
+                android.util.Log.w("EducationalContentRepository", "No classes found for student $studentId in database, checking for enrollment mismatches")
+                
+                // Get the student's enrolled class IDs
+                val student = getStudentById(studentId)
+                if (student != null && student.enrolledClassIds.isNotEmpty()) {
+                    android.util.Log.w("EducationalContentRepository", "Student is enrolled in classes ${student.enrolledClassIds} but they don't exist in database, falling back to dummy data")
+                    if (_classes == null) {
+                        _classes = DummyDataGenerator.generateSampleClasses()
+                    }
+                    val studentClasses = _classes?.filter { classDoc ->
+                        classDoc.studentIds.contains(studentId)
+                    } ?: emptyList()
+                    android.util.Log.d("EducationalContentRepository", "Using dummy classes for student with missing enrollment: $studentClasses")
+                    emit(studentClasses)
+                    return@flow
+                }
+            }
+            
+            android.util.Log.d("EducationalContentRepository", "Emitting ${classes.size} classes for student")
             emit(classes)
         } catch (e: Exception) {
+            android.util.Log.e("EducationalContentRepository", "Database query for student classes failed, falling back to dummy data", e)
             // Fallback to dummy data
             if (_classes == null) {
                 _classes = DummyDataGenerator.generateSampleClasses()
@@ -318,8 +371,23 @@ class EducationalContentRepository @Inject constructor(
         try {
             val classData = classRepository.getClassesByEducatorId(educatorId)
             val classes = classData.mapNotNull { DatabaseUtils.mapToClassDocument(it) }
+            
+            // If database returns classes but they have empty fields, fall back to dummy data
+            if (classes.isNotEmpty() && classes.all { it.classTitle.isBlank() || it.classCode.isBlank() }) {
+                android.util.Log.w("EducationalContentRepository", "Database returned educator classes with empty fields, falling back to dummy data")
+                if (_classes == null) {
+                    _classes = DummyDataGenerator.generateSampleClasses()
+                }
+                val educatorClasses = _classes?.filter { classDoc ->
+                    classDoc.educatorId == educatorId
+                } ?: emptyList()
+                emit(educatorClasses)
+                return@flow
+            }
+            
             emit(classes)
         } catch (e: Exception) {
+            android.util.Log.e("EducationalContentRepository", "Database query for educator classes failed, falling back to dummy data", e)
             // Fallback to dummy data
             if (_classes == null) {
                 _classes = DummyDataGenerator.generateSampleClasses()
@@ -628,5 +696,412 @@ class EducationalContentRepository @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    // ====================================
+    // DATABASE EXPLORATION METHODS
+    // ====================================
+
+    /**
+     * Get comprehensive database overview with counts and sample data
+     */
+    suspend fun getDatabaseOverview(): Map<String, Any> {
+        Log.d("EducationalContentRepository", "Getting database overview...")
+        
+        return try {
+            ensureDatabaseSeeded()
+            
+            // Get raw data counts and samples
+            val allStudentsData = studentRepository.getAllStudents()
+            val allEducatorsData = educatorRepository.getAllEducators()
+            val allClassesData = classRepository.getAllClasses()
+            val allKlypsData = klypRepository.getAllKlyps()
+            
+            val overview = mutableMapOf<String, Any>()
+            
+            // Students overview
+            overview["students"] = mapOf(
+                "total_count" to allStudentsData.size,
+                "sample_raw_data" to allStudentsData.take(3),
+                "mapped_count" to allStudentsData.mapNotNull { DatabaseUtils.mapToStudent(it) }.size,
+                "sample_mapped" to allStudentsData.take(3).mapNotNull { DatabaseUtils.mapToStudent(it) }
+            )
+            
+            // Educators overview
+            overview["educators"] = mapOf(
+                "total_count" to allEducatorsData.size,
+                "sample_raw_data" to allEducatorsData.take(3),
+                "mapped_count" to allEducatorsData.mapNotNull { DatabaseUtils.mapToEducator(it) }.size,
+                "sample_mapped" to allEducatorsData.take(3).mapNotNull { DatabaseUtils.mapToEducator(it) }
+            )
+            
+            // Classes overview
+            overview["classes"] = mapOf(
+                "total_count" to allClassesData.size,
+                "sample_raw_data" to allClassesData.take(3),
+                "mapped_count" to allClassesData.mapNotNull { DatabaseUtils.mapToClassDocument(it) }.size,
+                "sample_mapped" to allClassesData.take(3).mapNotNull { DatabaseUtils.mapToClassDocument(it) }
+            )
+            
+            // Klyps overview
+            overview["klyps"] = mapOf(
+                "total_count" to allKlypsData.size,
+                "sample_raw_data" to allKlypsData.take(3),
+                "mapped_count" to allKlypsData.mapNotNull { DatabaseUtils.mapToKlyp(it) }.size,
+                "sample_mapped" to allKlypsData.take(3).mapNotNull { DatabaseUtils.mapToKlyp(it) }
+            )
+            
+            // Database health summary
+            overview["database_health"] = mapOf(
+                "total_documents" to (allStudentsData.size + allEducatorsData.size + allClassesData.size + allKlypsData.size),
+                "seeded" to _databaseSeeded,
+                "cache_status" to mapOf(
+                    "students_cached" to (_students != null),
+                    "educators_cached" to (_educators != null),
+                    "classes_cached" to (_classes != null),
+                    "klyps_cached" to (_klyps != null)
+                )
+            )
+            
+            Log.d("EducationalContentRepository", "Database overview completed successfully")
+            overview
+            
+        } catch (e: Exception) {
+            Log.e("EducationalContentRepository", "Error getting database overview", e)
+            mapOf(
+                "error" to "Failed to get database overview: ${e.message}",
+                "fallback_data_available" to mapOf(
+                    "students" to (_students != null),
+                    "educators" to (_educators != null),
+                    "classes" to (_classes != null),
+                    "klyps" to (_klyps != null)
+                )
+            )
+        }
+    }
+
+    /**
+     * Get all raw database documents for a specific collection
+     */
+    suspend fun getAllRawDocuments(collectionType: DatabaseCollectionType): List<Map<String, Any>> {
+        Log.d("EducationalContentRepository", "Getting all raw documents for: $collectionType")
+        
+        return try {
+            ensureDatabaseSeeded()
+            
+            when (collectionType) {
+                DatabaseCollectionType.STUDENTS -> {
+                    val data = studentRepository.getAllStudents()
+                    Log.d("EducationalContentRepository", "Retrieved ${data.size} raw student documents")
+                    data
+                }
+                DatabaseCollectionType.EDUCATORS -> {
+                    val data = educatorRepository.getAllEducators()
+                    Log.d("EducationalContentRepository", "Retrieved ${data.size} raw educator documents")
+                    data
+                }
+                DatabaseCollectionType.CLASSES -> {
+                    val data = classRepository.getAllClasses()
+                    Log.d("EducationalContentRepository", "Retrieved ${data.size} raw class documents")
+                    data
+                }
+                DatabaseCollectionType.KLYPS -> {
+                    val data = klypRepository.getAllKlyps()
+                    Log.d("EducationalContentRepository", "Retrieved ${data.size} raw klyp documents")
+                    data
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("EducationalContentRepository", "Error getting raw documents for $collectionType", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Get detailed information about a specific document by ID
+     */
+    suspend fun getDocumentDetails(collectionType: DatabaseCollectionType, documentId: String): Map<String, Any> {
+        Log.d("EducationalContentRepository", "Getting document details for: $collectionType, ID: $documentId")
+        
+        return try {
+            ensureDatabaseSeeded()
+            
+            when (collectionType) {
+                DatabaseCollectionType.STUDENTS -> {
+                    val rawData = studentRepository.get(documentId)
+                    val mappedData = DatabaseUtils.mapToStudent(rawData)
+                    mapOf(
+                        "collection" to "students",
+                        "document_id" to documentId,
+                        "raw_data" to rawData,
+                        "mapped_data" to (mappedData ?: "null"),
+                        "mapping_successful" to (mappedData != null),
+                        "raw_fields" to rawData.keys.toList(),
+                        "raw_field_count" to rawData.size
+                    )
+                }
+                DatabaseCollectionType.EDUCATORS -> {
+                    val rawData = educatorRepository.get(documentId)
+                    val mappedData = DatabaseUtils.mapToEducator(rawData)
+                    mapOf(
+                        "collection" to "educators",
+                        "document_id" to documentId,
+                        "raw_data" to rawData,
+                        "mapped_data" to (mappedData ?: "null"),
+                        "mapping_successful" to (mappedData != null),
+                        "raw_fields" to rawData.keys.toList(),
+                        "raw_field_count" to rawData.size
+                    )
+                }
+                DatabaseCollectionType.CLASSES -> {
+                    val rawData = classRepository.get(documentId)
+                    val mappedData = DatabaseUtils.mapToClassDocument(rawData)
+                    mapOf(
+                        "collection" to "classes",
+                        "document_id" to documentId,
+                        "raw_data" to rawData,
+                        "mapped_data" to (mappedData ?: "null"),
+                        "mapping_successful" to (mappedData != null),
+                        "raw_fields" to rawData.keys.toList(),
+                        "raw_field_count" to rawData.size
+                    )
+                }
+                DatabaseCollectionType.KLYPS -> {
+                    val rawData = klypRepository.get(documentId)
+                    val mappedData = DatabaseUtils.mapToKlyp(rawData)
+                    mapOf(
+                        "collection" to "klyps",
+                        "document_id" to documentId,
+                        "raw_data" to rawData,
+                        "mapped_data" to (mappedData ?: "null"),
+                        "mapping_successful" to (mappedData != null),
+                        "raw_fields" to rawData.keys.toList(),
+                        "raw_field_count" to rawData.size
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("EducationalContentRepository", "Error getting document details for $collectionType, ID: $documentId", e)
+            mapOf(
+                "error" to "Failed to get document details: ${e.message}",
+                "collection" to collectionType.toString().lowercase(),
+                "document_id" to documentId
+            )
+        }
+    }
+
+    /**
+     * Search for documents across all collections
+     */
+    suspend fun searchAllCollections(searchTerm: String): Map<String, List<Map<String, Any>>> {
+        Log.d("EducationalContentRepository", "Searching all collections for: $searchTerm")
+        
+        return try {
+            ensureDatabaseSeeded()
+            
+            val results = mutableMapOf<String, List<Map<String, Any>>>()
+            
+            // Search students
+            val allStudents = studentRepository.getAllStudents()
+            val matchingStudents = allStudents.filter { studentData ->
+                studentData.values.any { value ->
+                    value.toString().contains(searchTerm, ignoreCase = true)
+                }
+            }
+            results["students"] = matchingStudents
+            
+            // Search educators  
+            val allEducators = educatorRepository.getAllEducators()
+            val matchingEducators = allEducators.filter { educatorData ->
+                educatorData.values.any { value ->
+                    value.toString().contains(searchTerm, ignoreCase = true)
+                }
+            }
+            results["educators"] = matchingEducators
+            
+            // Search classes
+            val allClasses = classRepository.getAllClasses()
+            val matchingClasses = allClasses.filter { classData ->
+                classData.values.any { value ->
+                    value.toString().contains(searchTerm, ignoreCase = true)
+                }
+            }
+            results["classes"] = matchingClasses
+            
+            // Search klyps
+            val allKlyps = klypRepository.getAllKlyps()
+            val matchingKlyps = allKlyps.filter { klypData ->
+                klypData.values.any { value ->
+                    value.toString().contains(searchTerm, ignoreCase = true)
+                }
+            }
+            results["klyps"] = matchingKlyps
+            
+            Log.d("EducationalContentRepository", "Search completed. Found: ${matchingStudents.size} students, ${matchingEducators.size} educators, ${matchingClasses.size} classes, ${matchingKlyps.size} klyps")
+            results
+            
+        } catch (e: Exception) {
+            Log.e("EducationalContentRepository", "Error searching all collections", e)
+            mapOf("error" to listOf(mapOf("message" to "Search failed: ${e.message}")))
+        }
+    }
+
+    /**
+     * Get database statistics and analytics
+     */
+    suspend fun getDatabaseAnalytics(): Map<String, Any> {
+        Log.d("EducationalContentRepository", "Getting database analytics...")
+        
+        return try {
+            ensureDatabaseSeeded()
+            
+            val allStudents = studentRepository.getAllStudents()
+            val allEducators = educatorRepository.getAllEducators()
+            val allClasses = classRepository.getAllClasses()
+            val allKlyps = klypRepository.getAllKlyps()
+            
+            // Map to objects for analysis
+            val students = allStudents.mapNotNull { DatabaseUtils.mapToStudent(it) }
+            val educators = allEducators.mapNotNull { DatabaseUtils.mapToEducator(it) }
+            val classes = allClasses.mapNotNull { DatabaseUtils.mapToClassDocument(it) }
+            val klyps = allKlyps.mapNotNull { DatabaseUtils.mapToKlyp(it) }
+            
+            // Calculate analytics
+            val totalStudentsInClasses = classes.sumOf { it.studentIds.size }
+            val averageStudentsPerClass = if (classes.isNotEmpty()) totalStudentsInClasses.toDouble() / classes.size else 0.0
+            val averageKlypsPerClass = if (classes.isNotEmpty()) klyps.size.toDouble() / classes.size else 0.0
+            
+            // Class enrollment distribution
+            val enrollmentDistribution = classes.map { it.studentIds.size }.groupingBy { it }.eachCount()
+            
+            // Most active educators (by number of classes)
+            val educatorClassCounts = classes.groupingBy { it.educatorId }.eachCount()
+            val mostActiveEducators = educatorClassCounts.entries.sortedByDescending { it.value }.take(5)
+            
+            // Data quality metrics
+            val studentsWithEmptyFields = students.count { it.firstName.isBlank() || it.lastName.isBlank() }
+            val classesWithEmptyFields = classes.count { it.classTitle.isBlank() || it.classCode.isBlank() }
+            val klypsMissingContent = klyps.count { it.title.isBlank() || it.mainBody.isBlank() }
+            
+            mapOf(
+                "overview" to mapOf(
+                    "total_students" to students.size,
+                    "total_educators" to educators.size,
+                    "total_classes" to classes.size,
+                    "total_klyps" to klyps.size,
+                    "total_documents" to (students.size + educators.size + classes.size + klyps.size)
+                ),
+                "class_analytics" to mapOf(
+                    "average_students_per_class" to averageStudentsPerClass,
+                    "average_klyps_per_class" to averageKlypsPerClass,
+                    "enrollment_distribution" to enrollmentDistribution,
+                    "most_active_educators" to mostActiveEducators
+                ),
+                "data_quality" to mapOf(
+                    "students_with_empty_fields" to studentsWithEmptyFields,
+                    "classes_with_empty_fields" to classesWithEmptyFields,
+                    "klyps_missing_content" to klypsMissingContent,
+                    "data_integrity_score" to calculateDataIntegrityScore(students, educators, classes, klyps)
+                ),
+                "mapping_success_rates" to mapOf(
+                    "students_mapping_rate" to if (allStudents.isNotEmpty()) (students.size.toDouble() / allStudents.size * 100) else 0.0,
+                    "educators_mapping_rate" to if (allEducators.isNotEmpty()) (educators.size.toDouble() / allEducators.size * 100) else 0.0,
+                    "classes_mapping_rate" to if (allClasses.isNotEmpty()) (classes.size.toDouble() / allClasses.size * 100) else 0.0,
+                    "klyps_mapping_rate" to if (allKlyps.isNotEmpty()) (klyps.size.toDouble() / allKlyps.size * 100) else 0.0
+                )
+            )
+            
+        } catch (e: Exception) {
+            Log.e("EducationalContentRepository", "Error getting database analytics", e)
+            mapOf("error" to "Failed to get analytics: ${e.message}")
+        }
+    }
+
+    /**
+     * Calculate data integrity score based on completeness and consistency
+     */
+    private fun calculateDataIntegrityScore(
+        students: List<Student>,
+        educators: List<Educator>,
+        classes: List<ClassDocument>,
+        klyps: List<Klyp>
+    ): Double {
+        var totalChecks = 0
+        var passedChecks = 0
+        
+        // Check student data completeness
+        students.forEach { student ->
+            totalChecks += 3
+            if (student.firstName.isNotBlank()) passedChecks++
+            if (student.lastName.isNotBlank()) passedChecks++
+            if (student.recoveryCode.isNotBlank()) passedChecks++
+        }
+        
+        // Check educator data completeness
+        educators.forEach { educator ->
+            totalChecks += 3
+            if (educator.fullName.isNotBlank()) passedChecks++
+            if (educator.instituteName.isNotBlank()) passedChecks++
+            if (educator.recoveryCode.isNotBlank()) passedChecks++
+        }
+        
+        // Check class data completeness
+        classes.forEach { classDoc ->
+            totalChecks += 3
+            if (classDoc.classTitle.isNotBlank()) passedChecks++
+            if (classDoc.classCode.isNotBlank()) passedChecks++
+            if (classDoc.educatorId.isNotBlank()) passedChecks++
+        }
+        
+        // Check klyp data completeness
+        klyps.forEach { klyp ->
+            totalChecks += 2
+            if (klyp.title.isNotBlank()) passedChecks++
+            if (klyp.mainBody.isNotBlank()) passedChecks++
+        }
+        
+        return if (totalChecks > 0) (passedChecks.toDouble() / totalChecks * 100) else 0.0
+    }
+
+    /**
+     * Export all database content to a structured format
+     */
+    suspend fun exportAllDatabaseContent(): Map<String, Any> {
+        Log.d("EducationalContentRepository", "Exporting all database content...")
+        
+        return try {
+            ensureDatabaseSeeded()
+            
+            mapOf(
+                "export_timestamp" to System.currentTimeMillis(),
+                "students" to mapOf(
+                    "raw_data" to studentRepository.getAllStudents(),
+                    "mapped_data" to studentRepository.getAllStudents().mapNotNull { DatabaseUtils.mapToStudent(it) }
+                ),
+                "educators" to mapOf(
+                    "raw_data" to educatorRepository.getAllEducators(),
+                    "mapped_data" to educatorRepository.getAllEducators().mapNotNull { DatabaseUtils.mapToEducator(it) }
+                ),
+                "classes" to mapOf(
+                    "raw_data" to classRepository.getAllClasses(),
+                    "mapped_data" to classRepository.getAllClasses().mapNotNull { DatabaseUtils.mapToClassDocument(it) }
+                ),
+                "klyps" to mapOf(
+                    "raw_data" to klypRepository.getAllKlyps(),
+                    "mapped_data" to klypRepository.getAllKlyps().mapNotNull { DatabaseUtils.mapToKlyp(it) }
+                )
+            )
+            
+        } catch (e: Exception) {
+            Log.e("EducationalContentRepository", "Error exporting database content", e)
+            mapOf("error" to "Export failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Enum for database collection types
+     */
+    enum class DatabaseCollectionType {
+        STUDENTS, EDUCATORS, CLASSES, KLYPS
     }
 }

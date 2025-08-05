@@ -22,7 +22,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
-import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.utils.ClassCodeGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +34,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NewClassViewModel @Inject constructor(
-    private val classRepository: ClassRepository
+    private val classRepository: ClassDocumentRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(NewClassUiState())

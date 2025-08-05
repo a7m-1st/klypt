@@ -63,6 +63,12 @@ class GalleryApplication : Application() {
     } else {
       Log.d("Settings", "HuggingFace API key not configured")
     }
+
+    // Debug features are available in debug builds
+    // Use the debug menu in your app to access DatabaseExplorerActivity
+    if (BuildConfig.DEBUG) {
+      Log.d("GalleryApplication", "Debug build - Database exploration features available")
+    }
   }
   
   override fun onTerminate() {

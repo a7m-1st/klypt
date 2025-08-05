@@ -14,11 +14,11 @@ class QuizAttemptRepository(
     private val quizAttemptType = "quiz_attempt"
 
     override fun inventoryDatabaseName(): String {
-        return databaseManager.currentInventoryDatabaseName
+        return "klypts" // Use the klyp database for educational content
     }
 
     override fun inventoryDatabaseLocation(): String? {
-        return databaseManager.inventoryDatabase?.path
+        return databaseManager.klyptDatabase?.path
     }
 
     override suspend fun get(currentUser: String): Map<String, Any> {
@@ -26,7 +26,7 @@ class QuizAttemptRepository(
             val results = HashMap<String, Any>()
             results["_id"] = currentUser as Any
 
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
             database?.let { db ->
                 val documentId = getQuizAttemptDocumentId(currentUser) //quiz_attempt::id
                 val doc = db.getDocument(documentId)
@@ -75,15 +75,19 @@ class QuizAttemptRepository(
             // Remove _id from the data map before creating the document
             // CouchDB Lite doesn't allow _id in the document body
             val documentData = data.toMutableMap().apply { 
-                remove("_id") 
+                remove("_id")
+                // Ensure the type field exists for querying
+                if (!containsKey("type")) {
+                    put("type", quizAttemptType)
+                }
             }
             
             val mutableDocument = MutableDocument(documentId, documentData)
             try {
-                val database = databaseManager.inventoryDatabase
+                val database = databaseManager.klyptDatabase
                 database?.save(mutableDocument)
             } catch (e: CouchbaseLiteException) {
-                android.util.Log.e(e.message, e.stackTraceToString())
+                android.util.Log.e("QuizAttemptRepository", "Failed to save quiz attempt: ${e.message}", e)
                 return@withContext false
             }
             return@withContext true
@@ -92,7 +96,7 @@ class QuizAttemptRepository(
 
     override suspend fun count(): Int {
         return withContext(Dispatchers.IO) {
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
             database?.let { db ->
                 val query = "SELECT COUNT(*) AS count FROM _ WHERE type='$quizAttemptType'"
                 val results = db.createQuery(query).execute().allResults()
@@ -105,7 +109,7 @@ class QuizAttemptRepository(
     suspend fun delete(documentId: String): Boolean {
         return withContext(Dispatchers.IO) {
             var result = false
-            val database = databaseManager.inventoryDatabase
+            val database = databaseManager.klyptDatabase
             database?.let { db ->
                 val document = db.getDocument(documentId)
                 document?.let {

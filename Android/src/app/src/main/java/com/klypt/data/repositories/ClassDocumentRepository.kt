@@ -64,16 +64,22 @@ class ClassDocumentRepository(
             
             // Remove _id from the data map before creating the document
             // CouchDB Lite doesn't allow _id in the document body
+            // BUT ensure the type field is preserved for querying
             val documentData = data.toMutableMap().apply { 
-                remove("_id") 
+                remove("_id")
+                // Ensure the type field exists for querying
+                if (!containsKey("type")) {
+                    put("type", classType)
+                }
             }
             
             val mutableDocument = MutableDocument(documentId, documentData)
             try {
                 val database = databaseManager.inventoryDatabase
                 database?.save(mutableDocument)
+                android.util.Log.d("ClassDocumentRepository", "Successfully saved class document with ID: $documentId, data: $documentData")
             } catch (e: CouchbaseLiteException) {
-                android.util.Log.e(e.message, e.stackTraceToString())
+                android.util.Log.e("ClassDocumentRepository", "Failed to save class document: ${e.message}", e)
                 return@withContext false
             }
             return@withContext true
@@ -113,7 +119,10 @@ class ClassDocumentRepository(
             val database = databaseManager.inventoryDatabase
             database?.let { db ->
                 val query = "SELECT * FROM _ WHERE type='$classType'"
+                android.util.Log.d("ClassDocumentRepository", "Executing query: $query")
                 val queryResults = db.createQuery(query).execute().allResults()
+                android.util.Log.d("ClassDocumentRepository", "Query returned ${queryResults.size} results")
+                android.util.Log.d("ClassDocumentRepository", "Query returned $queryResults")
                 
                 for (result in queryResults) {
                     val classData = mutableMapOf<String, Any>()
@@ -125,9 +134,14 @@ class ClassDocumentRepository(
                     classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
                     classData["educatorId"] = result.getString("educatorId") ?: ""
                     classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Found class: $classData")
                     results.add(classData)
                 }
+            } ?: run {
+                android.util.Log.w("ClassDocumentRepository", "Inventory database is null!")
             }
+            android.util.Log.d("ClassDocumentRepository", "Returning ${results.size} classes")
             return@withContext results
         }
     }
@@ -162,10 +176,14 @@ class ClassDocumentRepository(
             val results = mutableListOf<Map<String, Any>>()
             val database = databaseManager.inventoryDatabase
             database?.let { db ->
-                val query = "SELECT * FROM _ WHERE type='$classType' AND studentIds CONTAINS '$studentId'"
+                // Fix N1QL syntax for array containment - use ANY...IN...SATISFIES instead of CONTAINS
+                val query = "SELECT * FROM _ WHERE type='$classType' AND ANY studentId IN studentIds SATISFIES educatorId = '$studentId' END"
+                android.util.Log.d("ClassDocumentRepository", "Executing query for student classes: $query")
                 val queryResults = db.createQuery(query).execute().allResults()
+                android.util.Log.d("ClassDocumentRepository", "Query returned ${queryResults.size} classes for student $studentId")
                 
                 for (result in queryResults) {
+                    android.util.Log.d("ClassDocumentRepository", "Query returned ${result.getString("classCode")}")
                     val classData = mutableMapOf<String, Any>()
                     classData["_id"] = result.getString("_id") ?: ""
                     classData["type"] = result.getString("type") ?: ""
@@ -175,10 +193,46 @@ class ClassDocumentRepository(
                     classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
                     classData["educatorId"] = result.getString("educatorId") ?: ""
                     classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
+                    
+                    android.util.Log.d("ClassDocumentRepository", "Found class for student $studentId: $classData")
                     results.add(classData)
                 }
+            } ?: run {
+                android.util.Log.w("ClassDocumentRepository", "Inventory database is null when getting classes for student!")
             }
+            android.util.Log.d("ClassDocumentRepository", "Returning ${results.size} classes for student $studentId")
             return@withContext results
+        }
+    }
+
+    suspend fun getClassByCode(classCode: String): Map<String, Any>? {
+        return withContext(Dispatchers.IO) {
+            val database = databaseManager.inventoryDatabase
+            database?.let { db ->
+                val query = "SELECT * FROM _ WHERE type='$classType' AND classCode='$classCode'"
+                android.util.Log.d("ClassDocumentRepository", "Getting class by code: $query")
+                val queryResults = db.createQuery(query).execute().allResults()
+                
+                if (queryResults.isNotEmpty()) {
+                    val result = queryResults[0]
+                    val classData = mutableMapOf<String, Any>()
+                    classData["_id"] = result.getString("_id") ?: ""
+                    classData["type"] = result.getString("type") ?: ""
+                    classData["classCode"] = result.getString("classCode") ?: ""
+                    classData["classTitle"] = result.getString("classTitle") ?: ""
+                    classData["updatedAt"] = result.getString("updatedAt") ?: ""
+                    classData["lastSyncedAt"] = result.getString("lastSyncedAt") ?: ""
+                    classData["educatorId"] = result.getString("educatorId") ?: ""
+                    classData["studentIds"] = result.getArray("studentIds") ?: emptyList<String>()
+                    android.util.Log.d("ClassDocumentRepository", "Found class by code: $classData")
+                    return@withContext classData
+                } else {
+                    android.util.Log.w("ClassDocumentRepository", "No class found with code: $classCode")
+                }
+            } ?: run {
+                android.util.Log.w("ClassDocumentRepository", "Inventory database is null when getting class by code!")
+            }
+            return@withContext null
         }
     }
 

@@ -54,6 +54,7 @@ import com.klypt.data.models.Klyp
 import com.klypt.ui.common.TaskIcon
 import com.klypt.ui.common.tos.TosDialog
 import com.klypt.ui.common.tos.TosViewModel
+import com.klypt.ui.debug.DebugMenuButton
 import com.klypt.ui.modelmanager.ModelManagerViewModel
 import com.klypt.ui.navigation.SummaryNavigationData
 import com.klypt.ui.theme.customColors
@@ -74,6 +75,8 @@ fun EnhancedHomeScreen(
     onNavigateToNewClass: () -> Unit,
     onNavigateToViewAllClasses: () -> Unit = {},
     onNavigateToClassDetails: (ClassDocument) -> Unit = {},
+    onNavigateToKlypDetails: (Klyp) -> Unit = {},
+    onLogout: () -> Unit = {},
     modifier: Modifier = Modifier,
     homeContentViewModel: HomeContentViewModel = hiltViewModel()
 ) {
@@ -184,6 +187,9 @@ fun EnhancedHomeScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(vertical = 16.dp)
                     ) {
+                        item {
+                            DebugMenuButton()
+                        }
                         // User welcome section
                         item {
                             UserWelcomeSection(
@@ -223,6 +229,7 @@ fun EnhancedHomeScreen(
                                 klyps = homeUiState.recentKlyps,
                                 onKlypClick = { klyp ->
                                     // Navigate to Klyp details
+                                    onNavigateToKlypDetails(klyp)
                                 }
                             )
                         }
@@ -274,6 +281,12 @@ fun EnhancedHomeScreen(
             curThemeOverride = modelManagerViewModel.readThemeOverride(),
             modelManagerViewModel = modelManagerViewModel,
             onDismissed = { showSettingsDialog = false },
+            onLogout = {
+                // Call the logout function from HomeContentViewModel
+                homeContentViewModel.logout()
+                // Navigate to login
+                onLogout()
+            }
         )
     }
 }

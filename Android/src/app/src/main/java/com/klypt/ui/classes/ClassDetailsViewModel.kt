@@ -21,7 +21,7 @@ import androidx.lifecycle.viewModelScope
 import com.klypt.data.models.ClassDocument
 import com.klypt.data.models.Klyp
 import com.klypt.data.models.Question
-import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.repositories.KlypRepository
 import com.klypt.data.services.UserContextProvider
 import com.klypt.data.utils.DatabaseUtils
@@ -43,7 +43,7 @@ data class ClassDetailsUiState(
 
 @HiltViewModel
 class ClassDetailsViewModel @Inject constructor(
-    private val classRepository: ClassRepository,
+    private val classRepository: ClassDocumentRepository,
     private val klypRepository: KlypRepository,
     private val userContextProvider: UserContextProvider
 ) : ViewModel() {

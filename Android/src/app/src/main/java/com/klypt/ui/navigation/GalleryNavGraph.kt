@@ -346,6 +346,12 @@ fun GalleryNavHost(
         onNavigateToClassDetails = { classDoc ->
           val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
           navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
+        },
+        onLogout = {
+          // Navigate back to login screen, clearing the back stack
+          navController.navigate("splash") {
+            popUpTo(0) { inclusive = true }
+          }
         }
       )
 

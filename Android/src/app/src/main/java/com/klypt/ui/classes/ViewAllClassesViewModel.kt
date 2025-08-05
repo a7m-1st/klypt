@@ -20,7 +20,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.klypt.data.models.ClassDocument
 import com.klypt.data.repository.EducationalContentRepository
-import com.klypt.data.repositories.ClassRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.services.UserContextProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +39,7 @@ data class ViewAllClassesUiState(
 @HiltViewModel
 class ViewAllClassesViewModel @Inject constructor(
     private val educationalContentRepository: EducationalContentRepository,
-    private val classRepository: ClassRepository,
+    private val classRepository: ClassDocumentRepository,
     private val userContextProvider: UserContextProvider
 ) : ViewModel() {
 
