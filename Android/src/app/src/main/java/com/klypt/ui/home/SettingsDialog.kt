@@ -75,6 +75,7 @@ import com.klypt.R
 import com.klypt.proto.Theme
 import com.klypt.ui.common.ApiKeyConfig
 import com.klypt.ui.common.tos.TosDialog
+import com.klypt.ui.debug.DebugMenuButton
 import com.klypt.ui.modelmanager.ModelManagerViewModel
 import com.klypt.ui.theme.ThemeSettings
 import com.klypt.ui.theme.labelSmallNarrow
@@ -330,6 +331,8 @@ fun SettingsDialog(
               ) { 
                 Text("Logout") 
               }
+
+              DebugMenuButton()
             }
           }
         }

@@ -187,9 +187,6 @@ fun EnhancedHomeScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(vertical = 16.dp)
                     ) {
-                        item {
-                            DebugMenuButton()
-                        }
                         // User welcome section
                         item {
                             UserWelcomeSection(
