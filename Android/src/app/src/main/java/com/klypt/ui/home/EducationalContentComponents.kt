@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -380,6 +379,7 @@ fun ClassCard(
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Box(Modifier.fillMaxSize()) {
+            val classTextColor = Color(0xCC000000) // Slightly lighter for readability
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -387,11 +387,10 @@ fun ClassCard(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    val classTextColor = Color(0xFF44474F) // Softer dark gray
                     Text(
                         text = classDocument.classCode,
                         style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.2.sp
                         ),
                         color = classTextColor
@@ -400,7 +399,7 @@ fun ClassCard(
                     Text(
                         text = classDocument.classTitle,
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.1.sp
                         ),
                         color = classTextColor,
@@ -415,16 +414,16 @@ fun ClassCard(
                         imageVector = Icons.Default.People,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = Color.Black
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "${classDocument.studentIds.size} students",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Bold,
                             letterSpacing = 0.1.sp
                         ),
-                        color = Color(0xFF5C5F66)
+                        color = classTextColor
                     )
                 }
             }
@@ -435,8 +434,13 @@ fun ClassCard(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .size(32.dp)
+                            .padding(bottom = 12.dp) // Move up from the bottom
                     ) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More options",
+                            tint = Color.Black
+                        )
                     }
                     DropdownMenu(
                         expanded = menuExpanded,

@@ -216,12 +216,12 @@ class ClassDetailsViewModel @Inject constructor(
                     loadKlypsForClass(klyp.classCode)
                 } else {
                     _uiState.value = _uiState.value.copy(
-                        errorMessage = "Failed to delete klyp"
+                        errorMessage = "Failed to delete Klyp"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = "Failed to delete klyp: ${e.message}"
+                    errorMessage = "Failed to delete Klyp: ${e.message}"
                 )
             }
         }
