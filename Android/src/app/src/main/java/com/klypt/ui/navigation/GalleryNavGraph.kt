@@ -630,8 +630,9 @@ fun GalleryNavHost(
         classId = classId,
         onNavigateBack = { navController.navigateUp() },
         onNavigateToAddKlyp = { classCode ->
-          // For now, we'll handle adding klyps within the screen itself
-        }
+          navController.navigate("add_klyp/$classCode")
+        },
+        userContextProvider = userContextProvider
       )
     }
 
