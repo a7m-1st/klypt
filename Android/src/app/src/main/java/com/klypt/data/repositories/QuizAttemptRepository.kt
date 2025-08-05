@@ -160,9 +160,9 @@ class QuizAttemptRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax
+                    // More standard CouchbaseLite query syntax - include document ID in selection
                     val query = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(
                             Expression.property("type").equalTo(Expression.string(quizAttemptType))
@@ -180,11 +180,19 @@ class QuizAttemptRepository(
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val docId = result.getString("docId") ?: ""
                             
                             val attemptData = mutableMapOf<String, Any>()
                             
+                            // Extract the actual attempt ID from the document ID (remove "quizAttempt::" prefix)
+                            val actualAttemptId = if (docId.startsWith("quizAttempt::")) {
+                                docId.removePrefix("quizAttempt::")
+                            } else {
+                                docId
+                            }
+                            
                             // Safely extract each field
-                            attemptData["_id"] = extractString(doc, "_id")
+                            attemptData["_id"] = actualAttemptId
                             attemptData["type"] = extractString(doc, "type")
                             attemptData["studentId"] = extractString(doc, "studentId")
                             attemptData["klypId"] = extractString(doc, "klypId")
@@ -226,9 +234,9 @@ class QuizAttemptRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax
+                    // More standard CouchbaseLite query syntax - include document ID in selection
                     val query = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(
                             Expression.property("type").equalTo(Expression.string(quizAttemptType))
@@ -246,11 +254,19 @@ class QuizAttemptRepository(
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val docId = result.getString("docId") ?: ""
                             
                             val attemptData = mutableMapOf<String, Any>()
                             
+                            // Extract the actual attempt ID from the document ID (remove "quizAttempt::" prefix)
+                            val actualAttemptId = if (docId.startsWith("quizAttempt::")) {
+                                docId.removePrefix("quizAttempt::")
+                            } else {
+                                docId
+                            }
+                            
                             // Safely extract each field
-                            attemptData["_id"] = extractString(doc, "_id")
+                            attemptData["_id"] = actualAttemptId
                             attemptData["type"] = extractString(doc, "type")
                             attemptData["studentId"] = extractString(doc, "studentId")
                             attemptData["klypId"] = extractString(doc, "klypId")

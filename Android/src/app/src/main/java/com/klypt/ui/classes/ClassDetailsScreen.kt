@@ -177,6 +177,7 @@ fun ClassDetailsScreen(
                             )
                         }
                     } else {
+                        Log.d("ClassDetailsScreen##", "Klyps: ${uiState.klyps.size}")
                         items(uiState.klyps) { klyp ->
                             KlypCard(
                                 klyp = klyp,

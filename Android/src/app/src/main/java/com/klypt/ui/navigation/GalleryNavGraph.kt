@@ -344,8 +344,12 @@ fun GalleryNavHost(
           navController.navigate(ViewAllClassesDestination.route)
         },
         onNavigateToClassDetails = { classDoc ->
-          val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
-          navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
+          if (classDoc._id.isNotBlank()) {
+            val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
+            navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
+          } else {
+            Log.e("GalleryNavGraph", "Cannot navigate to class details: class ID is blank")
+          }
         },
         onLogout = {
           // Navigate back to login screen, clearing the back stack
@@ -610,8 +614,12 @@ fun GalleryNavHost(
           navController.navigate(NewClassDestination.route)
         },
         onClassClick = { classDoc ->
-          val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
-          navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
+          if (classDoc._id.isNotBlank()) {
+            val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
+            navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
+          } else {
+            Log.e("GalleryNavGraph", "Cannot navigate to class details: class ID is blank in ViewAllClassesScreen")
+          }
         }
       )
     }
@@ -625,6 +633,14 @@ fun GalleryNavHost(
     ) { backStackEntry ->
       val encodedClassId = backStackEntry.arguments?.getString("classId") ?: ""
       val classId = java.net.URLDecoder.decode(encodedClassId, "UTF-8")
+      
+      if (classId.isBlank()) {
+        Log.e("GalleryNavGraph", "ClassDetailsScreen received blank classId, navigating back")
+        LaunchedEffect(Unit) {
+          navController.navigateUp()
+        }
+        return@composable
+      }
       
       ClassDetailsScreen(
         classId = classId,

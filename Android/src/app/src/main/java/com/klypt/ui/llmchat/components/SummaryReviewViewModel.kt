@@ -68,8 +68,9 @@ class SummaryReviewViewModel @Inject constructor(
                     
                     // Check if we're in a class creation context
                     val classContext = SummaryNavigationData.getClassCreationContext()
+                    Log.d("SummaryReviewViewModel", "Class creation context: $classContext")
                     if (classContext != null) {
-                        Log.d("SummaryReviewViewModel", "Class creation context found, creating klyp")
+                        Log.d("SummaryReviewViewModel", "Class creation context found, creating klyp for class: '${classContext.classCode}'")
                         
                         // Create a klyp from the summary data
                         val klypSuccess = createKlypFromSummary(summary, classContext.classCode)
@@ -110,10 +111,19 @@ class SummaryReviewViewModel @Inject constructor(
      */
     private suspend fun createKlypFromSummary(summary: ChatSummary, classCode: String): Boolean {
         return try {
-            Log.d("SummaryReviewViewModel", "Creating klyp from summary for class: $classCode")
+            Log.d("SummaryReviewViewModel", "Creating klyp from summary for class: '$classCode' (length: ${classCode.length})")
+            Log.d("SummaryReviewViewModel", "Summary title: '${summary.sessionTitle}'")
+            Log.d("SummaryReviewViewModel", "Summary content length: ${summary.bulletPointSummary.length}")
+            
+            if (classCode.isEmpty()) {
+                Log.e("SummaryReviewViewModel", "ERROR: classCode is empty when creating klyp!")
+                return false
+            }
             
             val currentTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
             val klypId = "klyp_${UUID.randomUUID()}"
+            
+            Log.d("SummaryReviewViewModel", "Generated klyp ID: $klypId")
             
             val klypData = mapOf(
                 "_id" to klypId,
@@ -125,10 +135,12 @@ class SummaryReviewViewModel @Inject constructor(
                 "createdAt" to currentTime
             )
             
+            Log.d("SummaryReviewViewModel", "Klyp data created: $klypData")
+            
             val success = klypRepository.save(klypData)
             
             if (success) {
-                Log.d("SummaryReviewViewModel", "Successfully created klyp with ID: $klypId")
+                Log.d("SummaryReviewViewModel", "Successfully created klyp with ID: $klypId for class: $classCode")
             } else {
                 Log.e("SummaryReviewViewModel", "Failed to save klyp to repository")
             }
