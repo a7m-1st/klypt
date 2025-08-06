@@ -79,7 +79,7 @@ class ClassCodeDisplayViewModel @Inject constructor(
                     updatedAt = currentTime,
                     lastSyncedAt = currentTime,
                     educatorId = educatorId,
-                    studentIds = emptyList()
+                    studentIds = if (currentUserId != null) listOf(currentUserId) else emptyList()
                 )
                 
                 // Save the class to database
@@ -147,14 +147,8 @@ class ClassCodeDisplayViewModel @Inject constructor(
                             }
                         }
                         
-                        // Also add the creator to the class's student list
-                        val updatedClassData = classData.toMutableMap()
-                        updatedClassData["studentIds"] = listOf(currentUserId)
-                            updatedClassData["updatedAt"] = currentTime
-                            classRepository.save(updatedClassData)
-                            
-                            android.util.Log.d("ClassCodeDisplayVM", "Student $currentUserId enrolled in new class ${classDocument._id}")
-                        }
+                        android.util.Log.d("ClassCodeDisplayVM", "Creator $currentUserId enrolled as student in class ${classDocument._id}")
+                    }
                     
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
