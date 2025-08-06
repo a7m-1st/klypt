@@ -120,9 +120,9 @@ class EducatorRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax with LIKE expression
+                    // More standard CouchbaseLite query syntax with LIKE expression - include document ID
                     val searchQuery = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(
                             Expression.property("type").equalTo(Expression.string(educatorType))
@@ -140,11 +140,19 @@ class EducatorRepository(
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val docId = result.getString("docId") ?: ""
                             
                             val educatorData = mutableMapOf<String, Any>()
                             
+                            // Extract the actual educator ID from the document ID (remove "educator::" prefix)
+                            val actualEducatorId = if (docId.startsWith("educator::")) {
+                                docId.removePrefix("educator::")
+                            } else {
+                                docId
+                            }
+                            
                             // Safely extract each field
-                            educatorData["_id"] = extractString(doc, "_id")
+                            educatorData["_id"] = actualEducatorId
                             educatorData["type"] = extractString(doc, "type")
                             educatorData["fullName"] = extractString(doc, "fullName")
                             educatorData["age"] = extractInt(doc, "age")
@@ -185,9 +193,9 @@ class EducatorRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax
+                    // More standard CouchbaseLite query syntax - include document ID in selection
                     val query = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(Expression.property("type").equalTo(Expression.string(educatorType)))
                     
@@ -202,11 +210,19 @@ class EducatorRepository(
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val docId = result.getString("docId") ?: ""
                             
                             val educatorData = mutableMapOf<String, Any>()
                             
+                            // Extract the actual educator ID from the document ID (remove "educator::" prefix)
+                            val actualEducatorId = if (docId.startsWith("educator::")) {
+                                docId.removePrefix("educator::")
+                            } else {
+                                docId
+                            }
+                            
                             // Safely extract each field
-                            educatorData["_id"] = extractString(doc, "_id")
+                            educatorData["_id"] = actualEducatorId
                             educatorData["type"] = extractString(doc, "type")
                             educatorData["fullName"] = extractString(doc, "fullName")
                             educatorData["age"] = extractInt(doc, "age")
