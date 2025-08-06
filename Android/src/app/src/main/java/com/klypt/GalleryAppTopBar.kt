@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
@@ -63,26 +64,21 @@ fun GalleryTopAppBar(
   val titleColor = MaterialTheme.colorScheme.onSurface
   CenterAlignedTopAppBar(
     title = {
-      Column(horizontalAlignment = Alignment.CenterHorizontally) {
+      Column(
+        horizontalAlignment = Alignment.Start, // Align to left
+        modifier = Modifier.fillMaxWidth()
+      ) {
         Row(
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(12.dp),
+          modifier = Modifier.fillMaxWidth()
         ) {
-          if (title == stringResource(R.string.app_name)) {
-            Icon(
-              painterResource(R.drawable.logo),
-              modifier = Modifier.size(20.dp),
-              contentDescription = "",
-              tint = Color.Unspecified,
-            )
-          }
           BasicText(
             text = title,
             maxLines = 1,
             color = { titleColor },
-            style = MaterialTheme.typography.titleMedium,
-            autoSize =
-              TextAutoSize.StepBased(minFontSize = 14.sp, maxFontSize = 16.sp, stepSize = 1.sp),
+            style = MaterialTheme.typography.displayLarge.copy(fontSize = 28.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+            modifier = Modifier.padding(start = 10.dp) // Add left padding
           )
         }
         if (subtitle.isNotEmpty()) {
@@ -90,6 +86,7 @@ fun GalleryTopAppBar(
             subtitle,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.align(Alignment.Start)
           )
         }
       }

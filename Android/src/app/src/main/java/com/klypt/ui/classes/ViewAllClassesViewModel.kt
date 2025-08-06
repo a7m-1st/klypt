@@ -82,33 +82,32 @@ class ViewAllClassesViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-                
-                // Convert ClassDocument to Map for repository
-                val classData = mapOf(
-                    "_id" to classDocument._id,
-                    "type" to classDocument.type,
-                    "classCode" to classDocument.classCode,
-                    "classTitle" to classDocument.classTitle,
-                    "updatedAt" to classDocument.updatedAt,
-                    "lastSyncedAt" to classDocument.lastSyncedAt,
-                    "educatorId" to classDocument.educatorId,
-                    "studentIds" to classDocument.studentIds
-                )
-                
-                // Delete from database
-                val documentId = "class::${classDocument._id}"
+
+                // Log the documentId for debugging
+                android.util.Log.d("ViewAllClassesViewModel", "Attempting to delete class with documentId: ${classDocument._id}")
+
+                val documentId = classDocument._id
                 val success = classRepository.delete(documentId)
-                
+
+                android.util.Log.d("ViewAllClassesViewModel", "Delete result for $documentId: $success")
+
                 if (success) {
-                    // Refresh the list
-                    loadAllClasses()
+                    // Optimistically remove the class from the UI
+                    val updatedList = _uiState.value.classes.filter { it._id != documentId }
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        classes = updatedList,
+                        errorMessage = null
+                    )
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = "Failed to delete class"
+                        errorMessage = "Failed to delete class (repository returned false for documentId: $documentId)"
                     )
+                    android.util.Log.e("ViewAllClassesViewModel", "Repository failed to delete class with documentId: $documentId")
                 }
             } catch (e: Exception) {
+                android.util.Log.e("ViewAllClassesViewModel", "Exception during delete: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Failed to delete class: ${e.message}"
