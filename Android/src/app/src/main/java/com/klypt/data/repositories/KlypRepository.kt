@@ -344,9 +344,9 @@ class KlypRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax
+                    // More standard CouchbaseLite query syntax - include document ID in selection
                     val query = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(Expression.property("type").equalTo(Expression.string(klypType)))
                     
@@ -361,12 +361,20 @@ class KlypRepository(
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name)
+                            val docId = result.getString("docId") ?: ""
                             
                             if (doc != null) {
                                 val klypData = mutableMapOf<String, Any>()
                                 
+                                // Extract the actual klyp ID from the document ID (remove "klyp::" prefix)
+                                val actualKlypId = if (docId.startsWith("klyp::")) {
+                                    docId.removePrefix("klyp::")
+                                } else {
+                                    docId
+                                }
+                                
                                 // Eagerly copy all data to avoid Fleece object issues
-                                klypData["_id"] = doc.getString("_id") ?: ""
+                                klypData["_id"] = actualKlypId
                                 klypData["type"] = doc.getString("type") ?: ""
                                 klypData["classCode"] = doc.getString("classCode") ?: ""
                                 klypData["title"] = doc.getString("title") ?: ""
@@ -431,9 +439,9 @@ class KlypRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax with LIKE expressions for search
+                    // More standard CouchbaseLite query syntax with LIKE expressions for search - include document ID in selection
                     val searchQuery = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(
                             Expression.property("type").equalTo(Expression.string(klypType))
@@ -454,12 +462,20 @@ class KlypRepository(
                         try {
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name)
+                            val docId = result.getString("docId") ?: ""
                             
                             if (doc != null) {
                                 val klypData = mutableMapOf<String, Any>()
                                 
+                                // Extract the actual klyp ID from the document ID (remove "klyp::" prefix)
+                                val actualKlypId = if (docId.startsWith("klyp::")) {
+                                    docId.removePrefix("klyp::")
+                                } else {
+                                    docId
+                                }
+                                
                                 // Eagerly copy all data to avoid Fleece object issues
-                                klypData["_id"] = doc.getString("_id") ?: ""
+                                klypData["_id"] = actualKlypId
                                 klypData["type"] = doc.getString("type") ?: ""
                                 klypData["classCode"] = doc.getString("classCode") ?: ""
                                 klypData["title"] = doc.getString("title") ?: ""

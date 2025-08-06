@@ -246,6 +246,16 @@ fun NewClassScreen(
             }
         }
     }
+    
+    // Duplicate class confirmation dialog
+    if (uiState.showDuplicateDialog && uiState.duplicateClassInfo != null) {
+        DuplicateClassDialog(
+            duplicateInfo = uiState.duplicateClassInfo!!,
+            onDismiss = { viewModel.dismissDuplicateDialog() },
+            onOverwrite = { viewModel.handleDuplicateClass(overwrite = true) },
+            onCancel = { viewModel.handleDuplicateClass(overwrite = false) }
+        )
+    }
 }
 
 @Composable 
@@ -529,4 +539,60 @@ private fun CreateNewClassSection(
             }
         }
     }
+}
+
+@Composable
+private fun DuplicateClassDialog(
+    duplicateInfo: DuplicateClassInfo,
+    onDismiss: () -> Unit,
+    onOverwrite: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Class Already Exists") },
+        text = {
+            Column {
+                Text(
+                    text = "A class with code '${duplicateInfo.existingClassCode}' already exists:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "\"${duplicateInfo.existingClassName}\"",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Would you like to overwrite the existing class and its content?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (duplicateInfo.klypsData.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "⚠️ This will replace ${duplicateInfo.klypsData.size} existing klyp(s) with ${duplicateInfo.klypsData.size} new ones.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onOverwrite,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Overwrite")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text("Cancel")
+            }
+        }
+    )
 }

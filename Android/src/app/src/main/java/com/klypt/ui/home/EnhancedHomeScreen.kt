@@ -55,6 +55,7 @@ import com.klypt.data.UserRole
 import com.klypt.data.DummyDataGenerator
 import com.klypt.data.models.ClassDocument
 import com.klypt.data.models.Klyp
+import com.klypt.ui.classes.ClassExportViewModel
 import com.klypt.ui.common.TaskIcon
 import com.klypt.ui.common.tos.TosDialog
 import com.klypt.ui.common.tos.TosViewModel
@@ -82,18 +83,35 @@ fun EnhancedHomeScreen(
     onNavigateToKlypDetails: (Klyp) -> Unit = {},
     onLogout: () -> Unit = {},
     modifier: Modifier = Modifier,
-    homeContentViewModel: HomeContentViewModel = hiltViewModel()
+    homeContentViewModel: HomeContentViewModel = hiltViewModel(),
+    exportViewModel: ClassExportViewModel = hiltViewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
     val homeUiState by homeContentViewModel.uiState.collectAsState()
+    val exportUiState by exportViewModel.uiState.collectAsState()
+    val context = LocalContext.current
     
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showTosDialog by remember { mutableStateOf(!tosViewModel.getIsTosAccepted()) }
     var selectedTabIndex by remember { mutableStateOf(0) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    
+    // Show export messages
+    LaunchedEffect(exportUiState.successMessage) {
+        exportUiState.successMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            exportViewModel.clearMessages()
+        }
+    }
+    
+    LaunchedEffect(exportUiState.errorMessage) {
+        exportUiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar("Error: $message")
+            exportViewModel.clearMessages()
+        }
+    }
 
     // Check for refresh flag from navigation and force refresh if needed
     LaunchedEffect(Unit) {
@@ -241,7 +259,14 @@ fun EnhancedHomeScreen(
                                     onNavigateToClassDetails = onNavigateToClassDetails,
                                     onNavigateToNewClass = onNavigateToNewClass,
                                     onNavigateToViewAllClasses = onNavigateToViewAllClasses,
-                                    onNavigateToKlypDetails = onNavigateToKlypDetails
+                                    onNavigateToKlypDetails = onNavigateToKlypDetails,
+                                    onExportClass = { classDocument ->
+                                        exportViewModel.exportClassToJson(
+                                            context = context,
+                                            classCode = classDocument.classCode,
+                                            className = classDocument.classTitle
+                                        )
+                                    }
                                 )
                                 1 -> StatsTabContent(
                                     homeUiState = homeUiState
@@ -258,7 +283,14 @@ fun EnhancedHomeScreen(
                                 onNavigateToClassDetails = onNavigateToClassDetails,
                                 onNavigateToNewClass = onNavigateToNewClass,
                                 onNavigateToViewAllClasses = onNavigateToViewAllClasses,
-                                onNavigateToKlypDetails = onNavigateToKlypDetails
+                                onNavigateToKlypDetails = onNavigateToKlypDetails,
+                                onExportClass = { classDocument ->
+                                    exportViewModel.exportClassToJson(
+                                        context = context,
+                                        classCode = classDocument.classCode,
+                                        className = classDocument.classTitle
+                                    )
+                                }
                             )
                         }
                     }
@@ -296,6 +328,29 @@ fun EnhancedHomeScreen(
                 homeContentViewModel.logout()
                 // Navigate to login
                 onLogout()
+            }
+        )
+    }
+
+    // Share dialog after successful export
+    if (exportUiState.showShareDialog) {
+        AlertDialog(
+            onDismissRequest = { exportViewModel.dismissShareDialog() },
+            title = { Text("Export Successful") },
+            text = { Text("Your class has been exported to JSON format. Would you like to share the file?") },
+            confirmButton = {
+                TextButton(
+                    onClick = { 
+                        exportViewModel.shareExportedFile(context)
+                    }
+                ) {
+                    Text("Share")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { exportViewModel.dismissShareDialog() }) {
+                    Text("Done")
+                }
             }
         )
     }
@@ -421,7 +476,8 @@ private fun HomeTabContent(
     onNavigateToClassDetails: (ClassDocument) -> Unit,
     onNavigateToNewClass: () -> Unit,
     onNavigateToViewAllClasses: () -> Unit,
-    onNavigateToKlypDetails: (Klyp) -> Unit
+    onNavigateToKlypDetails: (Klyp) -> Unit,
+    onExportClass: ((ClassDocument) -> Unit)? = null
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -471,7 +527,8 @@ private fun HomeTabContent(
                 classes = homeUiState.myClasses,
                 onClassClick = onNavigateToClassDetails,
                 onAddNewClassClick = onNavigateToNewClass,
-                onViewAllClick = onNavigateToViewAllClasses
+                onViewAllClick = onNavigateToViewAllClasses,
+                onExportClass = onExportClass
             )
         }
 
@@ -620,7 +677,8 @@ private fun EducatorHomeContent(
     onNavigateToClassDetails: (ClassDocument) -> Unit,
     onNavigateToNewClass: () -> Unit,
     onNavigateToViewAllClasses: () -> Unit,
-    onNavigateToKlypDetails: (Klyp) -> Unit
+    onNavigateToKlypDetails: (Klyp) -> Unit,
+    onExportClass: ((ClassDocument) -> Unit)? = null
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -649,7 +707,8 @@ private fun EducatorHomeContent(
                 classes = homeUiState.myClasses,
                 onClassClick = onNavigateToClassDetails,
                 onAddNewClassClick = onNavigateToNewClass,
-                onViewAllClick = onNavigateToViewAllClasses
+                onViewAllClick = onNavigateToViewAllClasses,
+                onExportClass = onExportClass
             )
         }
 

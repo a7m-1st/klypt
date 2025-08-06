@@ -23,6 +23,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.klypt.data.repositories.ClassDocumentRepository
+import com.klypt.data.repositories.KlypRepository
 import com.klypt.data.utils.ClassCodeGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +36,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NewClassViewModel @Inject constructor(
-    private val classRepository: ClassDocumentRepository
+    private val classRepository: ClassDocumentRepository,
+    private val klypRepository: KlypRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(NewClassUiState())
@@ -92,6 +94,36 @@ class NewClassViewModel @Inject constructor(
             errorMessage = null,
             successMessage = null
         )
+    }
+    
+    fun dismissDuplicateDialog() {
+        _uiState.value = _uiState.value.copy(
+            showDuplicateDialog = false,
+            duplicateClassInfo = null
+        )
+    }
+    
+    /**
+     * Handle user's decision when duplicate class is found
+     */
+    fun handleDuplicateClass(overwrite: Boolean) {
+        val duplicateInfo = _uiState.value.duplicateClassInfo
+        if (duplicateInfo == null) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "No duplicate class information found"
+            )
+            return
+        }
+        
+        if (overwrite) {
+            // User chose to overwrite, proceed with import
+            viewModelScope.launch {
+                performImport(duplicateInfo.importData, duplicateInfo.klypsData, isOverwrite = true)
+            }
+        }
+        
+        // Dismiss dialog regardless of choice
+        dismissDuplicateDialog()
     }
     
     private fun validateClassName(className: String): String? {
@@ -163,15 +195,86 @@ class NewClassViewModel @Inject constructor(
     }
     
     /**
+     * Export a class with all its details and related klyps to JSON format
+     */
+    suspend fun exportClassToJson(classCode: String): String? {
+        return try {
+            // Get class data
+            val classData = classRepository.getClassByCode(classCode)
+            if (classData == null) {
+                return null
+            }
+
+            // Get all klyps for this class
+            val klypDataList = klypRepository.getKlypsByClassCode(classCode)
+            
+            // Convert klyps to export format
+            val klypsForExport = klypDataList.map { klypData ->
+                mapOf(
+                    "_id" to (klypData["_id"] as? String ?: ""),
+                    "type" to (klypData["type"] as? String ?: "klyp"),
+                    "title" to (klypData["title"] as? String ?: ""),
+                    "mainBody" to (klypData["mainBody"] as? String ?: ""),
+                    "questions" to (klypData["questions"] as? List<*> ?: emptyList<Any>()),
+                    "createdAt" to (klypData["createdAt"] as? String ?: "")
+                )
+            }
+
+            // Create the complete export data structure
+            val exportData = mapOf(
+                "exportVersion" to "1.0",
+                "exportTimestamp" to System.currentTimeMillis().toString(),
+                "classDetails" to mapOf(
+                    "_id" to (classData["_id"] as? String ?: ""),
+                    "type" to (classData["type"] as? String ?: "class"),
+                    "classCode" to (classData["classCode"] as? String ?: ""),
+                    "classTitle" to (classData["classTitle"] as? String ?: ""),
+                    "educatorId" to (classData["educatorId"] as? String ?: ""),
+                    "studentIds" to (classData["studentIds"] as? List<*> ?: emptyList<String>()),
+                    "updatedAt" to (classData["updatedAt"] as? String ?: ""),
+                    "lastSyncedAt" to (classData["lastSyncedAt"] as? String ?: "")
+                ),
+                "klyps" to klypsForExport,
+                "klypCount" to klypsForExport.size
+            )
+
+            // Convert to JSON string
+            val gson = Gson()
+            gson.toJson(exportData)
+        } catch (e: Exception) {
+            android.util.Log.e("NewClassViewModel", "Error exporting class to JSON", e)
+            null
+        }
+    }
+
+    /**
      * Import a class from JSON file
      * Expected JSON format:
      * {
+     *     "exportVersion": "1.0", (optional)
+     *     "classDetails": {
+     *         "classCode": "ABC123",
+     *         "classTitle": "Mathematics 101",
+     *         "educatorId": "educator_001",
+     *         "studentIds": ["student1", "student2"],
+     *         "updatedAt": "timestamp",
+     *         "lastSyncedAt": "timestamp"
+     *     },
+     *     "klyps": [
+     *         {
+     *             "title": "Klyp Title",
+     *             "mainBody": "Klyp content",
+     *             "questions": [...],
+     *             "createdAt": "timestamp"
+     *         }
+     *     ]
+     * }
+     * 
+     * Also supports legacy format:
+     * {
      *     "classCode": "ABC123",
      *     "classTitle": "Mathematics 101",
-     *     "educatorId": "educator_001",
-     *     "studentIds": ["student1", "student2"],
-     *     "updatedAt": "timestamp",
-     *     "lastSyncedAt": "timestamp"
+     *     ...
      * }
      */
     fun importClassFromJson(context: Context, uri: Uri) {
@@ -197,56 +300,63 @@ class NewClassViewModel @Inject constructor(
                 
                 // Parse JSON and validate structure
                 val gson = Gson()
-                val classData = gson.fromJson(jsonContent, Map::class.java) as Map<String, Any>
+                val jsonData = gson.fromJson(jsonContent, Map::class.java) as Map<String, Any>
                 
-                // Validate required fields
-                if (!classData.containsKey("classCode") || !classData.containsKey("classTitle")) {
+                // Check if it's the new format (with exportVersion or classDetails)
+                val isNewFormat = jsonData.containsKey("exportVersion") || jsonData.containsKey("classDetails")
+                
+                val classData: Map<String, Any>
+                val klypsData: List<Map<String, Any>>
+                
+                if (isNewFormat) {
+                    // New format with class details and klyps
+                    val classDetails = jsonData["classDetails"] as? Map<String, Any>
+                    if (classDetails == null || !classDetails.containsKey("classCode") || !classDetails.containsKey("classTitle")) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "Invalid JSON format. Must contain 'classDetails' with 'classCode' and 'classTitle' fields."
+                        )
+                        return@launch
+                    }
+                    
+                    classData = classDetails
+                    klypsData = (jsonData["klyps"] as? List<*>)?.filterIsInstance<Map<String, Any>>() ?: emptyList()
+                } else {
+                    // Legacy format - just class data
+                    if (!jsonData.containsKey("classCode") || !jsonData.containsKey("classTitle")) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "Invalid JSON format. Must contain 'classCode' and 'classTitle' fields."
+                        )
+                        return@launch
+                    }
+                    
+                    classData = jsonData
+                    klypsData = emptyList()
+                }
+                
+                // Check if class with same code already exists
+                val classCodeToImport = classData["classCode"] as String
+                val existingClass = classRepository.getClassByCode(classCodeToImport)
+                
+                if (existingClass != null) {
+                    val existingClassName = existingClass["classTitle"] as? String ?: "Unknown Class"
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = "Invalid JSON format. Must contain 'classCode' and 'classTitle' fields."
+                        showDuplicateDialog = true,
+                        duplicateClassInfo = DuplicateClassInfo(
+                            existingClassName = existingClassName,
+                            existingClassCode = classCodeToImport,
+                            importData = classData,
+                            klypsData = klypsData
+                        ),
+                        errorMessage = null
                     )
                     return@launch
                 }
                 
-                // Ensure all required fields are present with defaults
-                val completeClassData = mutableMapOf<String, Any>().apply {
-                    putAll(classData)
-                    put("type", "class")
-                    if (!containsKey("_id")) {
-                        // Generate a unique class ID
-                        put("_id", "class_${java.util.UUID.randomUUID().toString().replace("-", "").take(8)}")
-                    }
-                    if (!containsKey("updatedAt")) {
-                        put("updatedAt", System.currentTimeMillis().toString())
-                    }
-                    if (!containsKey("lastSyncedAt")) {
-                        put("lastSyncedAt", System.currentTimeMillis().toString())
-                    }
-                    if (!containsKey("educatorId")) {
-                        put("educatorId", "imported_educator")
-                    }
-                    if (!containsKey("studentIds")) {
-                        put("studentIds", emptyList<String>())
-                    }
-                }
-                
-                // Save to database
-                val success = classRepository.save(completeClassData)
-                
-                if (success) {
-                    val className = completeClassData["classTitle"] as String
-                    val classCode = completeClassData["classCode"] as String
-                    
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        successMessage = "Class '$className' imported successfully from JSON!"
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = "Failed to save the imported class to database"
-                    )
-                }
+                // If no duplicate found, proceed with import
+                performImport(classData, klypsData)
                 
             } catch (e: JsonSyntaxException) {
                 _uiState.value = _uiState.value.copy(
@@ -259,6 +369,123 @@ class NewClassViewModel @Inject constructor(
                     errorMessage = "Error importing class: ${e.message}"
                 )
             }
+        }
+    }
+    
+    /**
+     * Internal function to perform the actual import
+     */
+    suspend fun performImport(
+        classData: Map<String, Any>, 
+        klypsData: List<Map<String, Any>>,
+        isOverwrite: Boolean = false
+    ) {
+        try {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            
+            // If overwriting, delete existing klyps first
+            if (isOverwrite) {
+                val classCodeToImport = classData["classCode"] as String
+                val existingKlyps = klypRepository.getKlypsByClassCode(classCodeToImport)
+                existingKlyps.forEach { klypData ->
+                    val klypId = klypData["_id"] as? String
+                    if (klypId != null) {
+                        klypRepository.delete(klypId)
+                    }
+                }
+            }
+            
+            // Ensure all required fields are present with defaults for class
+            val completeClassData = mutableMapOf<String, Any>().apply {
+                putAll(classData)
+                put("type", "class")
+                if (!containsKey("_id") || isOverwrite) {
+                    // Generate a unique class ID or use existing for overwrite
+                    if (isOverwrite) {
+                        val existingClass = classRepository.getClassByCode(classData["classCode"] as String)
+                        put("_id", existingClass?.get("_id") as? String ?: "class_${java.util.UUID.randomUUID().toString().replace("-", "").take(8)}")
+                    } else {
+                        put("_id", "class_${java.util.UUID.randomUUID().toString().replace("-", "").take(8)}")
+                    }
+                }
+                if (!containsKey("updatedAt")) {
+                    put("updatedAt", System.currentTimeMillis().toString())
+                }
+                if (!containsKey("lastSyncedAt")) {
+                    put("lastSyncedAt", System.currentTimeMillis().toString())
+                }
+                if (!containsKey("educatorId")) {
+                    put("educatorId", "imported_educator")
+                }
+                if (!containsKey("studentIds")) {
+                    put("studentIds", emptyList<String>())
+                }
+            }
+            
+            // Save class to database
+            val classSuccess = classRepository.save(completeClassData)
+            
+            if (!classSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Failed to save the imported class to database"
+                )
+                return
+            }
+            
+            // Import klyps if present
+            var klypSuccessCount = 0
+            val classCodeForKlyps = completeClassData["classCode"] as String
+            
+            for (klypData in klypsData) {
+                try {
+                    val completeKlypData = mutableMapOf<String, Any>().apply {
+                        putAll(klypData)
+                        put("type", "klyp")
+                        put("classCode", classCodeForKlyps) // Ensure klyp belongs to this class
+                        if (!containsKey("_id")) {
+                            put("_id", "klyp_${UUID.randomUUID()}")
+                        }
+                        if (!containsKey("createdAt")) {
+                            put("createdAt", System.currentTimeMillis().toString())
+                        }
+                        if (!containsKey("title")) {
+                            put("title", "Imported Klyp")
+                        }
+                        if (!containsKey("mainBody")) {
+                            put("mainBody", "")
+                        }
+                        if (!containsKey("questions")) {
+                            put("questions", emptyList<Map<String, Any>>())
+                        }
+                    }
+                    
+                    if (klypRepository.save(completeKlypData)) {
+                        klypSuccessCount++
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("NewClassViewModel", "Failed to import klyp: ${e.message}")
+                }
+            }
+            
+            val className = completeClassData["classTitle"] as String
+            val action = if (isOverwrite) "updated" else "imported"
+            val successMessage = if (klypsData.isNotEmpty()) {
+                "Class '$className' $action successfully with $klypSuccessCount/${klypsData.size} klyps!"
+            } else {
+                "Class '$className' $action successfully from JSON!"
+            }
+            
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                successMessage = successMessage
+            )
+            
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                errorMessage = "Error importing class: ${e.message}"
+            )
         }
     }
 }
