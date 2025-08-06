@@ -86,6 +86,8 @@ import com.klypt.ui.otp.OtpEntryScreen
 import com.klypt.ui.otp.OtpViewModel
 import com.klypt.ui.quiz.QuizDestination
 import com.klypt.ui.quiz.QuizScreen
+import com.klypt.ui.quizeditor.QuizEditorDestination
+import com.klypt.ui.quizeditor.QuizEditorScreen
 import com.klypt.ui.signup.SignupViewModel
 
 private const val TAG = "AGGalleryNavGraph"
@@ -841,6 +843,10 @@ fun GalleryNavHost(
           val encodedQuizCreatedAt = java.net.URLEncoder.encode(klypForQuiz.createdAt, "UTF-8")
           
           navController.navigate("${QuizDestination.route}/$encodedQuizKlypId/$encodedQuizKlypTitle/$encodedQuizClassCode/$encodedQuizMainBody/$encodedQuizQuestions/$encodedQuizCreatedAt")
+        },
+        onNavigateToQuizEditor = { klypForEditor, model ->
+          // Navigate to Quiz Editor screen
+          navigateToQuizEditor(navController, klypForEditor, model)
         }
       )
     }
@@ -920,6 +926,57 @@ fun GalleryNavHost(
         userContextProvider = userContextProvider
       )
     }
+    
+    // Quiz Editor Screen
+    composable(
+      route = "${QuizEditorDestination.route}/{klypId}/{klypTitle}/{classCode}/{mainBody}/{createdAt}/{modelName}",
+      arguments = listOf(
+        navArgument("klypId") { type = NavType.StringType },
+        navArgument("klypTitle") { type = NavType.StringType },
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("mainBody") { type = NavType.StringType },
+        navArgument("createdAt") { type = NavType.StringType },
+        navArgument("modelName") { type = NavType.StringType }
+      )
+    ) { backStackEntry ->
+      val klypId = backStackEntry.arguments?.getString("klypId") ?: ""
+      val klypTitle = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("klypTitle") ?: "", "UTF-8")
+      val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val mainBody = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("mainBody") ?: "", "UTF-8")
+      val createdAt = backStackEntry.arguments?.getString("createdAt") ?: ""
+      val modelName = backStackEntry.arguments?.getString("modelName") ?: ""
+      
+      // Get the model
+      val model = getModelByName(modelName)
+      
+      if (model == null || klypId.isBlank()) {
+        Log.e("GalleryNavGraph", "QuizEditorScreen received invalid parameters")
+        LaunchedEffect(Unit) {
+          navController.navigateUp()
+        }
+        return@composable
+      }
+      
+      // Create the Klyp object (questions will be loaded by the editor)
+      val klyp = Klyp(
+        _id = klypId,
+        title = klypTitle,
+        classCode = classCode,
+        mainBody = mainBody,
+        questions = emptyList(), // Will be loaded by the editor
+        createdAt = createdAt
+      )
+      
+      QuizEditorScreen(
+        klyp = klyp,
+        model = model,
+        onNavigateBack = { navController.navigateUp() },
+        onSaveCompleted = {
+          Log.d("GalleryNavGraph", "Quiz saved successfully, navigating back")
+          navController.navigateUp()
+        }
+      )
+    }
   }
 
   // Handle incoming intents for deep links
@@ -957,6 +1014,19 @@ fun navigateToTaskScreen(
     TaskType.TEST_TASK_1 -> {}
     TaskType.TEST_TASK_2 -> {}
   }
+}
+
+fun navigateToQuizEditor(
+  navController: NavHostController,
+  klyp: Klyp,
+  model: Model
+) {
+  // URL encode the strings that might contain special characters
+  val encodedTitle = java.net.URLEncoder.encode(klyp.title, "UTF-8")
+  val encodedMainBody = java.net.URLEncoder.encode(klyp.mainBody, "UTF-8")
+  
+  val route = "${QuizEditorDestination.route}/${klyp._id}/$encodedTitle/${klyp.classCode}/$encodedMainBody/${klyp.createdAt}/${model.name}"
+  navController.navigate(route)
 }
 
 fun getModelFromNavigationParam(entry: NavBackStackEntry, task: Task): Model? {

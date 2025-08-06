@@ -67,6 +67,7 @@ fun KlypDetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToLLMChat: (String, String, String, String) -> Unit, // classCode, title, content, modelName
     onNavigateToQuiz: (Klyp) -> Unit,
+    onNavigateToQuizEditor: (Klyp, Model) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: KlypDetailsViewModel = hiltViewModel(),
     modelManagerViewModel: ModelManagerViewModel = hiltViewModel()
@@ -74,6 +75,7 @@ fun KlypDetailsScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var showQuizGenerationModelDialog by remember { mutableStateOf(false) }
+    var isEditMode by remember { mutableStateOf(false) } // Track if we're in edit mode or auto-generation mode
     
     // Initialize the view model with the klyp data
     LaunchedEffect(klyp) {
@@ -276,38 +278,63 @@ fun KlypDetailsScreen(
                             // Quiz button - Generate if no questions, Play if questions exist
                             if (klyp.questions.isEmpty()) {
                                 // Generate Quiz button when no questions exist
-                                Button(
-                                    onClick = {
-                                        Log.d(TAG, "Generate Quiz clicked for klyp: ${klyp.title}")
-                                        if (uiState.isGeneratingQuiz) {
-                                            Log.w(TAG, "Quiz generation already in progress, ignoring click")
-                                            return@Button
-                                        }
-                                        
-                                        // Show model selection for quiz generation
-                                        showQuizGenerationModelDialog = true
-                                    },
+                                Column(
                                     modifier = Modifier.weight(1f),
-                                    enabled = !uiState.isGeneratingQuiz,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    )
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    if (uiState.isGeneratingQuiz) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            strokeWidth = 2.dp,
-                                            color = MaterialTheme.colorScheme.onPrimary
+                                    Button(
+                                        onClick = {
+                                            Log.d(TAG, "Generate Quiz clicked for klyp: ${klyp.title}")
+                                            if (uiState.isGeneratingQuiz) {
+                                                Log.w(TAG, "Quiz generation already in progress, ignoring click")
+                                                return@Button
+                                            }
+                                            
+                                            // Show model selection for quiz generation
+                                            isEditMode = false
+                                            showQuizGenerationModelDialog = true
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = !uiState.isGeneratingQuiz,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
                                         )
-                                    } else {
+                                    ) {
+                                        if (uiState.isGeneratingQuiz) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                        } else {
+                                            Icon(
+                                                Icons.Default.PlayArrow,
+                                                contentDescription = "Generate Quiz",
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(if (uiState.isGeneratingQuiz) "Generating..." else "Auto-Generate Quiz")
+                                    }
+                                    
+                                    // Edit Quiz button (manual creation)
+                                    OutlinedButton(
+                                        onClick = {
+                                            Log.d(TAG, "Edit Quiz clicked for klyp: ${klyp.title}")
+                                            // Show model selection for quiz editing
+                                            isEditMode = true
+                                            showQuizGenerationModelDialog = true
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
                                         Icon(
-                                            Icons.Default.PlayArrow,
-                                            contentDescription = "Generate Quiz",
+                                            Icons.Default.Chat, // Use edit icon if available
+                                            contentDescription = "Edit Quiz",
                                             modifier = Modifier.size(20.dp)
                                         )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Create/Edit Quiz")
                                     }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(if (uiState.isGeneratingQuiz) "Generating..." else "Generate Quiz")
                                 }
                             } else {
                                 // Play Quiz and Regenerate Quiz buttons when questions already exist
@@ -377,6 +404,25 @@ fun KlypDetailsScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(if (uiState.isGeneratingQuiz) "Regenerating..." else "Regenerate Quiz")
                                     }
+                                    
+                                    // Edit Quiz button  
+                                    OutlinedButton(
+                                        onClick = {
+                                            Log.d(TAG, "Edit Quiz clicked for klyp: ${klyp.title}")
+                                            // Show model selection for quiz editing
+                                            isEditMode = true
+                                            showQuizGenerationModelDialog = true
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Chat,
+                                            contentDescription = "Edit Quiz",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Edit Quiz Questions")
+                                    }
                                 }
                             }
                         }
@@ -438,23 +484,29 @@ fun KlypDetailsScreen(
         QuizGenerationModelSelectionDialog(
             modelManagerViewModel = modelManagerViewModel,
             klypTitle = klyp.title,
+            isEditMode = isEditMode,
             onModelSelected = { selectedModel ->
-                Log.d(TAG, "Model selected for quiz generation: ${selectedModel.name}")
+                Log.d(TAG, "Model selected for quiz ${if (isEditMode) "editing" else "generation"}: ${selectedModel.name}")
                 showQuizGenerationModelDialog = false
                 
-                // Start quiz generation with selected model
-                viewModel.generateQuizQuestions(
-                    klyp = klyp,
-                    context = context,
-                    onSuccess = { updatedKlyp ->
-                        Log.d(TAG, "Quiz generation successful, navigating to quiz")
-                        onNavigateToQuiz(updatedKlyp)
-                    },
-                    onError = { error ->
-                        Log.e(TAG, "Quiz generation failed: $error")
-                        // Error handling is done in ViewModel
-                    }
-                )
+                if (isEditMode) {
+                    // Navigate to quiz editor
+                    onNavigateToQuizEditor(klyp, selectedModel)
+                } else {
+                    // Start quiz generation with selected model
+                    viewModel.generateQuizQuestions(
+                        klyp = klyp,
+                        context = context,
+                        onSuccess = { updatedKlyp ->
+                            Log.d(TAG, "Quiz generation successful, navigating to quiz")
+                            onNavigateToQuiz(updatedKlyp)
+                        },
+                        onError = { error ->
+                            Log.e(TAG, "Quiz generation failed: $error")
+                            // Error handling is done in ViewModel
+                        }
+                    )
+                }
             },
             onDismiss = {
                 Log.d(TAG, "Quiz generation model selection dismissed")
@@ -468,6 +520,7 @@ fun KlypDetailsScreen(
 private fun QuizGenerationModelSelectionDialog(
     modelManagerViewModel: ModelManagerViewModel,
     klypTitle: String,
+    isEditMode: Boolean,
     onModelSelected: (Model) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -510,7 +563,10 @@ private fun QuizGenerationModelSelectionDialog(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "for generating \"$klypTitle\" quiz",
+                            text = if (isEditMode) 
+                                "for editing \"$klypTitle\" quiz" 
+                            else 
+                                "for generating \"$klypTitle\" quiz",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
