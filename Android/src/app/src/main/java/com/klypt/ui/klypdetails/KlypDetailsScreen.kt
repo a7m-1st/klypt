@@ -428,83 +428,7 @@ private fun ActionsBottomSheetContent(
         }
 
         // Quiz Actions
-        if (klyp.questions.isEmpty()) {
-            // Auto-Generate Quiz
-            ElevatedCard(
-                onClick = {
-                    Log.d(TAG, "Generate Quiz clicked for klyp: ${klyp.title}")
-                    if (uiState.isGeneratingQuiz) {
-                        Log.w(TAG, "Quiz generation already in progress, ignoring click")
-                        return@ElevatedCard
-                    }
-                    onShowQuizGenerationDialog(false)
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = "Generate Quiz",
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Auto-Generate Quiz",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "AI will create quiz questions automatically",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Create/Edit Quiz
-            ElevatedCard(
-                onClick = {
-                    Log.d(TAG, "Edit Quiz clicked for klyp: ${klyp.title}")
-                    onShowQuizGenerationDialog(true)
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Chat,
-                        contentDescription = "Create Quiz",
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Create/Edit Quiz",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Create questions manually with AI assistance",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        } else {
+        if (!klyp.questions.isEmpty()) {
             // Play Quiz
             ElevatedCard(
                 onClick = {
@@ -549,7 +473,7 @@ private fun ActionsBottomSheetContent(
                         Log.w(TAG, "Quiz regeneration already in progress, ignoring click")
                         return@ElevatedCard
                     }
-                    
+
                     viewModel.regenerateQuizQuestions(
                         klyp = klyp,
                         context = context,
@@ -627,6 +551,82 @@ private fun ActionsBottomSheetContent(
                         )
                         Text(
                             text = "Modify existing questions manually",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        } else {
+            // Auto-Generate Quiz
+            ElevatedCard(
+                onClick = {
+                    Log.d(TAG, "Generate Quiz clicked for klyp: ${klyp.title}")
+                    if (uiState.isGeneratingQuiz) {
+                        Log.w(TAG, "Quiz generation already in progress, ignoring click")
+                        return@ElevatedCard
+                    }
+                    onShowQuizGenerationDialog(false)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = "Generate Quiz",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "Auto-Generate Quiz",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "AI will create quiz questions automatically",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Create/Edit Quiz
+            ElevatedCard(
+                onClick = {
+                    Log.d(TAG, "Edit Quiz clicked for klyp: ${klyp.title}")
+                    onShowQuizGenerationDialog(true)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Chat,
+                        contentDescription = "Create Quiz",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "Create/Edit Quiz",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Create questions manually with AI assistance",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

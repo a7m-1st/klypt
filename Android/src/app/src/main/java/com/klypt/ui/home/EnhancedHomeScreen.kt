@@ -266,6 +266,9 @@ fun EnhancedHomeScreen(
                                             classCode = classDocument.classCode,
                                             className = classDocument.classTitle
                                         )
+                                    },
+                                    onDeleteClass = { classDocument ->
+                                        homeContentViewModel.deleteClass(classDocument)
                                     }
                                 )
                                 1 -> StatsTabContent(
@@ -290,6 +293,9 @@ fun EnhancedHomeScreen(
                                         classCode = classDocument.classCode,
                                         className = classDocument.classTitle
                                     )
+                                },
+                                onDeleteClass = { classDocument ->
+                                    homeContentViewModel.deleteClass(classDocument)
                                 }
                             )
                         }
@@ -477,7 +483,8 @@ private fun HomeTabContent(
     onNavigateToNewClass: () -> Unit,
     onNavigateToViewAllClasses: () -> Unit,
     onNavigateToKlypDetails: (Klyp) -> Unit,
-    onExportClass: ((ClassDocument) -> Unit)? = null
+    onExportClass: ((ClassDocument) -> Unit)? = null,
+    onDeleteClass: ((ClassDocument) -> Unit)? = null
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -528,7 +535,8 @@ private fun HomeTabContent(
                 onClassClick = onNavigateToClassDetails,
                 onAddNewClassClick = onNavigateToNewClass,
                 onViewAllClick = onNavigateToViewAllClasses,
-                onExportClass = onExportClass
+                onExportClass = onExportClass,
+                onDeleteClass = onDeleteClass
             )
         }
 
@@ -678,7 +686,8 @@ private fun EducatorHomeContent(
     onNavigateToNewClass: () -> Unit,
     onNavigateToViewAllClasses: () -> Unit,
     onNavigateToKlypDetails: (Klyp) -> Unit,
-    onExportClass: ((ClassDocument) -> Unit)? = null
+    onExportClass: ((ClassDocument) -> Unit)? = null,
+    onDeleteClass: ((ClassDocument) -> Unit)? = null
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -708,7 +717,8 @@ private fun EducatorHomeContent(
                 onClassClick = onNavigateToClassDetails,
                 onAddNewClassClick = onNavigateToNewClass,
                 onViewAllClick = onNavigateToViewAllClasses,
-                onExportClass = onExportClass
+                onExportClass = onExportClass,
+                onDeleteClass = onDeleteClass
             )
         }
 

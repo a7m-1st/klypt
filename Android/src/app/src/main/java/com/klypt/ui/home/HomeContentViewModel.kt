@@ -29,6 +29,7 @@ import com.klypt.data.models.QuizStats
 import com.klypt.data.models.LearningProgress
 import com.klypt.data.repository.EducationalContentRepository
 import com.klypt.data.repositories.GameStatsRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,6 +61,7 @@ data class HomeUiState(
 class HomeContentViewModel @Inject constructor(
     private val contentRepository: EducationalContentRepository,
     private val gameStatsRepository: GameStatsRepository,
+    private val classRepository: ClassDocumentRepository,
     private val userContextProvider: com.klypt.data.services.UserContextProvider
 ) : ViewModel() {
 
@@ -287,6 +289,37 @@ class HomeContentViewModel @Inject constructor(
     /**
      * Logout the current user and clear all data
      */
+    /**
+     * Delete a class
+     */
+    fun deleteClass(classDocument: com.klypt.data.models.ClassDocument) {
+        viewModelScope.launch {
+            try {
+                // Delete from database using the class repository
+                val documentId = classDocument._id
+                val success = classRepository.delete(documentId)
+                
+                if (success) {
+                    // Update UI state by removing the class from the list
+                    val currentClasses = _uiState.value.myClasses.toMutableList()
+                    currentClasses.removeAll { it._id == documentId }
+                    
+                    _uiState.value = _uiState.value.copy(
+                        myClasses = currentClasses
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "Failed to delete class"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Failed to delete class: ${e.message}"
+                )
+            }
+        }
+    }
+
     fun logout() {
         // Clear user context which will also clear tokens and stored data
         userContextProvider.clearUserContext()

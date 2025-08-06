@@ -293,6 +293,7 @@ fun MyClassesSection(
     onAddNewClassClick: () -> Unit,
     onViewAllClick: (() -> Unit)? = null,
     onExportClass: ((ClassDocument) -> Unit)? = null,
+    onDeleteClass: ((ClassDocument) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Log.d("MyClassesSection", "classes: $classes")
@@ -309,9 +310,10 @@ fun MyClassesSection(
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
             )
             if (onViewAllClick != null) {
-                TextButton(onClick = onViewAllClick) {
-                    Text("View All")
-                }
+                //TODO(FIX): fix the view all page
+//                TextButton(onClick = onViewAllClick) {
+//                    Text("View All")
+//                }
             }
         }
         
@@ -351,6 +353,9 @@ fun MyClassesSection(
                         showMenu = true,
                         onExport = if (onExportClass != null) {
                             { onExportClass(classDoc) }
+                        } else null,
+                        onDelete = if (onDeleteClass != null) {
+                            { onDeleteClass(classDoc) }
                         } else null
                     )
                 }

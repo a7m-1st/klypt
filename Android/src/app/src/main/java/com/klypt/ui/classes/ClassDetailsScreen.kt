@@ -98,8 +98,11 @@ fun ClassDetailsScreen(
         },
         floatingActionButton = {
             if (currentClassDocument != null) {
+                val userId = userContextProvider.getCurrentUserId()
+                val ownsKlyp:Boolean = currentClassDocument?.educatorId == userId
+
                 FloatingActionButton(
-                    onClick = { showAddKlypDialog = true },
+                    onClick = { showAddKlypDialog = ownsKlyp },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Klyp")
@@ -173,8 +176,8 @@ fun ClassDetailsScreen(
                         item {
                             EmptyStateCard(
                                 message = "No educational content available for this class",
-                                actionText = if(ownsKlyp) "Add Klyp" else "Add Klyp (Not Owned, so won't be synced)",
-                                onActionClick = { showAddKlypDialog = true }
+                                actionText = if(ownsKlyp) "Add Klyp" else "Ops can't add to an external class!",
+                                onActionClick = { showAddKlypDialog = ownsKlyp }
                             )
                         }
                     } else {
@@ -190,8 +193,8 @@ fun ClassDetailsScreen(
                         item {
                             EmptyStateCard(
                                 message = "Add your own Klyps to this Class",
-                                actionText = if(ownsKlyp) "Add Klyp" else "Add Klyp (Not Owned, so won't be synced)",
-                                onActionClick = { showAddKlypDialog = true }
+                                actionText = if(ownsKlyp) "Add Klyp" else "Ops can't add to an external class!",
+                                onActionClick = { showAddKlypDialog = ownsKlyp }
                             )
                         }
                     }
