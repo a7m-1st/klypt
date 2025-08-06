@@ -354,6 +354,11 @@ fun GalleryNavHost(
             popUpTo("login") { inclusive = true }
           }
         },
+        onNavigateToSignup = {
+          navController.navigate("signup") {
+            popUpTo("otp_entry") { inclusive = true }
+          }
+        },
         userContextProvider = userContextProvider,
         viewModel = hiltViewModel()
       )

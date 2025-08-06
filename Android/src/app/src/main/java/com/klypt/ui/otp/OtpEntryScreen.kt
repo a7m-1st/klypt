@@ -49,8 +49,10 @@ fun isNetworkAvailable(): Boolean {
 @Composable
 fun OtpEntryScreen(
     phoneNumber: String,
+    signupData: Map<String, Any>? = null,
     onNavigateToHome: () -> Unit,
     onNavigateBack: () -> Unit,
+    onNavigateToSignup: () -> Unit = {},
     userContextProvider: UserContextProvider,
     viewModel: PhoneVerificationViewModel = hiltViewModel()
 ) {
@@ -60,12 +62,12 @@ fun OtpEntryScreen(
     var otpCode by remember { mutableStateOf("") }
     val otpLength = 6
 
-    // Auto-verify when OTP is complete
-    LaunchedEffect(otpCode) {
-        if (otpCode.length == otpLength && isConnected) {
-            viewModel.verifyCode(otpCode)
-        }
-    }
+    // Auto-verify when OTP is complete - disabled for optional verification
+    // LaunchedEffect(otpCode) {
+    //     if (otpCode.length == otpLength && isConnected) {
+    //         viewModel.verifyCode(otpCode)
+    //     }
+    // }
 
     // Navigate to home when verification is successful and set educator context
     LaunchedEffect(uiState.isVerified) {
@@ -131,8 +133,20 @@ fun OtpEntryScreen(
                     fontSize = 14.sp,
                     color = Color(0xFF6C757D),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 24.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
+                
+                // Notice about optional verification
+                if (!uiState.isVerified) {
+                    Text(
+                        text = "Verify is optional for now",
+                        fontSize = 12.sp,
+                        color = Color(0xFF2FA96E),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
 
                 if (uiState.isVerified) {
                     Icon(
@@ -250,9 +264,10 @@ fun OtpEntryScreen(
                         // Verify button: filled, green background, white text
                         Button(
                             onClick = {
-                                if (otpCode.length == otpLength) viewModel.verifyCode(otpCode)
+                                // Always verify successfully regardless of OTP code
+                                viewModel.verifyCode(otpCode.takeIf { it.length == otpLength } ?: "123456", signupData, onNavigateToSignup)
                             },
-                            enabled = !uiState.isLoading && otpCode.length == otpLength && uiState.verificationSent,
+                            enabled = !uiState.isLoading,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(52.dp),

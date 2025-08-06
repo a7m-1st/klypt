@@ -153,10 +153,20 @@ class NewClassViewModel @Inject constructor(
         return Pair(classCode, className)
     }
     
+    private var cachedClassForSummary: Pair<String, String>? = null
+    
     fun createClassForSummary(): Pair<String, String> {
-        val classCode = generateClassCode()
-        val className = _uiState.value.className.ifBlank { "New Class" }
-        return Pair(classCode, className)
+        // Cache the generated class code to prevent duplicate creation on multiple calls
+        if (cachedClassForSummary == null) {
+            val classCode = generateClassCode()
+            val className = _uiState.value.className.ifBlank { "New Class" }
+            cachedClassForSummary = Pair(classCode, className)
+        }
+        return cachedClassForSummary!!
+    }
+    
+    fun clearCachedClassForSummary() {
+        cachedClassForSummary = null
     }
     
     fun importClassByCode(

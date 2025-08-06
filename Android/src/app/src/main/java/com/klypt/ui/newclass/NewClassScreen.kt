@@ -159,18 +159,22 @@ fun NewClassScreen(
                             summaryTitle = pendingSummaryTitle!!,
                             summaryContent = pendingSummaryContent!!,
                             onSuccess = {
-                                // Clear pending data
+                                // Clear cached class and pending data
+                                viewModel.clearCachedClassForSummary()
                                 SummaryNavigationData.clearPendingSummaryData()
                                 // Navigate to class created screen
                                 onClassCreated(classCode, className)
                             },
                             onError = { error ->
+                                // Clear cached class on error so user can retry
+                                viewModel.clearCachedClassForSummary()
                                 android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_LONG).show()
                             }
                         )
                     },
                     onBack = {
                         SummaryNavigationData.clearPendingSummaryData()
+                        viewModel.clearCachedClassForSummary()
                         onNavigateBack()
                     }
                 )
