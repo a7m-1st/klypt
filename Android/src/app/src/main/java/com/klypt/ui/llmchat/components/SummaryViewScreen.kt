@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.klypt.data.models.ChatSummary
+import com.klypt.ui.common.EnhancedMarkdownText
 
 /**
  * Read-only screen for viewing saved Klypt summaries
@@ -123,10 +124,12 @@ fun SummaryViewScreen(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
                     ) {
-                        Text(
-                            text = summary.bulletPointSummary,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(16.dp)
+                        // Use enhanced markdown rendering for beautiful display
+                        EnhancedMarkdownText(
+                            markdown = summary.bulletPointSummary,
+                            modifier = Modifier.padding(16.dp),
+                            textColor = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 16f
                         )
                     }
                     

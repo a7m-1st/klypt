@@ -48,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.data.TASK_LLM_CHAT
 import com.klypt.data.Model
 import com.klypt.data.models.Klyp
+import com.klypt.ui.common.EnhancedMarkdownText
 import com.klypt.ui.modelmanager.ModelManagerViewModel
 import com.klypt.ui.common.humanReadableSize
 import com.klypt.ui.common.modelitem.StatusIcon
@@ -190,11 +191,11 @@ fun KlypDetailsScreen(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 )
                             ) {
-                                Text(
-                                    text = klyp.mainBody,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                EnhancedMarkdownText(
+                                    markdown = klyp.mainBody,
                                     modifier = Modifier.padding(16.dp),
-                                    textAlign = TextAlign.Justify
+                                    textColor = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 16f
                                 )
                             }
                         }
