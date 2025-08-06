@@ -64,6 +64,13 @@ class LoginViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Get the complete phone number with country code
+     */
+    fun getFullPhoneNumber(): String {
+        return "${_uiState.value.countryCode}${_uiState.value.phoneNumber}"
+    }
+
     fun login(onSuccess: () -> Unit) {
         if(!validateInputs()) return
 
@@ -75,11 +82,24 @@ class LoginViewModel @Inject constructor(
 
             try {
                 // First, check if user exists locally for faster response
-                val localUserResult = authRepository.getUserFromCouchDB(
-                    _uiState.value.firstName,
-                    _uiState.value.lastName,
-                    _uiState.value.role
-                )
+                val localUserResult = when (_uiState.value.role) {
+                    UserRole.STUDENT -> {
+                        authRepository.getUserFromCouchDB(
+                            _uiState.value.firstName,
+                            _uiState.value.lastName,
+                            _uiState.value.role
+                        )
+                    }
+                    UserRole.EDUCATOR -> {
+                        // For educators, pass full phone number (with country code) as firstName parameter
+                        val fullPhoneNumber = getFullPhoneNumber()
+                        authRepository.getUserFromCouchDB(
+                            fullPhoneNumber,
+                            "", // lastName not used for educators
+                            _uiState.value.role
+                        )
+                    }
+                }
 
                 Log.d(Variables.TAG, "Couch DB: $localUserResult")
                 
@@ -101,8 +121,9 @@ class LoginViewModel @Inject constructor(
                         }
                         UserRole.EDUCATOR -> {
                             // For educators, we should have phone number from the login flow
+                            val fullPhoneNumber = getFullPhoneNumber()
                             userContextProvider.setCurrentEducatorUser(
-                                _uiState.value.phoneNumber,
+                                fullPhoneNumber,
                                 null // Full name will be retrieved from database
                             )
                         }
@@ -128,8 +149,9 @@ class LoginViewModel @Inject constructor(
                                 userContextProvider.generateOfflineToken()
                             }
                             UserRole.EDUCATOR -> {
+                                val fullPhoneNumber = getFullPhoneNumber()
                                 userContextProvider.setCurrentEducatorUser(
-                                    _uiState.value.phoneNumber,
+                                    fullPhoneNumber,
                                     null
                                 )
                                 // Generate a local offline token for session persistence
@@ -144,9 +166,14 @@ class LoginViewModel @Inject constructor(
                         )
                         onSuccess()
                     } else {
+                        // For educators, if they don't exist in database, show appropriate error
+                        val errorMessage = when (_uiState.value.role) {
+                            UserRole.EDUCATOR -> "Phone number not found. Please sign up first."
+                            UserRole.STUDENT -> "Login failed. No network connection and no offline data available."
+                        }
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            errorMessage = "Login failed. No network connection and no offline data available."
+                            errorMessage = errorMessage
                         )
                     }
                 }
@@ -227,15 +254,29 @@ class LoginViewModel @Inject constructor(
 
     //IsValid, errorMessage takes String
     private fun validateInputs(): Boolean {
-        val firstNameValidation = validator.validateName(_uiState.value.firstName)
-        val lastNameValidation = validator.validateName(_uiState.value.lastName)
+        return when (_uiState.value.role) {
+            UserRole.STUDENT -> {
+                val firstNameValidation = validator.validateName(_uiState.value.firstName)
+                val lastNameValidation = validator.validateName(_uiState.value.lastName)
 
-        _uiState.value = _uiState.value.copy(
-            firstNameError = firstNameValidation.errorMessage,
-            lastNameError = lastNameValidation.errorMessage
-        )
+                _uiState.value = _uiState.value.copy(
+                    firstNameError = firstNameValidation.errorMessage,
+                    lastNameError = lastNameValidation.errorMessage
+                )
 
-        return firstNameValidation.isValid && lastNameValidation.isValid
+                firstNameValidation.isValid && lastNameValidation.isValid
+            }
+            UserRole.EDUCATOR -> {
+                val fullPhoneNumber = getFullPhoneNumber()
+                val phoneNumberValidation = validator.validateFullPhoneNumber(fullPhoneNumber)
+
+                _uiState.value = _uiState.value.copy(
+                    phoneNumberError = phoneNumberValidation.errorMessage
+                )
+
+                phoneNumberValidation.isValid
+            }
+        }
     }
 
     private fun validateForm() {
@@ -249,22 +290,44 @@ class LoginViewModel @Inject constructor(
     }
     
     private fun checkLocalDataAvailability() {
-        val firstName = _uiState.value.firstName
-        val lastName = _uiState.value.lastName
-        
-        if (firstName.isNotBlank() && lastName.isNotBlank()) {
-            viewModelScope.launch {
-                try {
-                    val localUserResult = authRepository.getUserFromCouchDB(firstName, lastName, _uiState.value.role)
-                    _uiState.value = _uiState.value.copy(
-                        localDataAvailable = localUserResult.isSuccess && localUserResult.getOrNull() != null
-                    )
-                } catch (e: Exception) {
+        when (_uiState.value.role) {
+            UserRole.STUDENT -> {
+                val firstName = _uiState.value.firstName
+                val lastName = _uiState.value.lastName
+                
+                if (firstName.isNotBlank() && lastName.isNotBlank()) {
+                    viewModelScope.launch {
+                        try {
+                            val localUserResult = authRepository.getUserFromCouchDB(firstName, lastName, _uiState.value.role)
+                            _uiState.value = _uiState.value.copy(
+                                localDataAvailable = localUserResult.isSuccess && localUserResult.getOrNull() != null
+                            )
+                        } catch (e: Exception) {
+                            _uiState.value = _uiState.value.copy(localDataAvailable = false)
+                        }
+                    }
+                } else {
                     _uiState.value = _uiState.value.copy(localDataAvailable = false)
                 }
             }
-        } else {
-            _uiState.value = _uiState.value.copy(localDataAvailable = false)
+            UserRole.EDUCATOR -> {
+                val phoneNumber = getFullPhoneNumber()
+                
+                if (phoneNumber.isNotBlank()) {
+                    viewModelScope.launch {
+                        try {
+                            val localUserResult = authRepository.getUserFromCouchDB(phoneNumber, "", _uiState.value.role)
+                            _uiState.value = _uiState.value.copy(
+                                localDataAvailable = localUserResult.isSuccess && localUserResult.getOrNull() != null
+                            )
+                        } catch (e: Exception) {
+                            _uiState.value = _uiState.value.copy(localDataAvailable = false)
+                        }
+                    }
+                } else {
+                    _uiState.value = _uiState.value.copy(localDataAvailable = false)
+                }
+            }
         }
     }
 }

@@ -1,11 +1,9 @@
 package com.klypt.ui.signup
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,7 +15,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.klypt.ui.common.CountryCodeData
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignupScreen(
     onNext: () -> Unit,
@@ -83,14 +83,63 @@ fun SignupScreen(
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
             )
-            OutlinedTextField(
-                value = uiState.phoneNumber,
-                onValueChange = { viewModel.updatePhoneNumber(it) },
-                label = { Text("Phone Number*") },
+            
+            // Phone number with country code selector
+            var expanded by remember { mutableStateOf(false) }
+            
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 32.dp)
-            )
+                    .padding(bottom = 16.dp)
+            ) {
+                // Country code dropdown
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier
+                        .width(120.dp)
+                        .padding(end = 8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = "${uiState.selectedCountry} ${uiState.countryCode}",
+                        onValueChange = { },
+                        readOnly = true,
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier.menuAnchor(),
+                        label = { Text("Code") }
+                    )
+                    
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        CountryCodeData.countries.forEach { country ->
+                            DropdownMenuItem(
+                                text = { Text("${country.code} ${country.dialCode}") },
+                                onClick = {
+                                    viewModel.updateCountryCode(country.dialCode, country.code)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                // Phone number field
+                OutlinedTextField(
+                    value = uiState.phoneNumber,
+                    onValueChange = { viewModel.updatePhoneNumber(it) },
+                    label = { Text("Phone Number*") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
             // Next button right after the fields
             Button(
                 onClick = onNext,

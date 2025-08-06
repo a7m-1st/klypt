@@ -29,6 +29,7 @@ import com.klypt.data.models.QuizStats
 import com.klypt.data.models.LearningProgress
 import com.klypt.data.repository.EducationalContentRepository
 import com.klypt.data.repositories.GameStatsRepository
+import com.klypt.data.repositories.ClassDocumentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,6 +61,7 @@ data class HomeUiState(
 class HomeContentViewModel @Inject constructor(
     private val contentRepository: EducationalContentRepository,
     private val gameStatsRepository: GameStatsRepository,
+    private val classRepository: ClassDocumentRepository,
     private val userContextProvider: com.klypt.data.services.UserContextProvider
 ) : ViewModel() {
 
@@ -287,6 +289,42 @@ class HomeContentViewModel @Inject constructor(
     /**
      * Logout the current user and clear all data
      */
+    /**
+     * Delete a class
+     */
+    fun deleteClass(classDocument: com.klypt.data.models.ClassDocument) {
+        viewModelScope.launch {
+            try {
+                // Delete from database using the class repository
+                val documentId = classDocument._id
+                android.util.Log.d("HomeContentViewModel", "Attempting to delete class with ID: $documentId, title: ${classDocument.classTitle}")
+                val success = classRepository.delete(documentId)
+                
+                if (success) {
+                    android.util.Log.d("HomeContentViewModel", "Class deletion successful, updating UI state")
+                    // Update UI state by removing the class from the list
+                    val currentClasses = _uiState.value.myClasses.toMutableList()
+                    val removedCount = currentClasses.removeAll { it._id == documentId }
+                    android.util.Log.d("HomeContentViewModel", "Removed $removedCount classes from UI list")
+                    
+                    _uiState.value = _uiState.value.copy(
+                        myClasses = currentClasses
+                    )
+                } else {
+                    android.util.Log.e("HomeContentViewModel", "Class deletion failed")
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "Failed to delete class"
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("HomeContentViewModel", "Exception during class deletion: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Failed to delete class: ${e.message}"
+                )
+            }
+        }
+    }
+
     fun logout() {
         // Clear user context which will also clear tokens and stored data
         userContextProvider.clearUserContext()

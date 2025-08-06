@@ -83,14 +83,6 @@ fun ViewAllClassesScreen(
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToAddClass,
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Class")
-            }
-        },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         }

@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.klypt.ui.navigation.SummaryNavigationData
 import com.klypt.ui.llmsingleturn.KlypSaveViewModel
+import com.klypt.data.services.UserContextProvider
+import com.klypt.data.UserRole
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -58,11 +60,19 @@ fun NewClassScreen(
     onNavigateToLLMChat: (String, String) -> Unit, // classCode, className
     onClassCreated: (String, String) -> Unit = { _, _ -> }, // classCode, className - for when class is created and we want to save pending summary
     modifier: Modifier = Modifier,
-    viewModel: NewClassViewModel = hiltViewModel()
+    viewModel: NewClassViewModel = hiltViewModel(),
+    userContextProvider: UserContextProvider
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    
+    // Get current user role to conditionally show/hide features
+    val currentUserRole = try {
+        userContextProvider.getCurrentUserRole()
+    } catch (e: Exception) {
+        UserRole.STUDENT // Default to student if can't determine role
+    }
     
     // Check if we have pending summary data from summary review screen
     val (pendingSummaryTitle, pendingSummaryContent) = remember { SummaryNavigationData.getPendingSummaryData() }
@@ -159,18 +169,22 @@ fun NewClassScreen(
                             summaryTitle = pendingSummaryTitle!!,
                             summaryContent = pendingSummaryContent!!,
                             onSuccess = {
-                                // Clear pending data
+                                // Clear cached class and pending data
+                                viewModel.clearCachedClassForSummary()
                                 SummaryNavigationData.clearPendingSummaryData()
                                 // Navigate to class created screen
                                 onClassCreated(classCode, className)
                             },
                             onError = { error ->
+                                // Clear cached class on error so user can retry
+                                viewModel.clearCachedClassForSummary()
                                 android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_LONG).show()
                             }
                         )
                     },
                     onBack = {
                         SummaryNavigationData.clearPendingSummaryData()
+                        viewModel.clearCachedClassForSummary()
                         onNavigateBack()
                     }
                 )
@@ -210,6 +224,7 @@ fun NewClassScreen(
                     }
                     else -> {
                         MainOptionsSection(
+                            currentUserRole = currentUserRole,
                             onImportByCode = { viewModel.showClassCodeInput() },
                             onCreateNew = { 
                                 // Navigate directly to LLMChat with a default class setup
@@ -310,6 +325,7 @@ fun NewClassScreen(
 
 @Composable 
 private fun MainOptionsSection(
+    currentUserRole: UserRole,
     onImportByCode: () -> Unit,
     onCreateNew: () -> Unit,
     onImportJson: () -> Unit
@@ -400,43 +416,45 @@ private fun MainOptionsSection(
             }
         }
         
-        // Import from JSON
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 80.dp),
-            onClick = onImportJson,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-            )
-        ) {
-            Row(
+        // Import from JSON - only show for students
+        if (currentUserRole == UserRole.STUDENT) {
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.UploadFile,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    .heightIn(min = 80.dp),
+                onClick = onImportJson,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
                 )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(
-                    modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Import from JSON File",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        fontWeight = FontWeight.SemiBold
+                    Icon(
+                        Icons.Default.UploadFile,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer
                     )
-                    Text(
-                        text = "Upload a class definition from a JSON file",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Import from JSON File",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Upload a class definition from a JSON file",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
                 }
             }
         }

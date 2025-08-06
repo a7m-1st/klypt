@@ -129,11 +129,26 @@ class ClassDocumentRepository(
             val database = databaseManager.inventoryDatabase
             database?.let { db ->
                 val docId = getClassDocumentId(documentId)
+                android.util.Log.d("ClassDocumentRepository", "Attempting to delete document with ID: $docId (original: $documentId)")
                 val document = db.getDocument(docId)
-                document?.let {
-                    db.delete(it)
+                if (document != null) {
+                    android.util.Log.d("ClassDocumentRepository", "Document found, proceeding with deletion")
+                    db.delete(document)
                     result = true
+                    android.util.Log.d("ClassDocumentRepository", "Document deletion completed successfully")
+                    
+                    // Verify deletion by trying to retrieve the document again
+                    val verifyDocument = db.getDocument(docId)
+                    if (verifyDocument == null) {
+                        android.util.Log.d("ClassDocumentRepository", "Deletion verified: document no longer exists")
+                    } else {
+                        android.util.Log.w("ClassDocumentRepository", "Warning: document still exists after deletion attempt")
+                    }
+                } else {
+                    android.util.Log.w("ClassDocumentRepository", "Document not found for deletion: $docId")
                 }
+            } ?: run {
+                android.util.Log.e("ClassDocumentRepository", "Database is null, cannot delete document")
             }
             return@withContext result
         }

@@ -207,9 +207,9 @@ class ClassDetailsViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(errorMessage = null)
                 
-                // Delete from database
-                val documentId = "klyp::${klyp._id}"
-                val success = klypRepository.delete(documentId)
+                // Delete from database - pass just the klyp ID
+                // The repository will internally add the "klyp::" prefix
+                val success = klypRepository.delete(klyp._id)
                 
                 if (success) {
                     // Refresh the klyps list

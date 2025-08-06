@@ -54,7 +54,7 @@ android {
     // Needed for HuggingFace auth workflows.
     // Use the scheme of the "Redirect URLs" in HuggingFace app.
     manifestPlaceholders["appAuthRedirectScheme"] =
-        "https://huggingface.co/a7m1st"
+        "com.google.ai.edge.gallery.oauth://oauthredirect"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
