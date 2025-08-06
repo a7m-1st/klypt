@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**Empowering students and teachers with a fully offline, gamified learning experience—powered by Gemma 3n.**
+**Empowering students and educators with a fully offline, gamified learning experience—powered by Gemma 3n.**
 
 **Klypt** is a modular, offline-first educational platform built to serve students and educators in areas with limited or unreliable internet access. Powered by Google’s Gemma 3n multimodal model and built using the AI Edge stack, Klypt reimagines how learning content is shared, accessed, and experienced—entirely on-device.
 
