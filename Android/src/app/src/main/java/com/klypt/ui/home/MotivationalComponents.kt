@@ -144,7 +144,7 @@ fun DailyChallengeCard(
                     tint = MaterialTheme.colorScheme.tertiary
                 )
                 Text(
-                    text = "Daily Challenge",
+                    text = "Can you do it?",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.tertiary
                 )

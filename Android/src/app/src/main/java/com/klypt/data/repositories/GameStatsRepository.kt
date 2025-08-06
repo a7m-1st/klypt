@@ -354,21 +354,7 @@ class GameStatsRepository @Inject constructor(
     
     private fun generateAchievements(studentId: String, completedQuizzes: List<Map<String, Any>>): List<Achievement> {
         val achievements = mutableListOf<Achievement>()
-        
-        // First Quiz Achievement
-        if (completedQuizzes.isNotEmpty()) {
-            achievements.add(
-                Achievement(
-                    id = "first_quiz",
-                    title = "Getting Started",
-                    description = "Complete your first quiz",
-                    icon = "🎯",
-                    isCompleted = true,
-                    category = AchievementCategory.QUIZ
-                )
-            )
-        }
-        
+
         // Perfect Score Achievement
         val perfectScores = completedQuizzes.count { (it["score"] as? Double ?: 0.0) >= 1.0 }
         achievements.add(
@@ -397,6 +383,20 @@ class GameStatsRepository @Inject constructor(
                 category = AchievementCategory.QUIZ
             )
         )
+
+        // First Quiz Achievement
+        if (completedQuizzes.isNotEmpty()) {
+            achievements.add(
+                Achievement(
+                    id = "first_quiz",
+                    title = "Getting Started",
+                    description = "Complete your first quiz",
+                    icon = "🎯",
+                    isCompleted = true,
+                    category = AchievementCategory.QUIZ
+                )
+            )
+        }
         
         return achievements
     }
