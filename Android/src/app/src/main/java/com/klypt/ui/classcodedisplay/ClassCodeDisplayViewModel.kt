@@ -77,14 +77,24 @@ class ClassCodeDisplayViewModel @Inject constructor(
                     // Use existing class but update the class title if it was changed
                     val existingId = existingClassData["_id"] as String
                     val updatedTitle = _uiState.value.className.ifBlank { existingClassData["classTitle"] as? String ?: "Untitled Class" }
+                    val existingStudentIds = (existingClassData["studentIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
                     
-                    // Update class title if changed
-                    if (updatedTitle != (existingClassData["classTitle"] as? String)) {
+                    // Add current user to studentIds if they're not already in the list (for students creating classes)
+                    var needsUpdate = false
+                    if (currentUserId != null && !existingStudentIds.contains(currentUserId)) {
+                        existingStudentIds.add(currentUserId)
+                        needsUpdate = true
+                        android.util.Log.d("ClassCodeDisplayVM", "Added current user $currentUserId to existing class studentIds")
+                    }
+                    
+                    // Update class title if changed or if studentIds were updated
+                    if (updatedTitle != (existingClassData["classTitle"] as? String) || needsUpdate) {
                         val updatedClassData = existingClassData.toMutableMap()
                         updatedClassData["classTitle"] = updatedTitle
+                        updatedClassData["studentIds"] = existingStudentIds
                         updatedClassData["updatedAt"] = currentTime
                         classRepository.save(updatedClassData)
-                        android.util.Log.d("ClassCodeDisplayVM", "Updated class title to: $updatedTitle")
+                        android.util.Log.d("ClassCodeDisplayVM", "Updated existing class with new title and/or student enrollment")
                     }
                     
                     ClassDocument(
@@ -94,7 +104,7 @@ class ClassCodeDisplayViewModel @Inject constructor(
                         updatedAt = currentTime,
                         lastSyncedAt = existingClassData["lastSyncedAt"] as? String ?: currentTime,
                         educatorId = existingClassData["educatorId"] as String,
-                        studentIds = (existingClassData["studentIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                        studentIds = existingStudentIds
                     )
                 } else {
                     android.util.Log.d("ClassCodeDisplayVM", "Creating new class with code ${_uiState.value.classCode}")
