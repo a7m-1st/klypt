@@ -399,10 +399,11 @@ fun GalleryNavHost(
           viewModel = viewModel,
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
+          classCode = classCode,
+          className = className,
           onNavigateToSummaryReview = { summary, model, messages ->
-            // For class creation, store the class context and navigate to summary review
-            val classContext = SummaryNavigationData.ClassCreationContext(classCode, className)
-            SummaryNavigationData.storeSummaryData(summary, model, messages, classContext)
+            // Store the data in the temporary holder (without class context for regular chats)
+            SummaryNavigationData.storeSummaryData(summary, model, messages)
             // Navigate to summary review screen
             navController.navigate("${SummaryReviewDestination.route}/${model.name}")
           }
@@ -440,10 +441,11 @@ fun GalleryNavHost(
           viewModel = viewModel,
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
+          classCode = classCode,
+          className = title,
           onNavigateToSummaryReview = { summary, model, messages ->
-            // For klyp discussion, store the class context and navigate to summary review
-            val classContext = SummaryNavigationData.ClassCreationContext(classCode, title)
-            SummaryNavigationData.storeSummaryData(summary, model, messages, classContext)
+            // Store the data in the temporary holder (without class context for klyp discussions)
+            SummaryNavigationData.storeSummaryData(summary, model, messages)
             // Navigate to summary review screen
             navController.navigate("${SummaryReviewDestination.route}/${model.name}")
           },
@@ -569,49 +571,19 @@ fun GalleryNavHost(
             SummaryNavigationData.clearSummaryData()
             navController.navigateUp() 
           },
+          onNavigateToAddClass = { title, content ->
+            // Navigate to NewClass screen to create new class
+            // The pending data is already stored in SummaryNavigationData
+            navController.navigate(NewClassDestination.route)
+          },
           onSaveComplete = {
-            Log.e("DEBUG_NAV", "=== SummaryReviewScreen onSaveComplete called ===")
-            val classContext = SummaryNavigationData.getClassCreationContext()
-            Log.e("DEBUG_NAV", "Class context: $classContext")
-            // Mark that home should refresh when we return
+            // Clear summary data and navigate to home
+            SummaryNavigationData.clearSummaryData()
+            // Mark that home should refresh
             SummaryNavigationData.setShouldRefreshHome(true)
             
-            if (classContext != null) {
-              // We're in class creation context, navigate directly to class code display
-              try {
-                val userRole = userContextProvider.getCurrentUserRole()
-                Log.e("DEBUG_NAV", "User role is $userRole")
-                
-                val educatorId = if (userRole == UserRole.EDUCATOR) {
-                  val userId = userContextProvider.getCurrentUserId()
-                  Log.e("DEBUG_NAV", "Educator ID is $userId")
-                  userId
-                } else {
-                  Log.e("DEBUG_NAV", "Student creating class - using student ID as educator for this class")
-                  // Allow students to create classes by using their ID as educator
-                  userContextProvider.getCurrentUserId() ?: "educator_001"
-                }
-                
-                val encodedClassName = java.net.URLEncoder.encode(classContext.className, "UTF-8")
-                val route = "${ClassCodeDisplayDestination.route}/${classContext.classCode}/$encodedClassName/$educatorId"
-                Log.e("DEBUG_NAV", "Navigating directly to class code display: $route")
-                navController.navigate(route) {
-                  launchSingleTop = true
-                }
-                Log.e("DEBUG_NAV", "=== Navigation to class code display completed ===")
-              } catch (e: Exception) {
-                Log.e("DEBUG_NAV", "ERROR during navigation: ${e.message}", e)
-                // Fallback to home if there's an error
-                navController.navigate("home") {
-                  popUpTo("home") { inclusive = true }
-                }
-              }
-            } else {
-              // Regular summary saving, go to home and force refresh
-              Log.e("DEBUG_NAV", "No class context, navigating to home")
-              navController.navigate("home") {
-                popUpTo("home") { inclusive = true }
-              }
+            navController.navigate("home") {
+              popUpTo("home") { inclusive = true }
             }
           }
         )
@@ -632,6 +604,30 @@ fun GalleryNavHost(
         onNavigateToLLMChat = { classCode, className ->
           // Navigate to LLM Chat for class creation with class code and name
           navController.navigate("llm-chat-for-class/$classCode/$className")
+        },
+        onClassCreated = { classCode, className ->
+          // Handle class creation when we have pending summary data
+          val encodedClassName = java.net.URLEncoder.encode(className, "UTF-8")
+          
+          // The class and summary have already been saved, just navigate to class code display
+          try {
+            val userRole = userContextProvider.getCurrentUserRole()
+            val educatorId = if (userRole == UserRole.EDUCATOR) {
+              userContextProvider.getCurrentUserId()
+            } else {
+              userContextProvider.getCurrentUserId() ?: "educator_001"
+            }
+            
+            // Navigate directly to class code display
+            navController.navigate("${ClassCodeDisplayDestination.route}/$classCode/$encodedClassName/$educatorId") {
+              launchSingleTop = true
+            }
+          } catch (e: Exception) {
+            // Fallback to home if there's an error
+            navController.navigate("home") {
+              popUpTo("home") { inclusive = true }
+            }
+          }
         }
       )
     }
@@ -680,8 +676,8 @@ fun GalleryNavHost(
         classId = classId,
         onNavigateBack = { navController.navigateUp() },
         onNavigateToAddKlyp = { classCode ->
-          // For now, we'll handle adding klyps within the screen itself
-          //TODO
+          // Navigate to LLM Chat for klyp creation with class context
+          navController.navigate("llm-chat-for-class/$classCode/${java.net.URLEncoder.encode("New Klyp", "UTF-8")}")
         },
         onNavigateToKlypDetails = { klyp ->
           Log.d(TAG, "=== onNavigateToKlypDetails clicked ===")

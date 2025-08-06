@@ -530,7 +530,7 @@ fun ChatPanel(
           )
           Spacer(modifier = Modifier.width(8.dp))
           Text(
-            text = "Klypt",
+            text = "Klyp it",
             style = MaterialTheme.typography.labelLarge
           )
         }

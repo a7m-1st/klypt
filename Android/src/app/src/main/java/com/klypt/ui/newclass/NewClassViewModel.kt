@@ -153,6 +153,12 @@ class NewClassViewModel @Inject constructor(
         return Pair(classCode, className)
     }
     
+    fun createClassForSummary(): Pair<String, String> {
+        val classCode = generateClassCode()
+        val className = _uiState.value.className.ifBlank { "New Class" }
+        return Pair(classCode, className)
+    }
+    
     fun importClassByCode(
         onSuccess: (String, String) -> Unit,
         onError: (String) -> Unit

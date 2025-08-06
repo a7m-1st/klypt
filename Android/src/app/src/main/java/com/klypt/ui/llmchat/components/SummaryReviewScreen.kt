@@ -50,6 +50,7 @@ fun SummaryReviewScreen(
     messages: List<ChatMessage>,
     onNavigateBack: () -> Unit,
     onSaveComplete: () -> Unit,
+    onNavigateToAddClass: (title: String, content: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     viewModel: SummaryReviewViewModel = hiltViewModel()
 ) {
@@ -58,13 +59,10 @@ fun SummaryReviewScreen(
     var editedSummary by remember { mutableStateOf(summary.bulletPointSummary) }
     var editedTitle by remember { mutableStateOf(summary.sessionTitle) }
     
-    // Check if we have class context (from Summary Page or Create New Class page)
-    val hasClassContext = remember { SummaryNavigationData.getClassCreationContext() != null }
-    
-    // State for class selection dialog (only when no class context)
+    // State for class selection dialog (always available now)
     var showClassSelectionDialog by remember { mutableStateOf(false) }
-    val klypSaveViewModel: KlypSaveViewModel? = if (!hasClassContext) hiltViewModel() else null
-    val klypSaveUiState by (klypSaveViewModel?.uiState?.collectAsState() ?: remember { mutableStateOf(null) })
+    val klypSaveViewModel: KlypSaveViewModel = hiltViewModel()
+    val klypSaveUiState by klypSaveViewModel.uiState.collectAsState()
 
     Scaffold(
         modifier = modifier,
@@ -261,27 +259,9 @@ fun SummaryReviewScreen(
                 
                 Button(
                     onClick = {
-                        if (hasClassContext) {
-                            // Direct save when we have class context
-                            viewModel.updateSummary(
-                                summary = summary.copy(
-                                    bulletPointSummary = editedSummary,
-                                    sessionTitle = editedTitle
-                                ),
-                                onSuccess = onSaveComplete,
-                                onError = { error ->
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        "Failed to update summary: $error",
-                                        android.widget.Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            )
-                        } else {
-                            // Show class selection dialog when no class context
-                            showClassSelectionDialog = true
-                            klypSaveViewModel?.loadAvailableClasses()
-                        }
+                        // Always show class selection dialog
+                        showClassSelectionDialog = true
+                        klypSaveViewModel.loadAvailableClasses()
                     },
                     modifier = Modifier.weight(1f),
                     enabled = !uiState.isLoading && editedSummary.isNotBlank() && editedTitle.isNotBlank()
@@ -300,12 +280,12 @@ fun SummaryReviewScreen(
         }
     }
     
-    // Class Selection Dialog - only shown when no class context
-    if (!hasClassContext && showClassSelectionDialog && klypSaveViewModel != null && klypSaveUiState != null) {
+    // Class Selection Dialog - always available now
+    if (showClassSelectionDialog) {
         ClassSelectionDialog(
-            availableClasses = klypSaveUiState!!.availableClasses,
-            isLoadingClasses = klypSaveUiState!!.isLoadingClasses,
-            isLoading = klypSaveUiState!!.isLoading,
+            availableClasses = klypSaveUiState.availableClasses,
+            isLoadingClasses = klypSaveUiState.isLoadingClasses,
+            isLoading = klypSaveUiState.isLoading,
             onClassSelected = { selectedClass ->
                 val title = editedTitle.ifBlank { "Chat Summary" }
                 val content = editedSummary
@@ -331,6 +311,14 @@ fun SummaryReviewScreen(
                         ).show()
                     }
                 )
+            },
+            onAddClass = {
+                showClassSelectionDialog = false
+                val title = editedTitle.ifBlank { "Chat Summary" }
+                val content = editedSummary
+                // Store the pending summary data for later use
+                SummaryNavigationData.storePendingSummaryData(title, content)
+                onNavigateToAddClass(title, content)
             },
             onDismiss = {
                 showClassSelectionDialog = false

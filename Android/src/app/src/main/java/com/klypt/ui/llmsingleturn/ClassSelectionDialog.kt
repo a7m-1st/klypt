@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.School
@@ -44,6 +45,7 @@ fun ClassSelectionDialog(
     availableClasses: List<ClassDocument>,
     onClassSelected: (ClassDocument) -> Unit,
     onDismiss: () -> Unit,
+    onAddClass: () -> Unit = {},
     isLoading: Boolean = false,
     isLoadingClasses: Boolean = false
 ) {
@@ -156,6 +158,21 @@ fun ClassSelectionDialog(
                             )
                         }
                     }
+                }
+
+                // Add Class Button (always shown)
+                OutlinedButton(
+                    onClick = onAddClass,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading && !isLoadingClasses
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Add Class")
                 }
 
                 // Action Buttons

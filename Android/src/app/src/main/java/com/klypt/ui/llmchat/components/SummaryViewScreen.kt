@@ -80,7 +80,7 @@ fun SummaryViewScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Session Title",
+                        text = "Klyp Title",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )

@@ -41,6 +41,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.klypt.ui.navigation.SummaryNavigationData
+import com.klypt.ui.llmsingleturn.KlypSaveViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -54,12 +56,20 @@ object NewClassDestination {
 fun NewClassScreen(
     onNavigateBack: () -> Unit,
     onNavigateToLLMChat: (String, String) -> Unit, // classCode, className
+    onClassCreated: (String, String) -> Unit = { _, _ -> }, // classCode, className - for when class is created and we want to save pending summary
     modifier: Modifier = Modifier,
     viewModel: NewClassViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    
+    // Check if we have pending summary data from summary review screen
+    val (pendingSummaryTitle, pendingSummaryContent) = remember { SummaryNavigationData.getPendingSummaryData() }
+    val hasPendingSummary = pendingSummaryTitle != null && pendingSummaryContent != null
+    
+    // KlypSaveViewModel for saving pending summary if needed
+    val klypSaveViewModel: KlypSaveViewModel? = if (hasPendingSummary) hiltViewModel() else null
     
     // File picker launcher for JSON import
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -116,7 +126,7 @@ fun NewClassScreen(
             
             // Title and description
             Text(
-                text = "Add a New Class",
+                text = if (hasPendingSummary) "Create Class for Summary" else "Add a New Class",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -124,59 +134,99 @@ fun NewClassScreen(
             )
             
             Text(
-                text = "Choose how you'd like to add your class",
+                text = if (hasPendingSummary) "Create a new class to save your summary" else "Choose how you'd like to add your class",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
-            // Show different UI states based on current state
-            when {
-                uiState.showClassCodeInput -> {
-                    ClassCodeInputSection(
-                        uiState = uiState,
-                        onClassCodeChange = viewModel::updateClassCode,
-                        onImportByCode = {
-                            viewModel.importClassByCode(
-                                onSuccess = { classCode, className ->
-                                    // Navigate to class details or confirmation
-                                    android.widget.Toast.makeText(context, "Class '$className' imported successfully!", android.widget.Toast.LENGTH_SHORT).show()
-                                    onNavigateBack()
-                                },
-                                onError = { error ->
-                                    android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_LONG).show()
-                                }
-                            )
-                        },
-                        onBack = { viewModel.resetToMainOptions() }
-                    )
-                }
-                uiState.showCreateNewForm -> {
-                    CreateNewClassSection(
-                        uiState = uiState,
-                        onClassNameChange = viewModel::updateClassName,
-                        onCreateNew = {
-                            val (classCode, className) = viewModel.proceedToLLMChat()
-                            val encodedClassName = java.net.URLEncoder.encode(className, "UTF-8")
-                            onNavigateToLLMChat(classCode, encodedClassName)
-                        },
-                        onBack = { viewModel.resetToMainOptions() }
-                    )
-                }
-                else -> {
-                    MainOptionsSection(
-                        onImportByCode = { viewModel.showClassCodeInput() },
-                        onCreateNew = { viewModel.showCreateNewForm() },
-                        onImportJson = {
-                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                                addCategory(Intent.CATEGORY_OPENABLE)
-                                type = "application/json"
-                                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+            // Show different content based on whether we have pending summary data
+            if (hasPendingSummary) {
+                // Simplified class creation form for summary saving
+                PendingSummaryClassCreationSection(
+                    uiState = uiState,
+                    summaryTitle = pendingSummaryTitle!!,
+                    klypSaveViewModel = klypSaveViewModel,
+                    onClassNameChange = viewModel::updateClassName,
+                    onCreateClass = {
+                        val (classCode, className) = viewModel.createClassForSummary()
+                        
+                        // Create the class and save the pending summary
+                        klypSaveViewModel?.createClassAndSaveSummary(
+                            classCode = classCode,
+                            className = className,
+                            summaryTitle = pendingSummaryTitle!!,
+                            summaryContent = pendingSummaryContent!!,
+                            onSuccess = {
+                                // Clear pending data
+                                SummaryNavigationData.clearPendingSummaryData()
+                                // Navigate to class created screen
+                                onClassCreated(classCode, className)
+                            },
+                            onError = { error ->
+                                android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_LONG).show()
                             }
-                            filePickerLauncher.launch(intent)
-                        }
-                    )
+                        )
+                    },
+                    onBack = {
+                        SummaryNavigationData.clearPendingSummaryData()
+                        onNavigateBack()
+                    }
+                )
+            } else {
+                // Regular class creation flow
+                when {
+                    uiState.showClassCodeInput -> {
+                        ClassCodeInputSection(
+                            uiState = uiState,
+                            onClassCodeChange = viewModel::updateClassCode,
+                            onImportByCode = {
+                                viewModel.importClassByCode(
+                                    onSuccess = { classCode, className ->
+                                        // Navigate to class details or confirmation
+                                        android.widget.Toast.makeText(context, "Class '$className' imported successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                                        onNavigateBack()
+                                    },
+                                    onError = { error ->
+                                        android.widget.Toast.makeText(context, error, android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                )
+                            },
+                            onBack = { viewModel.resetToMainOptions() }
+                        )
+                    }
+                    uiState.showCreateNewForm -> {
+                        CreateNewClassSection(
+                            uiState = uiState,
+                            onClassNameChange = viewModel::updateClassName,
+                            onCreateNew = {
+                                val (classCode, className) = viewModel.proceedToLLMChat()
+                                val encodedClassName = java.net.URLEncoder.encode(className, "UTF-8")
+                                onNavigateToLLMChat(classCode, encodedClassName)
+                            },
+                            onBack = { viewModel.resetToMainOptions() }
+                        )
+                    }
+                    else -> {
+                        MainOptionsSection(
+                            onImportByCode = { viewModel.showClassCodeInput() },
+                            onCreateNew = { 
+                                // Navigate directly to LLMChat with a default class setup
+                                val (classCode, className) = viewModel.proceedToLLMChat()
+                                val encodedClassName = java.net.URLEncoder.encode(className, "UTF-8")
+                                onNavigateToLLMChat(classCode, encodedClassName)
+                            },
+                            onImportJson = {
+                                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                    type = "application/json"
+                                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+                                }
+                                filePickerLauncher.launch(intent)
+                            }
+                        )
+                    }
                 }
             }
             
@@ -272,7 +322,7 @@ private fun MainOptionsSection(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
+                .heightIn(min = 80.dp),
             onClick = onImportByCode,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -280,7 +330,7 @@ private fun MainOptionsSection(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -291,7 +341,9 @@ private fun MainOptionsSection(
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                Column {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
                         text = "Import by Class Code",
                         style = MaterialTheme.typography.titleMedium,
@@ -311,7 +363,7 @@ private fun MainOptionsSection(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
+                .heightIn(min = 80.dp),
             onClick = onCreateNew,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -319,7 +371,7 @@ private fun MainOptionsSection(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -330,7 +382,9 @@ private fun MainOptionsSection(
                     tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                Column {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
                         text = "Generate New Class",
                         style = MaterialTheme.typography.titleMedium,
@@ -350,7 +404,7 @@ private fun MainOptionsSection(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
+                .heightIn(min = 80.dp),
             onClick = onImportJson,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
@@ -358,7 +412,7 @@ private fun MainOptionsSection(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -369,7 +423,9 @@ private fun MainOptionsSection(
                     tint = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                Column {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
                         text = "Import from JSON File",
                         style = MaterialTheme.typography.titleMedium,
@@ -595,4 +651,99 @@ private fun DuplicateClassDialog(
             }
         }
     )
+}
+
+@Composable
+private fun PendingSummaryClassCreationSection(
+    uiState: NewClassUiState,
+    summaryTitle: String,
+    klypSaveViewModel: KlypSaveViewModel?,
+    onClassNameChange: (String) -> Unit,
+    onCreateClass: () -> Unit,
+    onBack: () -> Unit
+) {
+    val klypSaveUiState by (klypSaveViewModel?.uiState?.collectAsState() ?: remember { mutableStateOf(null) })
+    val isLoading = uiState.isLoading || (klypSaveUiState?.isLoading == true)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Create Class for Summary",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = "You're about to create a new class to save your summary: \"$summaryTitle\"",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+        
+        OutlinedTextField(
+            value = uiState.className,
+            onValueChange = onClassNameChange,
+            label = { Text("Class Name") },
+            placeholder = { Text("Enter class name") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            supportingText = {
+                Text("This will be the name of your new class")
+            }
+        )
+        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Cancel")
+            }
+            
+            Button(
+                onClick = onCreateClass,
+                modifier = Modifier.weight(1f),
+                enabled = uiState.className.isNotBlank() && !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Create & Save")
+                }
+            }
+        }
+    }
 }

@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.UUID
 import javax.inject.Inject
 
 data class KlypSaveUiState(
@@ -174,6 +175,98 @@ class KlypSaveViewModel @Inject constructor(
                     errorMessage = errorMsg
                 )
                 onError(errorMsg)
+            }
+        }
+    }
+
+    /**
+     * Creates a new class and saves a summary to it in one operation
+     */
+    fun createClassAndSaveSummary(
+        classCode: String,
+        className: String,
+        summaryTitle: String,
+        summaryContent: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                Log.d(tag, "Creating class and saving summary: $classCode - $className")
+                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                
+                // Validate inputs
+                if (className.isBlank()) {
+                    onError("Class name cannot be empty")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
+                
+                if (summaryTitle.isBlank()) {
+                    onError("Summary title cannot be empty")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
+                
+                if (summaryContent.isBlank()) {
+                    onError("Summary content cannot be empty")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
+                
+                val currentUserId = userContextProvider.getCurrentUserId()
+                if (currentUserId.isEmpty()) {
+                    onError("User not authenticated")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
+                
+                // Create the class document
+                val classDocument = ClassDocument(
+                    _id = classCode,
+                    classCode = classCode,
+                    classTitle = className,
+                    educatorId = currentUserId,
+                    studentIds = emptyList(),
+                    updatedAt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()),
+                    lastSyncedAt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                )
+                
+                // Save the class first
+                Log.d(tag, "Saving class document: $classCode")
+                val classData = DatabaseUtils.classDocumentToMap(classDocument)
+                classRepository.save(classData)
+                
+                // Now save the summary as a klyp to this class
+                val currentTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
+                val klypId = "klyp_${UUID.randomUUID()}"
+                
+                val klypData = mapOf(
+                    "_id" to klypId,
+                    "type" to "klyp",
+                    "classCode" to classCode,
+                    "title" to summaryTitle,
+                    "mainBody" to summaryContent,
+                    "questions" to emptyList<Map<String, Any>>(),
+                    "createdAt" to currentTime
+                )
+                
+                val klypSaveSuccess = klypRepository.save(klypData)
+                
+                if (klypSaveSuccess) {
+                    Log.d(tag, "Successfully saved summary to new class: $classCode")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    onSuccess()
+                } else {
+                    Log.e(tag, "Failed to save summary to new class: $classCode")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    onError("Failed to save summary to class")
+                }
+                
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to create class and save summary", e)
+                _uiState.value = _uiState.value.copy(isLoading = false)
+                onError("Failed to create class: ${e.message}")
             }
         }
     }

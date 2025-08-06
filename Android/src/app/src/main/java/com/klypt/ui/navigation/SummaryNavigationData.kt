@@ -32,9 +32,14 @@ object SummaryNavigationData {
     private var classCreationContext: ClassCreationContext? = null
     private var shouldRefreshHome: Boolean = false
     
+    // Pending summary data when user navigates to create class
+    private var pendingSummaryTitle: String? = null
+    private var pendingSummaryContent: String? = null
+    
     data class ClassCreationContext(
         val classCode: String,
-        val className: String
+        val className: String,
+        val isNewClassCreation: Boolean = true // true = creating new class, false = adding to existing class
     )
     
     fun storeSummaryData(
@@ -65,11 +70,32 @@ object SummaryNavigationData {
         return shouldRefreshHome
     }
     
+    fun setClassCreationContext(classContext: ClassCreationContext?) {
+        classCreationContext = classContext
+    }
+    
     fun clearSummaryData() {
         currentSummary = null
         currentModel = null 
         currentMessages = emptyList()
         classCreationContext = null
         shouldRefreshHome = false
+        pendingSummaryTitle = null
+        pendingSummaryContent = null
+    }
+    
+    // Methods for handling pending summary data during class creation
+    fun storePendingSummaryData(title: String, content: String) {
+        pendingSummaryTitle = title
+        pendingSummaryContent = content
+    }
+    
+    fun getPendingSummaryData(): Pair<String?, String?> {
+        return Pair(pendingSummaryTitle, pendingSummaryContent)
+    }
+    
+    fun clearPendingSummaryData() {
+        pendingSummaryTitle = null
+        pendingSummaryContent = null
     }
 }

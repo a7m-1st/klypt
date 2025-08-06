@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
@@ -76,6 +77,7 @@ fun KlypDetailsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showQuizGenerationModelDialog by remember { mutableStateOf(false) }
     var isEditMode by remember { mutableStateOf(false) } // Track if we're in edit mode or auto-generation mode
+    var showActionsBottomSheet by remember { mutableStateOf(false) }
     
     // Initialize the view model with the klyp data
     LaunchedEffect(klyp) {
@@ -102,6 +104,33 @@ fun KlypDetailsScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Discuss in Chat FAB
+                FloatingActionButton(
+                    onClick = {
+                        Log.d(TAG, "Transfer to Chat clicked for klyp: ${klyp.title}")
+                        val contextContent = "Please use the following content as context for our discussion:\n\n**Title:** ${klyp.title}\n\n**Content:**\n${klyp.mainBody}\n\n---\n\nI'd like to discuss this content with you. Please let me know that you've received this context and are ready to discuss it."
+                        onNavigateToLLMChat(klyp.classCode, klyp.title, contextContent, "")
+                    },
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(Icons.Default.Chat, contentDescription = "Discuss in Chat")
+                }
+                
+                // Actions FAB
+                FloatingActionButton(
+                    onClick = { showActionsBottomSheet = true },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Actions")
+                }
+            }
         }
     ) { paddingValues ->
         Column(
@@ -229,253 +258,75 @@ fun KlypDetailsScreen(
                     }
                 }
 
-                // Action buttons at the bottom
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Status messages
+                uiState.errorMessage?.let { error ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
                     ) {
                         Text(
-                            text = "Actions",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            text = error,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(12.dp)
                         )
-                        
+                    }
+                }
+                
+                if (uiState.isGeneratingQuiz) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Transfer to Chat button
-                            Button(
-                                onClick = {
-                                    Log.d(TAG, "Transfer to Chat clicked for klyp: ${klyp.title}")
-                                    Log.d(TAG, "Class code: ${klyp.classCode}, Title: ${klyp.title}")
-                                    Log.d(TAG, "Content length: ${klyp.mainBody.length}")
-                                    // Create the context content with title and body
-                                    val contextContent = "Title: ${klyp.title}\n\nContent:\n${klyp.mainBody}"
-                                    onNavigateToLLMChat(klyp.classCode, klyp.title, contextContent, "")
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (klyp.questions.isEmpty()) {
+                                    "Generating quiz questions using AI..."
+                                } else {
+                                    "Regenerating quiz questions with new AI content..."
                                 },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.Chat,
-                                    contentDescription = "Transfer to Chat",
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Discuss in Chat")
-                            }
-                            
-                            // Quiz button - Generate if no questions, Play if questions exist
-                            if (klyp.questions.isEmpty()) {
-                                // Generate Quiz button when no questions exist
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Button(
-                                        onClick = {
-                                            Log.d(TAG, "Generate Quiz clicked for klyp: ${klyp.title}")
-                                            if (uiState.isGeneratingQuiz) {
-                                                Log.w(TAG, "Quiz generation already in progress, ignoring click")
-                                                return@Button
-                                            }
-                                            
-                                            // Show model selection for quiz generation
-                                            isEditMode = false
-                                            showQuizGenerationModelDialog = true
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        enabled = !uiState.isGeneratingQuiz,
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    ) {
-                                        if (uiState.isGeneratingQuiz) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(20.dp),
-                                                strokeWidth = 2.dp,
-                                                color = MaterialTheme.colorScheme.onPrimary
-                                            )
-                                        } else {
-                                            Icon(
-                                                Icons.Default.PlayArrow,
-                                                contentDescription = "Generate Quiz",
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(if (uiState.isGeneratingQuiz) "Generating..." else "Auto-Generate Quiz")
-                                    }
-                                    
-                                    // Edit Quiz button (manual creation)
-                                    OutlinedButton(
-                                        onClick = {
-                                            Log.d(TAG, "Edit Quiz clicked for klyp: ${klyp.title}")
-                                            // Show model selection for quiz editing
-                                            isEditMode = true
-                                            showQuizGenerationModelDialog = true
-                                        },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Chat, // Use edit icon if available
-                                            contentDescription = "Edit Quiz",
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Create/Edit Quiz")
-                                    }
-                                }
-                            } else {
-                                // Play Quiz and Regenerate Quiz buttons when questions already exist
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Button(
-                                        onClick = {
-                                            Log.d(TAG, "Play Quiz clicked for klyp: ${klyp.title}")
-                                            Log.d(TAG, "Number of questions: ${klyp.questions.size}")
-                                            // Directly navigate to quiz since questions already exist
-                                            onNavigateToQuiz(klyp)
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    ) {
-                                        Icon(
-                                            Icons.Default.PlayArrow,
-                                            contentDescription = "Play Quiz",
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Play Quiz")
-                                    }
-                                    
-                                    OutlinedButton(
-                                        onClick = {
-                                            Log.d(TAG, "Regenerate Quiz clicked for klyp: ${klyp.title}")
-                                            if (uiState.isGeneratingQuiz) {
-                                                Log.w(TAG, "Quiz regeneration already in progress, ignoring click")
-                                                return@OutlinedButton
-                                            }
-                                            
-                                            // Start quiz regeneration
-                                            viewModel.regenerateQuizQuestions(
-                                                klyp = klyp,
-                                                context = context,
-                                                onSuccess = { updatedKlyp ->
-                                                    Log.d(TAG, "Quiz regeneration successful")
-                                                    // Update local klyp state if needed
-                                                },
-                                                onError = { error ->
-                                                    Log.e(TAG, "Quiz regeneration failed: $error")
-                                                    // Error handling is done in ViewModel
-                                                }
-                                            )
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        enabled = !uiState.isGeneratingQuiz
-                                    ) {
-                                        if (uiState.isGeneratingQuiz) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(16.dp),
-                                                strokeWidth = 2.dp,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        } else {
-                                            Icon(
-                                                Icons.Default.PlayArrow,
-                                                contentDescription = "Regenerate Quiz",
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(if (uiState.isGeneratingQuiz) "Regenerating..." else "Regenerate Quiz")
-                                    }
-                                    
-                                    // Edit Quiz button  
-                                    OutlinedButton(
-                                        onClick = {
-                                            Log.d(TAG, "Edit Quiz clicked for klyp: ${klyp.title}")
-                                            // Show model selection for quiz editing
-                                            isEditMode = true
-                                            showQuizGenerationModelDialog = true
-                                        },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Chat,
-                                            contentDescription = "Edit Quiz",
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Edit Quiz Questions")
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Status messages
-                        uiState.errorMessage?.let { error ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer
-                                )
-                            ) {
-                                Text(
-                                    text = error,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(12.dp)
-                                )
-                            }
-                        }
-                        
-                        if (uiState.isGeneratingQuiz) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = if (klyp.questions.isEmpty()) {
-                                            "Generating quiz questions using AI..."
-                                        } else {
-                                            "Regenerating quiz questions with new AI content..."
-                                        },
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                            }
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+    
+    // Actions Bottom Sheet
+    if (showActionsBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showActionsBottomSheet = false }
+        ) {
+            ActionsBottomSheetContent(
+                klyp = klyp,
+                uiState = uiState,
+                context = context,
+                onNavigateToLLMChat = onNavigateToLLMChat,
+                onNavigateToQuiz = onNavigateToQuiz,
+                onShowQuizGenerationDialog = { editMode ->
+                    isEditMode = editMode
+                    showQuizGenerationModelDialog = true
+                    showActionsBottomSheet = false
+                },
+                viewModel = viewModel,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
         }
     }
     
@@ -513,6 +364,276 @@ fun KlypDetailsScreen(
                 showQuizGenerationModelDialog = false
             }
         )
+    }
+}
+
+@Composable
+private fun ActionsBottomSheetContent(
+    klyp: Klyp,
+    uiState: KlypDetailsUiState,
+    context: android.content.Context,
+    onNavigateToLLMChat: (String, String, String, String) -> Unit,
+    onNavigateToQuiz: (Klyp) -> Unit,
+    onShowQuizGenerationDialog: (Boolean) -> Unit,
+    viewModel: KlypDetailsViewModel,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Title
+        Text(
+            text = "Actions",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        // Add New Klyp button
+        ElevatedCard(
+            onClick = {
+                Log.d(TAG, "Add Klyp clicked from KlypDetailsScreen for class: ${klyp.classCode}")
+                // Navigate to LLM Chat for klyp creation with class context
+                onNavigateToLLMChat(klyp.classCode, "New Klyp", "", "")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add Klyp",
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Column {
+                    Text(
+                        text = "Add Klyp",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "Create new educational content for this class",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // Quiz Actions
+        if (klyp.questions.isEmpty()) {
+            // Auto-Generate Quiz
+            ElevatedCard(
+                onClick = {
+                    Log.d(TAG, "Generate Quiz clicked for klyp: ${klyp.title}")
+                    if (uiState.isGeneratingQuiz) {
+                        Log.w(TAG, "Quiz generation already in progress, ignoring click")
+                        return@ElevatedCard
+                    }
+                    onShowQuizGenerationDialog(false)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = "Generate Quiz",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "Auto-Generate Quiz",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "AI will create quiz questions automatically",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Create/Edit Quiz
+            ElevatedCard(
+                onClick = {
+                    Log.d(TAG, "Edit Quiz clicked for klyp: ${klyp.title}")
+                    onShowQuizGenerationDialog(true)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Chat,
+                        contentDescription = "Create Quiz",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "Create/Edit Quiz",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Create questions manually with AI assistance",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        } else {
+            // Play Quiz
+            ElevatedCard(
+                onClick = {
+                    Log.d(TAG, "Play Quiz clicked for klyp: ${klyp.title}")
+                    onNavigateToQuiz(klyp)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = "Play Quiz",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "Play Quiz",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "${klyp.questions.size} questions available",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Regenerate Quiz
+            ElevatedCard(
+                onClick = {
+                    Log.d(TAG, "Regenerate Quiz clicked for klyp: ${klyp.title}")
+                    if (uiState.isGeneratingQuiz) {
+                        Log.w(TAG, "Quiz regeneration already in progress, ignoring click")
+                        return@ElevatedCard
+                    }
+                    
+                    viewModel.regenerateQuizQuestions(
+                        klyp = klyp,
+                        context = context,
+                        onSuccess = { updatedKlyp ->
+                            Log.d(TAG, "Quiz regeneration successful")
+                        },
+                        onError = { error ->
+                            Log.e(TAG, "Quiz regeneration failed: $error")
+                        }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (uiState.isGeneratingQuiz) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "Regenerate Quiz",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = if (uiState.isGeneratingQuiz) "Regenerating..." else "Regenerate Quiz",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Generate new questions with AI",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Edit Quiz Questions
+            ElevatedCard(
+                onClick = {
+                    Log.d(TAG, "Edit Quiz clicked for klyp: ${klyp.title}")
+                    onShowQuizGenerationDialog(true)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Chat,
+                        contentDescription = "Edit Quiz",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "New Quiz Questions",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Modify existing questions manually",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -336,10 +336,8 @@ private fun QuizCompletedContent(
     onNavigateBack: () -> Unit,
     onQuizCompleted: (Double, Int) -> Unit
 ) {
-    LaunchedEffect(score, totalQuestions) {
-        Log.d(TAG, "Quiz completed with score: $score, total questions: $totalQuestions")
-        onQuizCompleted(score, totalQuestions)
-    }
+    // Remove the LaunchedEffect that was causing immediate navigation
+    // The onQuizCompleted callback will be called when user clicks "Back to Klyp Details"
     
     Column(
         modifier = Modifier
@@ -442,7 +440,11 @@ private fun QuizCompletedContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = onNavigateBack,
+                onClick = {
+                    Log.d(TAG, "Quiz completed with score: $score, total questions: $totalQuestions")
+                    onQuizCompleted(score, totalQuestions)
+                    onNavigateBack()
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Back to Klyp Details")

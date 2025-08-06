@@ -13,6 +13,7 @@ import com.klypt.data.services.ChatSummaryService
 import com.klypt.data.services.UserContextProvider
 import com.klypt.firebaseAnalytics
 import com.klypt.ui.common.chat.ChatMessage
+import com.klypt.ui.navigation.SummaryNavigationData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -136,9 +137,13 @@ class ChatSummaryViewModel @Inject constructor(
                 
                 val userId = userContextProvider.getCurrentUserId()
                 val userRole = userContextProvider.getCurrentUserRole()
-                val classCode = userContextProvider.getCurrentClassCode()
+                
+                // Check if we have class context from navigation, otherwise use default
+                val classContext = SummaryNavigationData.getClassCreationContext()
+                val classCode = classContext?.classCode ?: userContextProvider.getCurrentClassCode()
                 
                 Log.d("ChatSummaryViewModel", "User context - ID: $userId, Role: $userRole, Class: $classCode")
+                Log.d("ChatSummaryViewModel", "Class context from navigation: ${classContext != null}")
                 Log.d("ChatSummaryViewModel", "Model: ${model.name}, Messages count: ${messages.size}")
                 
                 // Validate required data
