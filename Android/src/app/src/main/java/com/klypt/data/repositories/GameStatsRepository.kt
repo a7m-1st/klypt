@@ -52,9 +52,9 @@ class GameStatsRepository @Inject constructor(
             val quizAttempts = quizAttemptRepository.getAttemptsByStudentId(studentId)
             Log.d(TAG, "Found ${quizAttempts.size} quiz attempts")
             
-            // If no quiz attempts, generate sample data for demonstration
+            // If no quiz attempts, return initial empty stats for new user
             if (quizAttempts.isEmpty()) {
-                return@withContext generateSampleGameStats()
+                return@withContext generateInitialGameStats()
             }
             
             // Calculate basic quiz stats
@@ -103,7 +103,7 @@ class GameStatsRepository @Inject constructor(
             
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get game stats for student $studentId", e)
-            generateSampleGameStats() // Return sample stats on error
+            generateInitialGameStats() // Return initial stats on error
         }
     }
     
@@ -119,9 +119,9 @@ class GameStatsRepository @Inject constructor(
                 it.containsKey("isSubmitted") && it["isSubmitted"] as Boolean 
             }
             
-            // If no quiz attempts, generate sample data
+            // If no quiz attempts, return initial empty stats for new user
             if (completedQuizzes.isEmpty()) {
-                return@withContext generateSampleQuizStats()
+                return@withContext generateInitialQuizStats()
             }
             
             val scores = completedQuizzes.mapNotNull { it["score"] as? Double }
@@ -155,7 +155,7 @@ class GameStatsRepository @Inject constructor(
             
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get quiz stats for student $studentId", e)
-            generateSampleQuizStats()
+            generateInitialQuizStats()
         }
     }
     
@@ -171,9 +171,9 @@ class GameStatsRepository @Inject constructor(
             val quizAttempts = quizAttemptRepository.getAttemptsByStudentId(studentId)
             val classCodes = quizAttempts.mapNotNull { it["classCode"] as? String }.distinct()
             
-            // If no quiz attempts, return sample learning progress
+            // If no quiz attempts, return empty learning progress for new user
             if (classCodes.isEmpty()) {
-                return@withContext generateSampleLearningProgress()
+                return@withContext emptyList()
             }
             
             classCodes.map { classCode ->
@@ -204,7 +204,7 @@ class GameStatsRepository @Inject constructor(
             
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get learning progress for student $studentId", e)
-            generateSampleLearningProgress()
+            emptyList()
         }
     }
     
@@ -462,93 +462,39 @@ class GameStatsRepository @Inject constructor(
     }
     
     /**
-     * Generate sample game stats for demonstration purposes
+     * Generate initial game stats for new users
      */
-    private fun generateSampleGameStats(): GameStats {
-        val currentTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
-        
+    private fun generateInitialGameStats(): GameStats {
         return GameStats(
-            totalQuizzesCompleted = 23,
-            averageQuizScore = 0.82,
-            totalCorrectAnswers = 89,
-            totalQuestions = 115,
-            currentStreak = 5,
-            longestStreak = 12,
-            experiencePoints = 450,
-            level = 5,
-            badges = listOf(
-                Badge("first_quiz", "Getting Started", "Completed first quiz", "🎯", currentTime, BadgeRarity.COMMON),
-                Badge("quiz_enthusiast", "Quiz Enthusiast", "Completed 10+ quizzes", "🥉", currentTime, BadgeRarity.COMMON),
-                Badge("streak_master", "Streak Master", "5-day streak", "🔥", currentTime, BadgeRarity.RARE)
-            ),
-            achievements = listOf(
-                Achievement("first_quiz", "First Steps", "Complete your first quiz", "🎯", 1, 1, true, "25 XP", AchievementCategory.QUIZ),
-                Achievement("perfectionist", "Perfectionist", "Get 5 perfect scores", "⭐", 2, 5, false, "100 XP", AchievementCategory.QUIZ),
-                Achievement("streak_builder", "Streak Builder", "Maintain 7-day streak", "🔥", 5, 7, false, "75 XP", AchievementCategory.STREAK)
-            ),
-            weeklyGoal = 5,
-            weeklyProgress = 3,
-            favoriteSubject = "Computer Science",
-            studyTimeMinutes = 345
+            totalQuizzesCompleted = 0,
+            averageQuizScore = 0.0,
+            totalCorrectAnswers = 0,
+            totalQuestions = 0,
+            currentStreak = 0,
+            longestStreak = 0,
+            experiencePoints = 0,
+            level = 1, // Start at level 1
+            badges = emptyList(),
+            achievements = emptyList(),
+            weeklyGoal = 5, // Default weekly goal
+            weeklyProgress = 0,
+            favoriteSubject = null,
+            studyTimeMinutes = 0
         )
     }
-    
+
     /**
-     * Generate sample quiz stats for demonstration purposes
+     * Generate initial quiz stats for new users
      */
-    private fun generateSampleQuizStats(): QuizStats {
+    private fun generateInitialQuizStats(): QuizStats {
         return QuizStats(
-            totalAttempts = 23,
-            averageScore = 0.82,
-            bestScore = 1.0,
-            perfectScores = 2,
-            improvementRate = 0.15,
-            subjectBreakdown = mapOf(
-                "Computer Science" to SubjectStats("Computer Science", 0.85, 8, MasteryLevel.ADVANCED),
-                "Mathematics" to SubjectStats("Mathematics", 0.78, 6, MasteryLevel.INTERMEDIATE),
-                "Physics" to SubjectStats("Physics", 0.90, 5, MasteryLevel.ADVANCED),
-                "English" to SubjectStats("English", 0.75, 4, MasteryLevel.INTERMEDIATE)
-            ),
-            recentScores = listOf(0.80, 0.85, 0.70, 0.95, 1.0, 0.75, 0.85, 0.90, 0.80, 0.85),
-            timeSpentMinutes = 345
+            totalAttempts = 0,
+            averageScore = 0.0,
+            bestScore = 0.0,
+            perfectScores = 0,
+            improvementRate = 0.0,
+            subjectBreakdown = emptyMap(),
+            recentScores = emptyList(),
+            timeSpentMinutes = 0
         )
-    }
-    
-    /**
-     * Generate sample learning progress for demonstration purposes
-     */
-    private fun generateSampleLearningProgress(): List<LearningProgress> {
-        return listOf(
-            LearningProgress(
-                classId = "CS101",
-                className = "Computer Science 101",
-                completedKlyps = 8,
-                totalKlyps = 12,
-                averageQuizScore = 0.85,
-                lastActivity = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date()),
-                progressPercentage = 66.7,
-                upcomingDeadlines = listOf("Final Project due next week", "Quiz on Friday")
-            ),
-            LearningProgress(
-                classId = "MATH201",
-                className = "Calculus I",
-                completedKlyps = 6,
-                totalKlyps = 10,
-                averageQuizScore = 0.78,
-                lastActivity = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date()),
-                progressPercentage = 60.0,
-                upcomingDeadlines = listOf("Homework due tomorrow")
-            ),
-            LearningProgress(
-                classId = "PHYS101",
-                className = "Physics 101",
-                completedKlyps = 5,
-                totalKlyps = 8,
-                averageQuizScore = 0.90,
-                lastActivity = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date()),
-                progressPercentage = 62.5,
-                upcomingDeadlines = listOf("Lab report due next Tuesday")
-            )
-        )
-    }
-}
+    }}
