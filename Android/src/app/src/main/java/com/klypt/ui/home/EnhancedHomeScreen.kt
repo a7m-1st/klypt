@@ -32,6 +32,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,6 +90,7 @@ fun EnhancedHomeScreen(
     
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showTosDialog by remember { mutableStateOf(!tosViewModel.getIsTosAccepted()) }
+    var selectedTabIndex by remember { mutableStateOf(0) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -178,6 +182,31 @@ fun EnhancedHomeScreen(
                     }
                 }
             },
+            bottomBar = {
+                // Only show bottom navigation for students
+                if (homeUiState.userRole == UserRole.STUDENT) {
+                    NavigationBar {
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                            label = { Text("Home") },
+                            selected = selectedTabIndex == 0,
+                            onClick = { selectedTabIndex = 0 }
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Analytics, contentDescription = "Stats") },
+                            label = { Text("Stats") },
+                            selected = selectedTabIndex == 1,
+                            onClick = { selectedTabIndex = 1 }
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.EmojiEvents, contentDescription = "Achievements") },
+                            label = { Text("Achievements") },
+                            selected = selectedTabIndex == 2,
+                            onClick = { selectedTabIndex = 2 }
+                        )
+                    }
+                }
+            },
         ) { innerPadding ->
             Box(
                 modifier = Modifier
@@ -203,63 +232,34 @@ fun EnhancedHomeScreen(
                         }
                     }
                 } else {
-                    // Main content
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
-                    ) {
-                        // User welcome section
-                        item {
-                            UserWelcomeSection(
-                                currentUser = homeUiState.currentUser,
-                                userRole = homeUiState.userRole
-                            )
-                        }
-
-                        // Quick stats
-                        item {
-                            QuickStatsSection(
-                                stats = when (homeUiState.userRole) {
-                                    UserRole.STUDENT -> mapOf(
-                                        "totalClasses" to homeUiState.myClasses.size,
-                                        "totalKlyps" to homeUiState.recentKlyps.size,
-                                        "upcomingAssignments" to homeUiState.upcomingAssignments.size
-                                    )
-                                    UserRole.EDUCATOR -> homeUiState.classStatistics
-                                },
-                                userRole = homeUiState.userRole
-                            )
-                        }
-
-                        // My Classes section
-                        item {
-                            MyClassesSection(
-                                classes = homeUiState.myClasses,
-                                onClassClick = onNavigateToClassDetails,
-                                onAddNewClassClick = onNavigateToNewClass,
-                                onViewAllClick = onNavigateToViewAllClasses
-                            )
-                        }
-
-                        // Recent Klyps/Content section
-                        item {
-                            RecentKlypsSection(
-                                klyps = homeUiState.recentKlyps,
-                                onKlypClick = { klyp ->
-                                    // Navigate to Klyp details
-                                    onNavigateToKlypDetails(klyp)
-                                }
-                            )
-                        }
-
-                        // Assignments section (for students)
-                        if (homeUiState.userRole == UserRole.STUDENT) {
-                            item {
-                                UpcomingAssignmentsSection(
-                                    assignments = homeUiState.upcomingAssignments
+                    // Main content - show different content based on selected tab
+                    when {
+                        homeUiState.userRole == UserRole.STUDENT -> {
+                            when (selectedTabIndex) {
+                                0 -> HomeTabContent(
+                                    homeUiState = homeUiState,
+                                    onNavigateToClassDetails = onNavigateToClassDetails,
+                                    onNavigateToNewClass = onNavigateToNewClass,
+                                    onNavigateToViewAllClasses = onNavigateToViewAllClasses,
+                                    onNavigateToKlypDetails = onNavigateToKlypDetails
+                                )
+                                1 -> StatsTabContent(
+                                    homeUiState = homeUiState
+                                )
+                                2 -> AchievementsTabContent(
+                                    homeUiState = homeUiState
                                 )
                             }
+                        }
+                        else -> {
+                            // Educator content
+                            EducatorHomeContent(
+                                homeUiState = homeUiState,
+                                onNavigateToClassDetails = onNavigateToClassDetails,
+                                onNavigateToNewClass = onNavigateToNewClass,
+                                onNavigateToViewAllClasses = onNavigateToViewAllClasses,
+                                onNavigateToKlypDetails = onNavigateToKlypDetails
+                            )
                         }
                     }
                 }
@@ -410,4 +410,361 @@ private fun TaskCard(task: Task, onClick: () -> Unit, modifier: Modifier = Modif
       TaskIcon(task = task, width = 40.dp)
     }
   }
+}
+
+/**
+ * Home tab content - shows overview and recent activity
+ */
+@Composable
+private fun HomeTabContent(
+    homeUiState: HomeUiState,
+    onNavigateToClassDetails: (ClassDocument) -> Unit,
+    onNavigateToNewClass: () -> Unit,
+    onNavigateToViewAllClasses: () -> Unit,
+    onNavigateToKlypDetails: (Klyp) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        // User welcome section
+        item {
+            UserWelcomeSection(
+                currentUser = homeUiState.currentUser,
+                userRole = homeUiState.userRole
+            )
+        }
+
+        // Quick overview stats
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OverviewCard(
+                    title = "Level",
+                    value = homeUiState.gameStats.level.toString(),
+                    icon = Icons.Default.EmojiEvents,
+                    modifier = Modifier.weight(1f)
+                )
+                OverviewCard(
+                    title = "Streak",
+                    value = "${homeUiState.gameStats.currentStreak}d",
+                    icon = Icons.Default.Analytics,
+                    modifier = Modifier.weight(1f)
+                )
+                OverviewCard(
+                    title = "Score",
+                    value = "${(homeUiState.quizStats.averageScore * 100).toInt()}%",
+                    icon = Icons.Default.Analytics,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        // My Classes section
+        item {
+            MyClassesSection(
+                classes = homeUiState.myClasses,
+                onClassClick = onNavigateToClassDetails,
+                onAddNewClassClick = onNavigateToNewClass,
+                onViewAllClick = onNavigateToViewAllClasses
+            )
+        }
+
+        // Recent Klyps/Content section
+        item {
+            RecentKlypsSection(
+                klyps = homeUiState.recentKlyps,
+                onKlypClick = onNavigateToKlypDetails
+            )
+        }
+
+        // Assignments section
+        item {
+            UpcomingAssignmentsSection(
+                assignments = homeUiState.upcomingAssignments
+            )
+        }
+    }
+}
+
+/**
+ * Stats tab content - shows detailed performance analytics
+ */
+@Composable
+private fun StatsTabContent(
+    homeUiState: HomeUiState
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(all = 16.dp)
+    ) {
+        item {
+            Text(
+                text = "Performance Analytics",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+
+        // Level and XP Progress
+        item {
+            PlayerLevelCard(gameStats = homeUiState.gameStats)
+        }
+
+        // Quick Game Stats
+        item {
+            QuickGameStats(gameStats = homeUiState.gameStats, quizStats = homeUiState.quizStats)
+        }
+
+        // Quiz Performance Chart
+        item {
+            QuizPerformanceCard(quizStats = homeUiState.quizStats)
+        }
+
+        // Subject Mastery
+        if (homeUiState.quizStats.subjectBreakdown.isNotEmpty()) {
+            item {
+                SubjectMasterySection(subjectStats = homeUiState.quizStats.subjectBreakdown)
+            }
+        }
+
+        // Weekly Goal Progress
+        item {
+            WeeklyGoalCard(gameStats = homeUiState.gameStats)
+        }
+
+        // Study Streak Visualization
+        item {
+            StudyStreakVisualization(gameStats = homeUiState.gameStats)
+        }
+    }
+}
+
+/**
+ * Achievements tab content - shows badges, achievements, and motivational content
+ */
+@Composable
+private fun AchievementsTabContent(
+    homeUiState: HomeUiState
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(all = 16.dp)
+    ) {
+        item {
+            Text(
+                text = "Achievements & Rewards",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+
+        // Achievements Section
+        if (homeUiState.gameStats.achievements.isNotEmpty()) {
+            item {
+                AchievementsSection(achievements = homeUiState.gameStats.achievements)
+            }
+        }
+
+        // Badges Section
+        if (homeUiState.gameStats.badges.isNotEmpty()) {
+            item {
+                BadgesSection(badges = homeUiState.gameStats.badges)
+            }
+        }
+
+        // Motivational Quote
+        item {
+            MotivationalQuoteCard(gameStats = homeUiState.gameStats)
+        }
+
+        // Daily Challenge
+        item {
+            DailyChallengeCard(
+                gameStats = homeUiState.gameStats,
+                onChallengeClick = { /* Handle challenge click */ }
+            )
+        }
+
+        // Learning Progress for each class
+        if (homeUiState.learningProgress.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Learning Progress",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            
+            items(homeUiState.learningProgress.size) { index ->
+                val progress = homeUiState.learningProgress[index]
+                LearningProgressCard(progress = progress)
+            }
+        }
+    }
+}
+
+/**
+ * Educator home content - shows educator-specific information
+ */
+@Composable
+private fun EducatorHomeContent(
+    homeUiState: HomeUiState,
+    onNavigateToClassDetails: (ClassDocument) -> Unit,
+    onNavigateToNewClass: () -> Unit,
+    onNavigateToViewAllClasses: () -> Unit,
+    onNavigateToKlypDetails: (Klyp) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        // User welcome section
+        item {
+            UserWelcomeSection(
+                currentUser = homeUiState.currentUser,
+                userRole = homeUiState.userRole
+            )
+        }
+
+        // Quick stats for educators
+        item {
+            QuickStatsSection(
+                stats = homeUiState.classStatistics,
+                userRole = homeUiState.userRole
+            )
+        }
+
+        // My Classes section
+        item {
+            MyClassesSection(
+                classes = homeUiState.myClasses,
+                onClassClick = onNavigateToClassDetails,
+                onAddNewClassClick = onNavigateToNewClass,
+                onViewAllClick = onNavigateToViewAllClasses
+            )
+        }
+
+        // Recent Klyps/Content section
+        item {
+            RecentKlypsSection(
+                klyps = homeUiState.recentKlyps,
+                onKlypClick = onNavigateToKlypDetails
+            )
+        }
+    }
+}
+
+/**
+ * Overview card for quick stats display
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OverviewCard(
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * Learning progress card for individual classes
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LearningProgressCard(
+    progress: com.klypt.data.models.LearningProgress,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = progress.className,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "${progress.progressPercentage.toInt()}%",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            LinearProgressIndicator(
+                progress = { (progress.progressPercentage / 100).toFloat() },
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "${progress.completedKlyps}/${progress.totalKlyps} completed",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Avg: ${(progress.averageQuizScore * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }

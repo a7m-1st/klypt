@@ -24,7 +24,11 @@ import com.klypt.data.models.ClassDocument
 import com.klypt.data.models.Educator
 import com.klypt.data.models.Klyp
 import com.klypt.data.models.Student
+import com.klypt.data.models.GameStats
+import com.klypt.data.models.QuizStats
+import com.klypt.data.models.LearningProgress
 import com.klypt.data.repository.EducationalContentRepository
+import com.klypt.data.repositories.GameStatsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +46,9 @@ data class HomeUiState(
     val upcomingAssignments: List<Pair<String, String>> = emptyList(), // Pair of (className, assignment)
     val featuredContent: Map<String, Any> = emptyMap(),
     val classStatistics: Map<String, Any> = emptyMap(),
+    val gameStats: GameStats = GameStats(),
+    val quizStats: QuizStats = QuizStats(),
+    val learningProgress: List<LearningProgress> = emptyList(),
     val errorMessage: String? = null
 )
 
@@ -52,6 +59,7 @@ data class HomeUiState(
 @HiltViewModel
 class HomeContentViewModel @Inject constructor(
     private val contentRepository: EducationalContentRepository,
+    private val gameStatsRepository: GameStatsRepository,
     private val userContextProvider: com.klypt.data.services.UserContextProvider
 ) : ViewModel() {
 
@@ -99,6 +107,11 @@ class HomeContentViewModel @Inject constructor(
                 val student = contentRepository.getStudentById(studentId)
 
                 if (student != null) {
+                    // Load game statistics
+                    val gameStats = gameStatsRepository.getGameStats(studentId)
+                    val quizStats = gameStatsRepository.getQuizStats(studentId)
+                    val learningProgress = gameStatsRepository.getLearningProgress(studentId)
+                    
                     // Load student's classes
                     contentRepository.getClassesForStudent(studentId)
                         .catch { error ->
@@ -127,6 +140,9 @@ class HomeContentViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         currentUser = student,
                         upcomingAssignments = assignments,
+                        gameStats = gameStats,
+                        quizStats = quizStats,
+                        learningProgress = learningProgress,
                         isLoading = false
                     )
                 } else {
