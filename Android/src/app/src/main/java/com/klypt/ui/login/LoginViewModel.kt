@@ -64,6 +64,13 @@ class LoginViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Get the complete phone number with country code
+     */
+    fun getFullPhoneNumber(): String {
+        return "${_uiState.value.countryCode}${_uiState.value.phoneNumber}"
+    }
+
     fun login(onSuccess: () -> Unit) {
         if(!validateInputs()) return
 
@@ -84,9 +91,10 @@ class LoginViewModel @Inject constructor(
                         )
                     }
                     UserRole.EDUCATOR -> {
-                        // For educators, pass phone number as firstName parameter
+                        // For educators, pass full phone number (with country code) as firstName parameter
+                        val fullPhoneNumber = getFullPhoneNumber()
                         authRepository.getUserFromCouchDB(
-                            _uiState.value.phoneNumber,
+                            fullPhoneNumber,
                             "", // lastName not used for educators
                             _uiState.value.role
                         )
@@ -113,8 +121,9 @@ class LoginViewModel @Inject constructor(
                         }
                         UserRole.EDUCATOR -> {
                             // For educators, we should have phone number from the login flow
+                            val fullPhoneNumber = getFullPhoneNumber()
                             userContextProvider.setCurrentEducatorUser(
-                                _uiState.value.phoneNumber,
+                                fullPhoneNumber,
                                 null // Full name will be retrieved from database
                             )
                         }
@@ -140,8 +149,9 @@ class LoginViewModel @Inject constructor(
                                 userContextProvider.generateOfflineToken()
                             }
                             UserRole.EDUCATOR -> {
+                                val fullPhoneNumber = getFullPhoneNumber()
                                 userContextProvider.setCurrentEducatorUser(
-                                    _uiState.value.phoneNumber,
+                                    fullPhoneNumber,
                                     null
                                 )
                                 // Generate a local offline token for session persistence
@@ -257,7 +267,8 @@ class LoginViewModel @Inject constructor(
                 firstNameValidation.isValid && lastNameValidation.isValid
             }
             UserRole.EDUCATOR -> {
-                val phoneNumberValidation = validator.validatePhoneNumber(_uiState.value.phoneNumber)
+                val fullPhoneNumber = getFullPhoneNumber()
+                val phoneNumberValidation = validator.validateFullPhoneNumber(fullPhoneNumber)
 
                 _uiState.value = _uiState.value.copy(
                     phoneNumberError = phoneNumberValidation.errorMessage
@@ -300,7 +311,7 @@ class LoginViewModel @Inject constructor(
                 }
             }
             UserRole.EDUCATOR -> {
-                val phoneNumber = _uiState.value.phoneNumber
+                val phoneNumber = getFullPhoneNumber()
                 
                 if (phoneNumber.isNotBlank()) {
                     viewModelScope.launch {

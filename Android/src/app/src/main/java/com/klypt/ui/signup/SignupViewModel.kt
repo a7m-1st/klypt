@@ -24,4 +24,17 @@ class SignupViewModel : ViewModel() {
     fun updatePhoneNumber(number: String) {
         _uiState.value = _uiState.value.copy(phoneNumber = number)
     }
+    fun updateCountryCode(countryCode: String, country: String) {
+        _uiState.value = _uiState.value.copy(
+            countryCode = countryCode,
+            selectedCountry = country
+        )
+    }
+    
+    /**
+     * Get the complete phone number with country code
+     */
+    fun getFullPhoneNumber(): String {
+        return "${_uiState.value.countryCode}${_uiState.value.phoneNumber}"
+    }
 }

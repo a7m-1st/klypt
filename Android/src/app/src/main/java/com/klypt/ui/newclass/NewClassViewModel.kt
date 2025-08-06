@@ -24,6 +24,10 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.klypt.data.repositories.ClassDocumentRepository
 import com.klypt.data.repositories.KlypRepository
+import com.klypt.data.repositories.StudentRepository
+import com.klypt.data.repositories.EducatorRepository
+import com.klypt.data.services.UserContextProvider
+import com.klypt.data.UserRole
 import com.klypt.data.utils.ClassCodeGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +41,10 @@ import javax.inject.Inject
 @HiltViewModel
 class NewClassViewModel @Inject constructor(
     private val classRepository: ClassDocumentRepository,
-    private val klypRepository: KlypRepository
+    private val klypRepository: KlypRepository,
+    private val userContextProvider: UserContextProvider,
+    private val studentRepository: StudentRepository,
+    private val educatorRepository: EducatorRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(NewClassUiState())
@@ -188,6 +195,126 @@ class NewClassViewModel @Inject constructor(
                 
                 if (classData != null) {
                     val className = classData["classTitle"] as? String ?: "Unknown Class"
+                    
+                    // Add current student to the class if not already enrolled
+                    val currentUserId = userContextProvider.getCurrentUserId()
+                    val currentUserRole = userContextProvider.getCurrentUserRole()
+                    if (currentUserId.isNotEmpty()) {
+                        val currentStudentIds = (classData["studentIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                        
+                        if (!currentStudentIds.contains(currentUserId)) {
+                            currentStudentIds.add(currentUserId)
+                            
+                            // Update the class with the new student
+                            val updatedClassData = classData.toMutableMap()
+                            updatedClassData["studentIds"] = currentStudentIds
+                            
+                            // Also update educatorId if current user is an educator and educatorId is missing/default
+                            if (currentUserRole == UserRole.EDUCATOR) {
+                                val currentEducatorId = classData["educatorId"] as? String
+                                if (currentEducatorId.isNullOrEmpty() || currentEducatorId == "imported_educator") {
+                                    updatedClassData["educatorId"] = currentUserId
+                                    android.util.Log.d("NewClassViewModel", "Updated educatorId to current user: $currentUserId")
+                                }
+                            }
+                            
+                            // Save the updated class data
+                            classRepository.save(updatedClassData)
+                            
+                            // Also update the student's enrolled classes
+                            try {
+                                var studentData = studentRepository.get(currentUserId)
+                                
+                                // Check if student exists properly (has firstName and lastName)
+                                // If not, create a complete student record
+                                if (!studentData.containsKey("firstName") || !studentData.containsKey("lastName") || 
+                                    studentData["firstName"] == null || studentData["lastName"] == null) {
+                                    
+                                    // Extract firstName and lastName from the currentUserId
+                                    val nameParts = currentUserId.split("_")
+                                    if (nameParts.size >= 2) {
+                                        val firstName = nameParts[0]
+                                        val lastName = nameParts[1]
+                                        
+                                        // Create a complete student record
+                                        studentData = mapOf(
+                                            "_id" to currentUserId,
+                                            "type" to "student",
+                                            "firstName" to firstName,
+                                            "lastName" to lastName,
+                                            "recoveryCode" to "",
+                                            "enrolledClassIds" to emptyList<String>(),
+                                            "createdAt" to System.currentTimeMillis().toString(),
+                                            "updatedAt" to System.currentTimeMillis().toString()
+                                        )
+                                    }
+                                }
+                                
+                                val enrolledClassIds = (studentData["enrolledClassIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                                val classId = classData["_id"] as? String
+                                
+                                if (classId != null && !enrolledClassIds.contains(classId)) {
+                                    enrolledClassIds.add(classId)
+                                    
+                                    val updatedStudentData = studentData.toMutableMap()
+                                    updatedStudentData["enrolledClassIds"] = enrolledClassIds
+                                    updatedStudentData["updatedAt"] = System.currentTimeMillis().toString()
+                                    studentRepository.save(updatedStudentData)
+                                }
+                            } catch (e: Exception) {
+                                // Log error but don't fail the import
+                                android.util.Log.w("NewClassViewModel", "Could not update student enrollment: ${e.message}")
+                            }
+                            
+                            // If current user is an educator, also update their classIds
+                            if (currentUserRole == UserRole.EDUCATOR) {
+                                try {
+                                    var educatorData = educatorRepository.get(currentUserId)
+                                    
+                                    // Check if educator exists properly (has fullName)
+                                    // If not, create a basic educator record
+                                    if (!educatorData.containsKey("fullName") || educatorData["fullName"] == null) {
+                                        // Try to extract name from current user context or create default
+                                        val displayName = try {
+                                            userContextProvider.getCurrentUserDisplayName()
+                                        } catch (e: Exception) {
+                                            "Imported Educator"
+                                        }
+                                        
+                                        educatorData = mapOf(
+                                            "_id" to currentUserId,
+                                            "type" to "educator",
+                                            "fullName" to displayName,
+                                            "age" to 0,
+                                            "currentJob" to "",
+                                            "instituteName" to "",
+                                            "phoneNumber" to currentUserId, // Use userId as phone for educators
+                                            "verified" to false,
+                                            "recoveryCode" to "",
+                                            "classIds" to emptyList<String>()
+                                        )
+                                    }
+                                    
+                                    val currentClassIds = (educatorData["classIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                                    val classId = classData["_id"] as? String
+                                    
+                                    if (classId != null && !currentClassIds.contains(classId)) {
+                                        currentClassIds.add(classId)
+                                        
+                                        val updatedEducatorData = educatorData.toMutableMap()
+                                        updatedEducatorData["classIds"] = currentClassIds
+                                        educatorRepository.save(updatedEducatorData)
+                                        
+                                        android.util.Log.d("NewClassViewModel", "Updated educator classIds for user: $currentUserId")
+                                    }
+                                } catch (e: Exception) {
+                                    // Log error but don't fail the import
+                                    android.util.Log.w("NewClassViewModel", "Could not update educator class enrollment: ${e.message}")
+                                }
+                            }
+                        }
+                    }
+                    
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         successMessage = "Class found: $className"
@@ -431,11 +558,31 @@ class NewClassViewModel @Inject constructor(
                     put("lastSyncedAt", System.currentTimeMillis().toString())
                 }
                 if (!containsKey("educatorId")) {
-                    put("educatorId", "imported_educator")
+                    // Check if current user is an educator and set them as the educator
+                    val currentUserId = userContextProvider.getCurrentUserId()
+                    val currentUserRole = try {
+                        userContextProvider.getCurrentUserRole()
+                    } catch (e: Exception) {
+                        null
+                    }
+                    
+                    if (currentUserRole == UserRole.EDUCATOR && currentUserId.isNotEmpty()) {
+                        put("educatorId", currentUserId)
+                        android.util.Log.d("NewClassViewModel", "Set current educator as educatorId: $currentUserId")
+                    } else {
+                        put("educatorId", "imported_educator")
+                    }
                 }
-                if (!containsKey("studentIds")) {
-                    put("studentIds", emptyList<String>())
+                
+                // Handle studentIds - add current user if not already present
+                val currentUserId = userContextProvider.getCurrentUserId()
+                val existingStudentIds = (get("studentIds") as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                
+                if (currentUserId.isNotEmpty() && !existingStudentIds.contains(currentUserId)) {
+                    existingStudentIds.add(currentUserId)
                 }
+                
+                put("studentIds", existingStudentIds)
             }
             
             // Save class to database
@@ -447,6 +594,107 @@ class NewClassViewModel @Inject constructor(
                     errorMessage = "Failed to save the imported class to database"
                 )
                 return
+            }
+            
+            // Update student's enrolled classes if current user was added
+            val currentUserId = userContextProvider.getCurrentUserId()
+            val currentUserRole = try {
+                userContextProvider.getCurrentUserRole()
+            } catch (e: Exception) {
+                null
+            }
+            
+            if (currentUserId.isNotEmpty()) {
+                try {
+                    var studentData = studentRepository.get(currentUserId)
+                    
+                    // Check if student exists properly (has firstName and lastName)
+                    // If not, create a complete student record
+                    if (!studentData.containsKey("firstName") || !studentData.containsKey("lastName") || 
+                        studentData["firstName"] == null || studentData["lastName"] == null) {
+                        
+                        // Extract firstName and lastName from the currentUserId
+                        val nameParts = currentUserId.split("_")
+                        if (nameParts.size >= 2) {
+                            val firstName = nameParts[0]
+                            val lastName = nameParts[1]
+                            
+                            // Create a complete student record
+                            studentData = mapOf(
+                                "_id" to currentUserId,
+                                "type" to "student",
+                                "firstName" to firstName,
+                                "lastName" to lastName,
+                                "recoveryCode" to "",
+                                "enrolledClassIds" to emptyList<String>(),
+                                "createdAt" to System.currentTimeMillis().toString(),
+                                "updatedAt" to System.currentTimeMillis().toString()
+                            )
+                        }
+                    }
+                    
+                    val enrolledClassIds = (studentData["enrolledClassIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                    val classId = completeClassData["_id"] as? String
+                    
+                    if (classId != null && !enrolledClassIds.contains(classId)) {
+                        enrolledClassIds.add(classId)
+                        
+                        val updatedStudentData = studentData.toMutableMap()
+                        updatedStudentData["enrolledClassIds"] = enrolledClassIds
+                        updatedStudentData["updatedAt"] = System.currentTimeMillis().toString()
+                        studentRepository.save(updatedStudentData)
+                    }
+                } catch (e: Exception) {
+                    // Log error but don't fail the import
+                    android.util.Log.w("NewClassViewModel", "Could not update student enrollment: ${e.message}")
+                }
+                
+                // If current user is an educator, also update their classIds
+                if (currentUserRole == UserRole.EDUCATOR) {
+                    try {
+                        var educatorData = educatorRepository.get(currentUserId)
+                        
+                        // Check if educator exists properly (has fullName)
+                        // If not, create a basic educator record
+                        if (!educatorData.containsKey("fullName") || educatorData["fullName"] == null) {
+                            // Try to extract name from current user context or create default
+                            val displayName = try {
+                                userContextProvider.getCurrentUserDisplayName()
+                            } catch (e: Exception) {
+                                "Imported Educator"
+                            }
+                            
+                            educatorData = mapOf(
+                                "_id" to currentUserId,
+                                "type" to "educator",
+                                "fullName" to displayName,
+                                "age" to 0,
+                                "currentJob" to "",
+                                "instituteName" to "",
+                                "phoneNumber" to currentUserId, // Use userId as phone for educators
+                                "verified" to false,
+                                "recoveryCode" to "",
+                                "classIds" to emptyList<String>()
+                            )
+                        }
+                        
+                        val currentClassIds = (educatorData["classIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+                        val classId = completeClassData["_id"] as? String
+                        
+                        if (classId != null && !currentClassIds.contains(classId)) {
+                            currentClassIds.add(classId)
+                            
+                            val updatedEducatorData = educatorData.toMutableMap()
+                            updatedEducatorData["classIds"] = currentClassIds
+                            educatorRepository.save(updatedEducatorData)
+                            
+                            android.util.Log.d("NewClassViewModel", "Updated educator classIds for user: $currentUserId")
+                        }
+                    } catch (e: Exception) {
+                        // Log error but don't fail the import
+                        android.util.Log.w("NewClassViewModel", "Could not update educator class enrollment: ${e.message}")
+                    }
+                }
             }
             
             // Import klyps if present

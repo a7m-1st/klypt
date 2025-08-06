@@ -21,6 +21,20 @@ class InputValidator @Inject constructor() {
             else -> ValidationResult(true)
         }
     }
+    
+    /**
+     * Validates a complete phone number with country code
+     */
+    fun validateFullPhoneNumber(fullPhoneNumber: String): ValidationResult {
+        return when {
+            fullPhoneNumber.isBlank() -> ValidationResult(false, "Phone number is required")
+            !fullPhoneNumber.startsWith("+") -> ValidationResult(false, "Phone number must include country code")
+            fullPhoneNumber.length < 10 -> ValidationResult(false, "Complete phone number is too short")
+            fullPhoneNumber.length > 16 -> ValidationResult(false, "Complete phone number is too long")
+            !fullPhoneNumber.drop(1).all { it.isDigit() || it == '-' } -> ValidationResult(false, "Invalid phone number format")
+            else -> ValidationResult(true)
+        }
+    }
 }
 
 data class ValidationResult(

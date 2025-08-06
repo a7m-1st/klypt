@@ -269,7 +269,8 @@ fun GalleryNavHost(
             UserRole.EDUCATOR -> {
               // For educators, we need OTP verification first
               // Context will be set after OTP verification
-              navController.navigate("otp_verify/${uiState.phoneNumber}/") {
+              val fullPhoneNumber = loginViewModel.getFullPhoneNumber()
+              navController.navigate("otp_verify/$fullPhoneNumber/") {
                 popUpTo("role_selection") { inclusive = true }
               }
             }
@@ -289,13 +290,13 @@ fun GalleryNavHost(
       com.klypt.ui.signup.SignupScreen(
         onNext = { 
           // After educator signup, they need to verify their phone number
-          val phoneNumber = signupViewModel.uiState.value.phoneNumber
-          if (phoneNumber.isNotEmpty()) {
+          val fullPhoneNumber = signupViewModel.getFullPhoneNumber()
+          if (signupViewModel.uiState.value.phoneNumber.isNotEmpty()) {
             // Encode signup data in the navigation route
             val signupData = with(signupViewModel.uiState.value) {
               "$fullName|$age|$currentJob|$instituteName"
             }
-            navController.navigate("otp_verify/$phoneNumber/$signupData") {
+            navController.navigate("otp_verify/$fullPhoneNumber/$signupData") {
               popUpTo("signup") { inclusive = true }
             }
           } else {
