@@ -62,6 +62,8 @@ import com.klypt.data.Task
 import com.klypt.data.TaskType
 import com.klypt.data.UserRole
 import com.klypt.data.getModelByName
+import com.klypt.data.models.Klyp
+import com.klypt.data.models.Question
 import com.klypt.firebaseAnalytics
 import com.klypt.data.services.UserContextProvider
 import com.klypt.ui.home.EnhancedHomeScreen
@@ -94,6 +96,8 @@ import com.klypt.ui.classes.ClassDetailsDestination
 import com.klypt.ui.classes.ClassDetailsScreen
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayDestination
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayScreen
+import com.klypt.ui.klypdetails.KlypDetailsDestination
+import com.klypt.ui.klypdetails.KlypDetailsScreen
 import com.klypt.ui.otp.OtpEntryScreen
 import com.klypt.ui.otp.OtpViewModel
 import com.klypt.ui.quiz.QuizDestination
@@ -265,7 +269,7 @@ fun GalleryNavHost(
             UserRole.EDUCATOR -> {
               // For educators, we need OTP verification first
               // Context will be set after OTP verification
-              navController.navigate("otp_verify/${uiState.phoneNumber}") {
+              navController.navigate("otp_verify/${uiState.phoneNumber}/") {
                 popUpTo("role_selection") { inclusive = true }
               }
             }
@@ -287,7 +291,11 @@ fun GalleryNavHost(
           // After educator signup, they need to verify their phone number
           val phoneNumber = signupViewModel.uiState.value.phoneNumber
           if (phoneNumber.isNotEmpty()) {
-            navController.navigate("otp_verify/$phoneNumber") {
+            // Encode signup data in the navigation route
+            val signupData = with(signupViewModel.uiState.value) {
+              "$fullName|$age|$currentJob|$instituteName"
+            }
+            navController.navigate("otp_verify/$phoneNumber/$signupData") {
               popUpTo("signup") { inclusive = true }
             }
           } else {
@@ -300,17 +308,42 @@ fun GalleryNavHost(
     }
 
     composable(
-      route = "otp_verify/{phoneNumber}",
-      arguments = listOf(navArgument("phoneNumber") { type = NavType.StringType })
+      route = "otp_verify/{phoneNumber}/{signupData}",
+      arguments = listOf(
+        navArgument("phoneNumber") { type = NavType.StringType },
+        navArgument("signupData") { 
+          type = NavType.StringType 
+          defaultValue = ""
+        }
+      )
     ) { backStackEntry ->
       val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
+      val signupDataString = backStackEntry.arguments?.getString("signupData") ?: ""
       val parentEntry = remember(backStackEntry) {
-        navController.getBackStackEntry("otp_verify/$phoneNumber")
+        navController.getBackStackEntry("otp_verify/$phoneNumber/$signupDataString")
       }
       val otpViewModel: OtpViewModel = hiltViewModel(parentEntry)
 
+      // Parse signup data from string
+      val signupData = if (signupDataString.isNotEmpty()) {
+        val parts = signupDataString.split("|")
+        if (parts.size >= 4) {
+          mapOf(
+            "fullName" to parts[0],
+            "age" to parts[1],
+            "currentJob" to parts[2],
+            "instituteName" to parts[3]
+          )
+        } else {
+          null
+        }
+      } else {
+        null
+      }
+
       OtpEntryScreen(
         phoneNumber = phoneNumber,
+        signupData = signupData,
         onNavigateToHome = {
           navController.navigate("home") {
             popUpTo("role_selection") { inclusive = true }
