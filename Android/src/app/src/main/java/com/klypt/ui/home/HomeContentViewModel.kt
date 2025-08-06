@@ -297,22 +297,27 @@ class HomeContentViewModel @Inject constructor(
             try {
                 // Delete from database using the class repository
                 val documentId = classDocument._id
+                android.util.Log.d("HomeContentViewModel", "Attempting to delete class with ID: $documentId, title: ${classDocument.classTitle}")
                 val success = classRepository.delete(documentId)
                 
                 if (success) {
+                    android.util.Log.d("HomeContentViewModel", "Class deletion successful, updating UI state")
                     // Update UI state by removing the class from the list
                     val currentClasses = _uiState.value.myClasses.toMutableList()
-                    currentClasses.removeAll { it._id == documentId }
+                    val removedCount = currentClasses.removeAll { it._id == documentId }
+                    android.util.Log.d("HomeContentViewModel", "Removed $removedCount classes from UI list")
                     
                     _uiState.value = _uiState.value.copy(
                         myClasses = currentClasses
                     )
                 } else {
+                    android.util.Log.e("HomeContentViewModel", "Class deletion failed")
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "Failed to delete class"
                     )
                 }
             } catch (e: Exception) {
+                android.util.Log.e("HomeContentViewModel", "Exception during class deletion: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
                     errorMessage = "Failed to delete class: ${e.message}"
                 )
