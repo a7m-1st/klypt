@@ -19,6 +19,7 @@ package com.klypt.ui.classes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -108,23 +109,36 @@ fun ViewAllClassesScreen(
                 }
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (uiState.classes.isEmpty()) {
                         item {
                             EmptyStateCard(
                                 message = "No classes available",
                                 actionText = "Add Class",
-                                onActionClick = onNavigateToAddClass
+                                onActionClick = onNavigateToAddClass,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 0.dp)
                             )
                         }
                     } else {
-                        items(uiState.classes) { classDoc ->
+                        itemsIndexed(uiState.classes) { index, classDoc ->
+                            // Define a list of distinct card colors
+                            val cardColors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.secondaryContainer,
+                                MaterialTheme.colorScheme.tertiaryContainer,
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                MaterialTheme.colorScheme.surfaceTint
+                            )
+                            val cardColor = cardColors[index % cardColors.size]
                             ClassCard(
                                 classDocument = classDoc,
                                 onClick = { onClassClick(classDoc) },
-                                cardColor = MaterialTheme.colorScheme.surfaceVariant,
+                                cardColor = cardColor,
                                 showMenu = true,
                                 onDelete = { showDeleteDialog = classDoc },
                                 onExport = { 

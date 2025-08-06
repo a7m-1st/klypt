@@ -1,5 +1,22 @@
+/*
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.klypt.ui.navigation
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import android.util.Log
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
@@ -27,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import androidx.core.os.bundleOf
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -46,8 +62,6 @@ import com.klypt.data.Task
 import com.klypt.data.TaskType
 import com.klypt.data.UserRole
 import com.klypt.data.getModelByName
-import com.klypt.data.models.Klyp
-import com.klypt.data.models.Question
 import com.klypt.firebaseAnalytics
 import com.klypt.data.services.UserContextProvider
 import com.klypt.ui.home.EnhancedHomeScreen
@@ -80,8 +94,6 @@ import com.klypt.ui.classes.ClassDetailsDestination
 import com.klypt.ui.classes.ClassDetailsScreen
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayDestination
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayScreen
-import com.klypt.ui.klypdetails.KlypDetailsDestination
-import com.klypt.ui.klypdetails.KlypDetailsScreen
 import com.klypt.ui.otp.OtpEntryScreen
 import com.klypt.ui.otp.OtpViewModel
 import com.klypt.ui.quiz.QuizDestination
@@ -336,12 +348,8 @@ fun GalleryNavHost(
           navController.navigate(ViewAllClassesDestination.route)
         },
         onNavigateToClassDetails = { classDoc ->
-          if (classDoc._id.isNotBlank()) {
-            val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
-            navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
-          } else {
-            Log.e("GalleryNavGraph", "Cannot navigate to class details: class ID is blank")
-          }
+          val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
+          navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
         },
         onLogout = {
           // Navigate back to login screen, clearing the back stack
@@ -644,12 +652,8 @@ fun GalleryNavHost(
           navController.navigate(NewClassDestination.route)
         },
         onClassClick = { classDoc ->
-          if (classDoc._id.isNotBlank()) {
-            val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
-            navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
-          } else {
-            Log.e("GalleryNavGraph", "Cannot navigate to class details: class ID is blank in ViewAllClassesScreen")
-          }
+          val encodedClassId = java.net.URLEncoder.encode(classDoc._id, "UTF-8")
+          navController.navigate("${ClassDetailsDestination.route}/$encodedClassId")
         }
       )
     }
@@ -663,14 +667,6 @@ fun GalleryNavHost(
     ) { backStackEntry ->
       val encodedClassId = backStackEntry.arguments?.getString("classId") ?: ""
       val classId = java.net.URLDecoder.decode(encodedClassId, "UTF-8")
-      
-      if (classId.isBlank()) {
-        Log.e("GalleryNavGraph", "ClassDetailsScreen received blank classId, navigating back")
-        LaunchedEffect(Unit) {
-          navController.navigateUp()
-        }
-        return@composable
-      }
       
       ClassDetailsScreen(
         classId = classId,
@@ -697,6 +693,9 @@ fun GalleryNavHost(
           val encodedCreatedAt = java.net.URLEncoder.encode(klyp.createdAt, "UTF-8")
           
           navController.navigate("${KlypDetailsDestination.route}/$encodedKlypId/$encodedKlypTitle/$encodedClassCode/$encodedMainBody/$encodedQuestions/$encodedCreatedAt")
+          
+          //TODO(): Test
+          // navController.navigate("add_klyp/$classCode")
         },
         userContextProvider = userContextProvider
       )

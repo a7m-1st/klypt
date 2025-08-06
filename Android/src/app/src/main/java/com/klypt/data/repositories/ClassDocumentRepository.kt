@@ -128,7 +128,8 @@ class ClassDocumentRepository(
             var result = false
             val database = databaseManager.inventoryDatabase
             database?.let { db ->
-                val document = db.getDocument(documentId)
+                val docId = getClassDocumentId(documentId)
+                val document = db.getDocument(docId)
                 document?.let {
                     db.delete(it)
                     result = true

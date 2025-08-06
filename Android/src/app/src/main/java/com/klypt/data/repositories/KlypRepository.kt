@@ -132,7 +132,8 @@ class KlypRepository(
             var result = false
             val database = databaseManager.klyptDatabase
             database?.let { db ->
-                val document = db.getDocument(documentId)
+                val docId = getKlypDocumentId(documentId)
+                val document = db.getDocument(docId)
                 document?.let {
                     db.delete(it)
                     result = true
