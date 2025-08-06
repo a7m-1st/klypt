@@ -87,13 +87,20 @@ class AuthRepository @Inject constructor(
     
     /**
      * Get user from local CouchDB using appropriate repository based on role
+     * For educators, uses phone number as identifier
      */
     suspend fun getUserFromCouchDB(firstName: String, lastName: String, userRole: UserRole = UserRole.STUDENT): Result<Map<String, Any>?> {
         return try {
-            val userId = "${firstName}_${lastName}"
             val userData = when (userRole) {
-                UserRole.STUDENT -> studentRepository.get(userId)
-                UserRole.EDUCATOR -> educatorRepository.get(userId)
+                UserRole.STUDENT -> {
+                    val userId = "${firstName}_${lastName}"
+                    studentRepository.get(userId)
+                }
+                UserRole.EDUCATOR -> {
+                    // For educators, firstName is actually the phone number during login
+                    val phoneNumber = firstName
+                    getEducatorByPhoneNumber(phoneNumber)
+                }
             }
             
             if (userData.isNotEmpty() && userData["_id"] != null) {
@@ -103,6 +110,20 @@ class AuthRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get educator by phone number from the database
+     */
+    private suspend fun getEducatorByPhoneNumber(phoneNumber: String): Map<String, Any> {
+        return try {
+            // Search all educators for one with matching phone number
+            val allEducators = educatorRepository.getAllEducators()
+            val educator = allEducators.find { it["phoneNumber"] == phoneNumber }
+            educator ?: emptyMap()
+        } catch (e: Exception) {
+            emptyMap()
         }
     }
     

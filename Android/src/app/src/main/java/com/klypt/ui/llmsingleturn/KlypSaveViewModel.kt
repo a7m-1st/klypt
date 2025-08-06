@@ -113,6 +113,12 @@ class KlypSaveViewModel @Inject constructor(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
+        // Prevent concurrent calls - if already loading, ignore the request
+        if (_uiState.value.isLoading) {
+            Log.d(tag, "saveKlypToClass already in progress, ignoring duplicate call")
+            return
+        }
+        
         viewModelScope.launch {
             try {
                 Log.d(tag, "Saving klyp to class: ${classDocument.classCode}")
@@ -190,6 +196,12 @@ class KlypSaveViewModel @Inject constructor(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
+        // Prevent concurrent calls - if already loading, ignore the request
+        if (_uiState.value.isLoading) {
+            Log.d(tag, "createClassAndSaveSummary already in progress, ignoring duplicate call")
+            return
+        }
+        
         viewModelScope.launch {
             try {
                 Log.d(tag, "Creating class and saving summary: $classCode - $className")
@@ -221,6 +233,14 @@ class KlypSaveViewModel @Inject constructor(
                     return@launch
                 }
                 
+                // Check if class with this code already exists to prevent duplicates
+                val existingClass = classRepository.getClassByCode(classCode)
+                if (existingClass != null) {
+                    onError("Class with this code already exists")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
+                
                 // Create the class document
                 val classDocument = ClassDocument(
                     _id = classCode,
@@ -235,7 +255,13 @@ class KlypSaveViewModel @Inject constructor(
                 // Save the class first
                 Log.d(tag, "Saving class document: $classCode")
                 val classData = DatabaseUtils.classDocumentToMap(classDocument)
-                classRepository.save(classData)
+                val classSaveSuccess = classRepository.save(classData)
+                
+                if (!classSaveSuccess) {
+                    onError("Failed to create class")
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    return@launch
+                }
                 
                 // Now save the summary as a klyp to this class
                 val currentTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
