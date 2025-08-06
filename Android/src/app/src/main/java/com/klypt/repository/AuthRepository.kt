@@ -94,7 +94,31 @@ class AuthRepository @Inject constructor(
             val userData = when (userRole) {
                 UserRole.STUDENT -> {
                     val userId = "${firstName}_${lastName}"
-                    studentRepository.get(userId)
+                    var studentData = studentRepository.get(userId)
+                    
+                    // Check if student exists properly (has firstName and lastName)
+                    // If not, create a complete student record for offline login
+                    if (!studentData.containsKey("firstName") || !studentData.containsKey("lastName") || 
+                        studentData["firstName"] == null || studentData["lastName"] == null) {
+                        
+                        // Create a complete student record for offline login
+                        studentData = mapOf(
+                            "_id" to userId,
+                            "type" to "student",
+                            "firstName" to firstName,
+                            "lastName" to lastName,
+                            "recoveryCode" to "",
+                            "enrolledClassIds" to emptyList<String>(),
+                            "createdAt" to System.currentTimeMillis().toString(),
+                            "updatedAt" to System.currentTimeMillis().toString()
+                        )
+                        
+                        // Save the complete student record
+                        studentRepository.save(studentData)
+                        android.util.Log.d("AuthRepository", "Created complete student record for $firstName $lastName during offline login")
+                    }
+                    
+                    studentData
                 }
                 UserRole.EDUCATOR -> {
                     // For educators, firstName is actually the phone number during login

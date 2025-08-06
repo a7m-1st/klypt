@@ -112,7 +112,39 @@ class ClassCodeDisplayViewModel @Inject constructor(
                     // Enroll the class creator in the class (both as student and educator depending on role)
                     if (currentUserId != null) {
                         // Always enroll creator as student
-                        val studentData = studentRepository.get(currentUserId)
+                        var studentData = studentRepository.get(currentUserId)
+                        
+                        // Check if student exists properly (has firstName and lastName)
+                        // If not, create a complete student record
+                        if (!studentData.containsKey("firstName") || !studentData.containsKey("lastName") || 
+                            studentData["firstName"] == null || studentData["lastName"] == null) {
+                            
+                            android.util.Log.w("ClassCodeDisplayVM", "Student $currentUserId doesn't exist or is incomplete, creating proper student record")
+                            
+                            // Extract firstName and lastName from the currentUserId
+                            val nameParts = currentUserId.split("_")
+                            if (nameParts.size >= 2) {
+                                val firstName = nameParts[0]
+                                val lastName = nameParts[1]
+                                
+                                // Create a complete student record
+                                studentData = mapOf(
+                                    "_id" to currentUserId,
+                                    "type" to "student",
+                                    "firstName" to firstName,
+                                    "lastName" to lastName,
+                                    "recoveryCode" to "",
+                                    "enrolledClassIds" to emptyList<String>(),
+                                    "createdAt" to currentTime,
+                                    "updatedAt" to currentTime
+                                )
+                                
+                                android.util.Log.d("ClassCodeDisplayVM", "Created complete student record for $firstName $lastName")
+                            } else {
+                                android.util.Log.e("ClassCodeDisplayVM", "Cannot extract firstName/lastName from userId: $currentUserId")
+                            }
+                        }
+                        
                         val enrolledClassIds = (studentData["enrolledClassIds"] as? List<*>)?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
                         
                         if (!enrolledClassIds.contains(classDocument._id)) {
