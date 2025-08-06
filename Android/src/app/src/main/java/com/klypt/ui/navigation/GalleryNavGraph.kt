@@ -96,6 +96,10 @@ import com.klypt.ui.classcodedisplay.ClassCodeDisplayDestination
 import com.klypt.ui.classcodedisplay.ClassCodeDisplayScreen
 import com.klypt.ui.otp.OtpEntryScreen
 import com.klypt.ui.otp.OtpViewModel
+import com.klypt.ui.quiz.QuizDestination
+import com.klypt.ui.quiz.QuizScreen
+import com.klypt.ui.quizeditor.QuizEditorDestination
+import com.klypt.ui.quizeditor.QuizEditorScreen
 import com.klypt.ui.signup.SignupViewModel
 
 private const val TAG = "AGGalleryNavGraph"
@@ -403,13 +407,57 @@ fun GalleryNavHost(
           viewModel = viewModel,
           modelManagerViewModel = modelManagerViewModel,
           navigateUp = { navController.navigateUp() },
+          classCode = classCode,
+          className = className,
           onNavigateToSummaryReview = { summary, model, messages ->
-            // For class creation, store the class context and navigate to summary review
-            val classContext = SummaryNavigationData.ClassCreationContext(classCode, className)
-            SummaryNavigationData.storeSummaryData(summary, model, messages, classContext)
+            // Store the data in the temporary holder (without class context for regular chats)
+            SummaryNavigationData.storeSummaryData(summary, model, messages)
             // Navigate to summary review screen
             navController.navigate("${SummaryReviewDestination.route}/${model.name}")
           }
+        )
+      }
+    }
+
+    // LLM chat for klyp discussion with model selection
+    composable(
+      route = "llm-chat-for-class/{classCode}/{title}/{content}/{modelName}",
+      arguments = listOf(
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("title") { type = NavType.StringType },
+        navArgument("content") { type = NavType.StringType },
+        navArgument("modelName") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val viewModel: LlmChatViewModel = hiltViewModel(backStackEntry)
+      val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedTitle = backStackEntry.arguments?.getString("title") ?: ""
+      val title = java.net.URLDecoder.decode(encodedTitle, "UTF-8")
+      val encodedContent = backStackEntry.arguments?.getString("content") ?: ""
+      val content = java.net.URLDecoder.decode(encodedContent, "UTF-8")
+      val encodedModelName = backStackEntry.arguments?.getString("modelName") ?: ""
+      val modelName = java.net.URLDecoder.decode(encodedModelName, "UTF-8")
+
+      // Find and select the chosen model
+      val selectedModel = TASK_LLM_CHAT.models.find { it.name == modelName } ?: TASK_LLM_CHAT.models.firstOrNull()
+      selectedModel?.let { model ->
+        modelManagerViewModel.selectModel(model)
+
+        LlmChatScreen(
+          viewModel = viewModel,
+          modelManagerViewModel = modelManagerViewModel,
+          navigateUp = { navController.navigateUp() },
+          classCode = classCode,
+          className = title,
+          onNavigateToSummaryReview = { summary, model, messages ->
+            // Store the data in the temporary holder (without class context for klyp discussions)
+            SummaryNavigationData.storeSummaryData(summary, model, messages)
+            // Navigate to summary review screen
+            navController.navigate("${SummaryReviewDestination.route}/${model.name}")
+          },
+          initialContent = content
         )
       }
     }
@@ -531,49 +579,19 @@ fun GalleryNavHost(
             SummaryNavigationData.clearSummaryData()
             navController.navigateUp() 
           },
+          onNavigateToAddClass = { title, content ->
+            // Navigate to NewClass screen to create new class
+            // The pending data is already stored in SummaryNavigationData
+            navController.navigate(NewClassDestination.route)
+          },
           onSaveComplete = {
-            Log.e("DEBUG_NAV", "=== SummaryReviewScreen onSaveComplete called ===")
-            val classContext = SummaryNavigationData.getClassCreationContext()
-            Log.e("DEBUG_NAV", "Class context: $classContext")
-            // Mark that home should refresh when we return
+            // Clear summary data and navigate to home
+            SummaryNavigationData.clearSummaryData()
+            // Mark that home should refresh
             SummaryNavigationData.setShouldRefreshHome(true)
             
-            if (classContext != null) {
-              // We're in class creation context, navigate directly to class code display
-              try {
-                val userRole = userContextProvider.getCurrentUserRole()
-                Log.e("DEBUG_NAV", "User role is $userRole")
-                
-                val educatorId = if (userRole == UserRole.EDUCATOR) {
-                  val userId = userContextProvider.getCurrentUserId()
-                  Log.e("DEBUG_NAV", "Educator ID is $userId")
-                  userId
-                } else {
-                  Log.e("DEBUG_NAV", "Student creating class - using student ID as educator for this class")
-                  // Allow students to create classes by using their ID as educator
-                  userContextProvider.getCurrentUserId() ?: "educator_001"
-                }
-                
-                val encodedClassName = java.net.URLEncoder.encode(classContext.className, "UTF-8")
-                val route = "${ClassCodeDisplayDestination.route}/${classContext.classCode}/$encodedClassName/$educatorId"
-                Log.e("DEBUG_NAV", "Navigating directly to class code display: $route")
-                navController.navigate(route) {
-                  launchSingleTop = true
-                }
-                Log.e("DEBUG_NAV", "=== Navigation to class code display completed ===")
-              } catch (e: Exception) {
-                Log.e("DEBUG_NAV", "ERROR during navigation: ${e.message}", e)
-                // Fallback to home if there's an error
-                navController.navigate("home") {
-                  popUpTo("home") { inclusive = true }
-                }
-              }
-            } else {
-              // Regular summary saving, go to home and force refresh
-              Log.e("DEBUG_NAV", "No class context, navigating to home")
-              navController.navigate("home") {
-                popUpTo("home") { inclusive = true }
-              }
+            navController.navigate("home") {
+              popUpTo("home") { inclusive = true }
             }
           }
         )
@@ -594,6 +612,30 @@ fun GalleryNavHost(
         onNavigateToLLMChat = { classCode, className ->
           // Navigate to LLM Chat for class creation with class code and name
           navController.navigate("llm-chat-for-class/$classCode/$className")
+        },
+        onClassCreated = { classCode, className ->
+          // Handle class creation when we have pending summary data
+          val encodedClassName = java.net.URLEncoder.encode(className, "UTF-8")
+          
+          // The class and summary have already been saved, just navigate to class code display
+          try {
+            val userRole = userContextProvider.getCurrentUserRole()
+            val educatorId = if (userRole == UserRole.EDUCATOR) {
+              userContextProvider.getCurrentUserId()
+            } else {
+              userContextProvider.getCurrentUserId() ?: "educator_001"
+            }
+            
+            // Navigate directly to class code display
+            navController.navigate("${ClassCodeDisplayDestination.route}/$classCode/$encodedClassName/$educatorId") {
+              launchSingleTop = true
+            }
+          } catch (e: Exception) {
+            // Fallback to home if there's an error
+            navController.navigate("home") {
+              popUpTo("home") { inclusive = true }
+            }
+          }
         }
       )
     }
@@ -630,7 +672,30 @@ fun GalleryNavHost(
         classId = classId,
         onNavigateBack = { navController.navigateUp() },
         onNavigateToAddKlyp = { classCode ->
-          navController.navigate("add_klyp/$classCode")
+          // Navigate to LLM Chat for klyp creation with class context
+          navController.navigate("llm-chat-for-class/$classCode/${java.net.URLEncoder.encode("New Klyp", "UTF-8")}")
+        },
+        onNavigateToKlypDetails = { klyp ->
+          Log.d(TAG, "=== onNavigateToKlypDetails clicked ===")
+          Log.d(TAG, "Klyp ID: ${klyp._id}, Title: ${klyp.title}")
+          Log.d(TAG, "Class Code: ${klyp.classCode}")
+          Log.d(TAG, "Questions: ${klyp.questions.size}")
+          
+          // Navigate to KlypDetailsScreen with klyp data
+          val encodedKlypId = java.net.URLEncoder.encode(klyp._id, "UTF-8")  
+          val encodedKlypTitle = java.net.URLEncoder.encode(klyp.title, "UTF-8")
+          val encodedClassCode = java.net.URLEncoder.encode(klyp.classCode, "UTF-8")
+          val encodedMainBody = java.net.URLEncoder.encode(klyp.mainBody, "UTF-8")
+          val questionsJson = klyp.questions.joinToString("|") { question ->
+            "${question.questionText}~${question.options.joinToString(",")}~${question.correctAnswer}"
+          }
+          val encodedQuestions = java.net.URLEncoder.encode(questionsJson, "UTF-8")
+          val encodedCreatedAt = java.net.URLEncoder.encode(klyp.createdAt, "UTF-8")
+          
+          navController.navigate("${KlypDetailsDestination.route}/$encodedKlypId/$encodedKlypTitle/$encodedClassCode/$encodedMainBody/$encodedQuestions/$encodedCreatedAt")
+          
+          //TODO(): Test
+          // navController.navigate("add_klyp/$classCode")
         },
         userContextProvider = userContextProvider
       )
@@ -685,6 +750,228 @@ fun GalleryNavHost(
         }
       )
     }
+
+    // Klyp Details Screen
+    composable(
+      route = "${KlypDetailsDestination.route}/{klypId}/{klypTitle}/{classCode}/{mainBody}/{questions}/{createdAt}",
+      arguments = listOf(
+        navArgument("klypId") { type = NavType.StringType },
+        navArgument("klypTitle") { type = NavType.StringType },
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("mainBody") { type = NavType.StringType },
+        navArgument("questions") { type = NavType.StringType },
+        navArgument("createdAt") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val encodedKlypId = backStackEntry.arguments?.getString("klypId") ?: ""
+      val encodedKlypTitle = backStackEntry.arguments?.getString("klypTitle") ?: ""
+      val encodedClassCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedMainBody = backStackEntry.arguments?.getString("mainBody") ?: ""
+      val encodedQuestions = backStackEntry.arguments?.getString("questions") ?: ""
+      val encodedCreatedAt = backStackEntry.arguments?.getString("createdAt") ?: ""
+      
+      // Decode the parameters
+      val klypId = java.net.URLDecoder.decode(encodedKlypId, "UTF-8")
+      val klypTitle = java.net.URLDecoder.decode(encodedKlypTitle, "UTF-8")
+      val classCode = java.net.URLDecoder.decode(encodedClassCode, "UTF-8")
+      val mainBody = java.net.URLDecoder.decode(encodedMainBody, "UTF-8")
+      val questionsString = java.net.URLDecoder.decode(encodedQuestions, "UTF-8")
+      val createdAt = java.net.URLDecoder.decode(encodedCreatedAt, "UTF-8")
+      
+      // Parse questions from the encoded string
+      val questions = if (questionsString.isNotEmpty()) {
+        questionsString.split("|").mapNotNull { questionData ->
+          val parts = questionData.split("~")
+          if (parts.size >= 3) {
+            val questionText = parts[0]
+            val options = parts[1].split(",")
+            val correctAnswer = parts[2].firstOrNull() ?: 'A'
+            Question(
+              questionText = questionText,
+              options = options,
+              correctAnswer = correctAnswer
+            )
+          } else null
+        }
+      } else emptyList()
+      
+      // Create the Klyp object
+      val klyp = Klyp(
+        _id = klypId,
+        title = klypTitle,
+        classCode = classCode,
+        mainBody = mainBody,
+        questions = questions,
+        createdAt = createdAt
+      )
+      
+      if (klypId.isBlank()) {
+        Log.e("GalleryNavGraph", "KlypDetailsScreen received blank klypId, navigating back")
+        LaunchedEffect(Unit) {
+          navController.navigateUp()
+        }
+        return@composable
+      }
+      
+      KlypDetailsScreen(
+        klyp = klyp,
+        onNavigateBack = { navController.navigateUp() },
+        onNavigateToLLMChat = { classCode, title, content, modelName ->
+          // Navigate to LLM Chat with class context and selected model
+          val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
+          val encodedContent = java.net.URLEncoder.encode(content, "UTF-8")
+          val encodedModelName = java.net.URLEncoder.encode(modelName, "UTF-8")
+          navController.navigate("llm-chat-for-class/$classCode/$encodedTitle/$encodedContent/$encodedModelName")
+        },
+        onNavigateToQuiz = { klypForQuiz ->
+          // Navigate to Quiz screen
+          val encodedQuizKlypId = java.net.URLEncoder.encode(klypForQuiz._id, "UTF-8")
+          val encodedQuizKlypTitle = java.net.URLEncoder.encode(klypForQuiz.title, "UTF-8")
+          val encodedQuizClassCode = java.net.URLEncoder.encode(klypForQuiz.classCode, "UTF-8")
+          val encodedQuizMainBody = java.net.URLEncoder.encode(klypForQuiz.mainBody, "UTF-8")
+          val quizQuestionsJson = klypForQuiz.questions.joinToString("|") { question ->
+            "${question.questionText}~${question.options.joinToString(",")}~${question.correctAnswer}"
+          }
+          val encodedQuizQuestions = java.net.URLEncoder.encode(quizQuestionsJson, "UTF-8")
+          val encodedQuizCreatedAt = java.net.URLEncoder.encode(klypForQuiz.createdAt, "UTF-8")
+          
+          navController.navigate("${QuizDestination.route}/$encodedQuizKlypId/$encodedQuizKlypTitle/$encodedQuizClassCode/$encodedQuizMainBody/$encodedQuizQuestions/$encodedQuizCreatedAt")
+        },
+        onNavigateToQuizEditor = { klypForEditor, model ->
+          // Navigate to Quiz Editor screen
+          navigateToQuizEditor(navController, klypForEditor, model)
+        }
+      )
+    }
+
+    // Quiz Screen
+    composable(
+      route = "${QuizDestination.route}/{klypId}/{klypTitle}/{classCode}/{mainBody}/{questions}/{createdAt}",
+      arguments = listOf(
+        navArgument("klypId") { type = NavType.StringType },
+        navArgument("klypTitle") { type = NavType.StringType },
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("mainBody") { type = NavType.StringType },
+        navArgument("questions") { type = NavType.StringType },
+        navArgument("createdAt") { type = NavType.StringType }
+      ),
+      enterTransition = { slideEnter() },
+      exitTransition = { slideExit() },
+    ) { backStackEntry ->
+      val encodedKlypId = backStackEntry.arguments?.getString("klypId") ?: ""
+      val encodedKlypTitle = backStackEntry.arguments?.getString("klypTitle") ?: ""
+      val encodedClassCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val encodedMainBody = backStackEntry.arguments?.getString("mainBody") ?: ""
+      val encodedQuestions = backStackEntry.arguments?.getString("questions") ?: ""
+      val encodedCreatedAt = backStackEntry.arguments?.getString("createdAt") ?: ""
+      
+      // Decode the parameters
+      val klypId = java.net.URLDecoder.decode(encodedKlypId, "UTF-8")
+      val klypTitle = java.net.URLDecoder.decode(encodedKlypTitle, "UTF-8")
+      val classCode = java.net.URLDecoder.decode(encodedClassCode, "UTF-8")
+      val mainBody = java.net.URLDecoder.decode(encodedMainBody, "UTF-8")
+      val questionsString = java.net.URLDecoder.decode(encodedQuestions, "UTF-8")
+      val createdAt = java.net.URLDecoder.decode(encodedCreatedAt, "UTF-8")
+      
+      // Parse questions from the encoded string
+      val questions = if (questionsString.isNotEmpty()) {
+        questionsString.split("|").mapNotNull { questionData ->
+          val parts = questionData.split("~")
+          if (parts.size >= 3) {
+            val questionText = parts[0]
+            val options = parts[1].split(",")
+            val correctAnswer = parts[2].firstOrNull() ?: 'A'
+            Question(
+              questionText = questionText,
+              options = options,
+              correctAnswer = correctAnswer
+            )
+          } else null
+        }
+      } else emptyList()
+      
+      // Create the Klyp object
+      val klyp = Klyp(
+        _id = klypId,
+        title = klypTitle,
+        classCode = classCode,
+        mainBody = mainBody,
+        questions = questions,
+        createdAt = createdAt
+      )
+      
+      if (klypId.isBlank()) {
+        Log.e("GalleryNavGraph", "QuizScreen received blank klypId, navigating back")
+        LaunchedEffect(Unit) {
+          navController.navigateUp()
+        }
+        return@composable
+      }
+      
+      QuizScreen(
+        klyp = klyp,
+        onNavigateBack = { navController.navigateUp() },
+        onQuizCompleted = { score, totalQuestions ->
+          Log.d("GalleryNavGraph", "Quiz completed with score: $score/$totalQuestions")
+          // Navigate back to the klyp details screen
+          navController.navigateUp()
+        },
+        userContextProvider = userContextProvider
+      )
+    }
+    
+    // Quiz Editor Screen
+    composable(
+      route = "${QuizEditorDestination.route}/{klypId}/{klypTitle}/{classCode}/{mainBody}/{createdAt}/{modelName}",
+      arguments = listOf(
+        navArgument("klypId") { type = NavType.StringType },
+        navArgument("klypTitle") { type = NavType.StringType },
+        navArgument("classCode") { type = NavType.StringType },
+        navArgument("mainBody") { type = NavType.StringType },
+        navArgument("createdAt") { type = NavType.StringType },
+        navArgument("modelName") { type = NavType.StringType }
+      )
+    ) { backStackEntry ->
+      val klypId = backStackEntry.arguments?.getString("klypId") ?: ""
+      val klypTitle = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("klypTitle") ?: "", "UTF-8")
+      val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
+      val mainBody = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("mainBody") ?: "", "UTF-8")
+      val createdAt = backStackEntry.arguments?.getString("createdAt") ?: ""
+      val modelName = backStackEntry.arguments?.getString("modelName") ?: ""
+      
+      // Get the model
+      val model = getModelByName(modelName)
+      
+      if (model == null || klypId.isBlank()) {
+        Log.e("GalleryNavGraph", "QuizEditorScreen received invalid parameters")
+        LaunchedEffect(Unit) {
+          navController.navigateUp()
+        }
+        return@composable
+      }
+      
+      // Create the Klyp object (questions will be loaded by the editor)
+      val klyp = Klyp(
+        _id = klypId,
+        title = klypTitle,
+        classCode = classCode,
+        mainBody = mainBody,
+        questions = emptyList(), // Will be loaded by the editor
+        createdAt = createdAt
+      )
+      
+      QuizEditorScreen(
+        klyp = klyp,
+        model = model,
+        onNavigateBack = { navController.navigateUp() },
+        onSaveCompleted = {
+          Log.d("GalleryNavGraph", "Quiz saved successfully, navigating back")
+          navController.navigateUp()
+        }
+      )
+    }
   }
 
   // Handle incoming intents for deep links
@@ -722,6 +1009,19 @@ fun navigateToTaskScreen(
     TaskType.TEST_TASK_1 -> {}
     TaskType.TEST_TASK_2 -> {}
   }
+}
+
+fun navigateToQuizEditor(
+  navController: NavHostController,
+  klyp: Klyp,
+  model: Model
+) {
+  // URL encode the strings that might contain special characters
+  val encodedTitle = java.net.URLEncoder.encode(klyp.title, "UTF-8")
+  val encodedMainBody = java.net.URLEncoder.encode(klyp.mainBody, "UTF-8")
+  
+  val route = "${QuizEditorDestination.route}/${klyp._id}/$encodedTitle/${klyp.classCode}/$encodedMainBody/${klyp.createdAt}/${model.name}"
+  navController.navigate(route)
 }
 
 fun getModelFromNavigationParam(entry: NavBackStackEntry, task: Task): Model? {

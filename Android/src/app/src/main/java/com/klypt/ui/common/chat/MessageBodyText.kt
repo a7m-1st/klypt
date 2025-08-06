@@ -27,8 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.klypt.ui.common.MarkdownText
+import com.klypt.ui.common.EnhancedMarkdownText
 
-/** Composable function to display the text content of a ChatMessageText. */
+/** Composable function to display the text content of a ChatMessageText with beautiful markdown rendering. */
 @Composable
 fun MessageBodyText(message: ChatMessageText) {
   if (message.side == ChatSide.USER) {
@@ -40,7 +41,13 @@ fun MessageBodyText(message: ChatMessageText) {
     )
   } else if (message.side == ChatSide.AGENT) {
     if (message.isMarkdown) {
-      MarkdownText(text = message.content, modifier = Modifier.padding(12.dp))
+      // Use enhanced markdown rendering for beautiful display
+      EnhancedMarkdownText(
+        markdown = message.content,
+        modifier = Modifier.padding(4.dp),
+        textColor = MaterialTheme.colorScheme.onSurface,
+        fontSize = 16f
+      )
     } else {
       Text(
         message.content,

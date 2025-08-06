@@ -33,41 +33,58 @@ import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 
-/** Composable function to display Markdown-formatted text. */
+/** 
+ * Composable function to display Markdown-formatted text. 
+ * This is the fallback implementation using richtext library.
+ * For enhanced markdown with better features, use EnhancedMarkdownText instead.
+ */
 @Composable
 fun MarkdownText(
   text: String,
   modifier: Modifier = Modifier,
   smallFontSize: Boolean = false,
   textColor: Color = MaterialTheme.colorScheme.onSurface,
+  useEnhanced: Boolean = true,
 ) {
-  val fontSize =
-    if (smallFontSize) MaterialTheme.typography.bodyMedium.fontSize
-    else MaterialTheme.typography.bodyLarge.fontSize
-  CompositionLocalProvider {
-    ProvideTextStyle(
-      value = TextStyle(fontSize = fontSize, lineHeight = fontSize * 1.3, color = textColor)
-    ) {
-      RichText(
-        modifier = modifier,
-        style =
-          RichTextStyle(
-            codeBlockStyle =
-              CodeBlockStyle(
-                textStyle =
-                  TextStyle(
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                    fontFamily = FontFamily.Monospace,
-                  )
-              ),
-            stringStyle =
-              RichTextStringStyle(
-                linkStyle =
-                  TextLinkStyles(style = SpanStyle(color = MaterialTheme.customColors.linkColor))
-              ),
-          ),
+  // Use enhanced markdown rendering by default for better features
+  if (useEnhanced) {
+    val fontSize = if (smallFontSize) 14f else 16f
+    EnhancedMarkdownText(
+      markdown = text,
+      modifier = modifier,
+      textColor = textColor,
+      fontSize = fontSize
+    )
+  } else {
+    // Fallback to original richtext implementation
+    val fontSize =
+      if (smallFontSize) MaterialTheme.typography.bodyMedium.fontSize
+      else MaterialTheme.typography.bodyLarge.fontSize
+    CompositionLocalProvider {
+      ProvideTextStyle(
+        value = TextStyle(fontSize = fontSize, lineHeight = fontSize * 1.3, color = textColor)
       ) {
-        Markdown(content = text)
+        RichText(
+          modifier = modifier,
+          style =
+            RichTextStyle(
+              codeBlockStyle =
+                CodeBlockStyle(
+                  textStyle =
+                    TextStyle(
+                      fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                      fontFamily = FontFamily.Monospace,
+                    )
+                ),
+              stringStyle =
+                RichTextStringStyle(
+                  linkStyle =
+                    TextLinkStyles(style = SpanStyle(color = MaterialTheme.customColors.linkColor))
+                ),
+            ),
+        ) {
+          Markdown(content = text)
+        }
       }
     }
   }

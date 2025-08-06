@@ -26,5 +26,14 @@ data class NewClassUiState(
     val showClassCodeInput: Boolean = false,
     val showCreateNewForm: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val showDuplicateDialog: Boolean = false,
+    val duplicateClassInfo: DuplicateClassInfo? = null
+)
+
+data class DuplicateClassInfo(
+    val existingClassName: String,
+    val existingClassCode: String,
+    val importData: Map<String, Any>,
+    val klypsData: List<Map<String, Any>>
 )

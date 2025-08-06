@@ -357,9 +357,9 @@ class ClassDocumentRepository(
             
             database?.let { db ->
                 try {
-                    // More standard CouchbaseLite query syntax
+                    // More standard CouchbaseLite query syntax - include document ID in selection
                     val query = QueryBuilder
-                        .select(SelectResult.all())
+                        .select(SelectResult.all(), SelectResult.expression(Meta.id).`as`("docId"))
                         .from(DataSource.database(db))
                         .where(
                             Expression.property("type").equalTo(Expression.string(classType))
@@ -377,11 +377,19 @@ class ClassDocumentRepository(
                             val result = resultsList[0]
                             // Handle the nested structure - CouchbaseLite wraps results in database name
                             val doc = result.getDictionary(db.name) ?: result.toMap()
+                            val docId = result.getString("docId") ?: ""
                             
                             val classData = mutableMapOf<String, Any>()
                             
+                            // Extract the actual class ID from the document ID (remove "class::" prefix)
+                            val actualClassId = if (docId.startsWith("class::")) {
+                                docId.removePrefix("class::")
+                            } else {
+                                docId
+                            }
+                            
                             // Safely extract each field
-                            classData["_id"] = extractString(doc, "_id")
+                            classData["_id"] = actualClassId
                             classData["type"] = extractString(doc, "type")
                             classData["classCode"] = extractString(doc, "classCode")
                             classData["classTitle"] = extractString(doc, "classTitle")

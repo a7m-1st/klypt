@@ -18,6 +18,8 @@ package com.klypt.ui.quiz
 
 import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -103,13 +105,19 @@ fun QuizScreen(
                 .padding(paddingValues)
         ) {
             when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                uiState.isLoading || uiState.isInitializing -> {
+                    QuizInitializationScreen(
+                        klypTitle = klyp.title,
+                        showStopButton = uiState.showStopButton,
+                        elapsedTimeMs = uiState.loadingElapsedTime,
+                        onStopClicked = if (uiState.showStopButton) {
+                            {
+                                Log.d(TAG, "Stop initialization clicked")
+                                viewModel.stopInitialization()
+                            }
+                        } else null,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 
                 uiState.isCompleted -> {
@@ -155,30 +163,31 @@ fun QuizScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "No questions available for this quiz",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text(
+                                text = uiState.errorMessage ?: "No questions available for this quiz",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 32.dp)
+                            )
+                            
+                            // Retry button if there's an error
+                            uiState.errorMessage?.let {
+                                Button(
+                                    onClick = {
+                                        Log.d(TAG, "Retry button clicked")
+                                        viewModel.retryInitialization()
+                                    }
+                                ) {
+                                    Text("Retry")
+                                }
+                            }
+                        }
                     }
-                }
-            }
-            
-            // Error message
-            uiState.errorMessage?.let { error ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = error,
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
                 }
             }
         }
@@ -327,10 +336,8 @@ private fun QuizCompletedContent(
     onNavigateBack: () -> Unit,
     onQuizCompleted: (Double, Int) -> Unit
 ) {
-    LaunchedEffect(score, totalQuestions) {
-        Log.d(TAG, "Quiz completed with score: $score, total questions: $totalQuestions")
-        onQuizCompleted(score, totalQuestions)
-    }
+    // Remove the LaunchedEffect that was causing immediate navigation
+    // The onQuizCompleted callback will be called when user clicks "Back to Klyp Details"
     
     Column(
         modifier = Modifier
@@ -433,7 +440,11 @@ private fun QuizCompletedContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = onNavigateBack,
+                onClick = {
+                    Log.d(TAG, "Quiz completed with score: $score, total questions: $totalQuestions")
+                    onQuizCompleted(score, totalQuestions)
+                    onNavigateBack()
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Back to Klyp Details")

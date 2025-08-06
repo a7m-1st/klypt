@@ -26,6 +26,7 @@ import com.klypt.data.models.Question
 import com.klypt.data.repositories.KlypRepository
 import com.klypt.data.services.ChatSummaryService
 import com.klypt.ui.llmchat.LlmChatModelHelper
+import com.klypt.ui.llmchat.LlmModelInstance
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,8 +46,11 @@ private const val TAG = "KlypDetailsViewModel"
 data class KlypDetailsUiState(
     val isLoading: Boolean = false,
     val isGeneratingQuiz: Boolean = false,
+    val isInitializingModel: Boolean = false,
     val currentKlyp: Klyp? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val showStopButton: Boolean = false,
+    val modelInitElapsedTime: Long = 0L
 )
 
 @HiltViewModel
@@ -76,9 +80,34 @@ class KlypDetailsViewModel @Inject constructor(
         onSuccess: (Klyp) -> Unit,
         onError: (String) -> Unit
     ) {
+        generateQuizQuestionsInternal(klyp, context, onSuccess, onError, forceRegenerate = false)
+    }
+    
+    /**
+     * Regenerates quiz questions even if they already exist
+     */
+    fun regenerateQuizQuestions(
+        klyp: Klyp,
+        context: Context,
+        onSuccess: (Klyp) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        generateQuizQuestionsInternal(klyp, context, onSuccess, onError, forceRegenerate = true)
+    }
+    
+    /**
+     * Internal function that handles both generation and regeneration of quiz questions
+     */
+    private fun generateQuizQuestionsInternal(
+        klyp: Klyp,
+        context: Context,
+        onSuccess: (Klyp) -> Unit,
+        onError: (String) -> Unit,
+        forceRegenerate: Boolean
+    ) {
         viewModelScope.launch {
             try {
-                Log.d(TAG, "Starting quiz generation for klyp: ${klyp.title}")
+                Log.d(TAG, "Starting quiz ${if (forceRegenerate) "regeneration" else "generation"} for klyp: ${klyp.title}")
                 _uiState.value = _uiState.value.copy(
                     isGeneratingQuiz = true,
                     errorMessage = null
@@ -99,16 +128,60 @@ class KlypDetailsViewModel @Inject constructor(
                 val model = availableModels.first()
                 Log.d(TAG, "Using model: ${model.name} for quiz generation")
 
+                // Check if model needs initialization and wait for it
+                if (model.instance == null) {
+                    Log.d(TAG, "Model ${model.name} not initialized, showing loading screen...")
+                    val startInitTime = System.currentTimeMillis()
+                    _uiState.value = _uiState.value.copy(
+                        isInitializingModel = true,
+                        showStopButton = false,
+                        modelInitElapsedTime = 0L
+                    )
+                    
+                    // Start timer for elapsed time and stop button
+                    val timerJob = launch {
+                        while (_uiState.value.isInitializingModel && model.instance == null) {
+                            val elapsed = System.currentTimeMillis() - startInitTime
+                            _uiState.value = _uiState.value.copy(
+                                modelInitElapsedTime = elapsed,
+                                showStopButton = elapsed > 10000L // Show stop button after 10 seconds
+                            )
+                            kotlinx.coroutines.delay(1000L)
+                        }
+                    }
+                    
+                    // Wait for model initialization to complete
+                    val initJob = launch {
+                        while (model.instance == null && _uiState.value.isInitializingModel) {
+                            kotlinx.coroutines.delay(1000) // Wait 1 second
+                            Log.d(TAG, "Waiting for model initialization... elapsed time: ${_uiState.value.modelInitElapsedTime / 1000}s")
+                        }
+                    }
+                    
+                    initJob.join()
+                    timerJob.cancel()
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isInitializingModel = false,
+                        showStopButton = false
+                    )
+                    
+                    if (model.instance == null) {
+                        Log.e(TAG, "Model initialization was cancelled or failed")
+                        _uiState.value = _uiState.value.copy(
+                            isGeneratingQuiz = false,
+                            errorMessage = "AI model initialization was cancelled or failed. Please try again."
+                        )
+                        onError("AI model initialization was cancelled or failed. Please try again.")
+                        return@launch
+                    }
+                    
+                    Log.d(TAG, "Model ${model.name} successfully initialized")
+                }
+
                 // Create a detailed prompt for question generation
                 val prompt = createQuestionGenerationPrompt(klyp)
                 Log.d(TAG, "Generated prompt length: ${prompt.length}")
-
-                // Initialize model if needed
-                if (model.instance == null) {
-                    Log.d(TAG, "Initializing model: ${model.name}")
-                    // Note: In a real implementation, you'd need to initialize the model properly
-                    // For now, we'll simulate the generation
-                }
 
                 // Generate questions using LLM
                 val generatedQuestionsJson = generateQuestionsWithLLM(model, prompt)
@@ -119,7 +192,7 @@ class KlypDetailsViewModel @Inject constructor(
                 Log.d(TAG, "Parsed ${questions.size} valid questions")
 
                 if (questions.isEmpty()) {
-                    throw Exception("No valid questions were generated")
+                    throw Exception("No valid questions were generated by the AI model")
                 }
 
                 // Update the klyp with new questions
@@ -160,21 +233,35 @@ class KlypDetailsViewModel @Inject constructor(
                 onSuccess(updatedKlyp)
 
             } catch (e: Exception) {
-                Log.e(TAG, "Quiz generation failed", e)
+                Log.e(TAG, "Quiz ${if (forceRegenerate) "regeneration" else "generation"} failed", e)
+                val errorMsg = when {
+                    e.message?.contains("Model instance is null") == true -> 
+                        "AI model failed to initialize. Please try again."
+                    e.message?.contains("No valid questions") == true -> 
+                        "AI model couldn't generate valid questions. Please try again or check the content."
+                    e.message?.contains("save") == true -> 
+                        "Failed to save generated questions. Please try again."
+                    e.message?.contains("initialize") == true ->
+                        "Failed to initialize AI model. Please check your internet connection and try again."
+                    else -> "Failed to generate quiz: ${e.message}"
+                }
+                
                 _uiState.value = _uiState.value.copy(
                     isGeneratingQuiz = false,
-                    errorMessage = "Failed to generate quiz: ${e.message}"
+                    isInitializingModel = false,
+                    errorMessage = errorMsg
                 )
-                onError("Failed to generate quiz: ${e.message}")
+                onError(errorMsg)
             }
         }
     }
 
     private fun createQuestionGenerationPrompt(klyp: Klyp): String {
         return """
-            Based on the following educational content, generate 5 multiple-choice questions to test understanding.
+            Based on the following educational content, generate exactly 5 multiple-choice questions to test understanding and comprehension.
             
-            Content Title: ${klyp.title}
+            Title: ${klyp.title}
+            
             Content:
             ${klyp.mainBody}
             
@@ -182,83 +269,58 @@ class KlypDetailsViewModel @Inject constructor(
             {
                 "questions": [
                     {
-                        "questionText": "Question text here?",
+                        "questionText": "Your question here?",
                         "options": ["Option A", "Option B", "Option C", "Option D"],
                         "correctAnswer": "A"
                     }
                 ]
             }
             
-            Requirements:
-            1. Questions should test comprehension of the key concepts
-            2. Each question must have exactly 4 options (A, B, C, D)
-            3. The correctAnswer must be one of: A, B, C, or D
-            4. Questions should be clear and unambiguous
-            5. Options should be plausible but only one should be correct
-            6. Return ONLY the JSON, no additional text
+            IMPORTANT REQUIREMENTS:
+            1. Generate exactly 5 questions - no more, no less
+            2. Each question should test comprehension of key concepts from the content
+            3. Each question must have exactly 4 options labeled as shown above
+            4. The correctAnswer must be exactly one of: "A", "B", "C", or "D"
+            5. Questions should be clear, unambiguous, and directly related to the content
+            6. Options should be plausible but only one should be correct
+            7. Avoid trick questions or overly complex wording
+            8. Focus on understanding rather than memorization
+            9. Return ONLY the JSON format shown above - no additional text or formatting
+            10. Ensure the JSON is valid and properly formatted
             
-            Generate the questions now:
+            Generate the 5 questions now:
         """.trimIndent()
     }
 
     private suspend fun generateQuestionsWithLLM(model: com.klypt.data.Model, prompt: String): String {
         return suspendCancellableCoroutine { continuation ->
             try {
-                Log.d(TAG, "Starting LLM inference for question generation")
+                Log.d(TAG, "Starting actual LLM inference for question generation")
                 
-                // For now, we'll simulate the LLM response with a realistic example
-                // In a real implementation, you would use the actual LLM inference
-                val simulatedResponse = """
-                {
-                    "questions": [
-                        {
-                            "questionText": "What is the main purpose of the content discussed?",
-                            "options": ["Option A - Basic concept", "Option B - Advanced theory", "Option C - Main topic focus", "Option D - Secondary information"],
-                            "correctAnswer": "C"
-                        },
-                        {
-                            "questionText": "Which of the following is a key component mentioned?",
-                            "options": ["Component X", "Component Y", "Component Z", "All of the above"],
-                            "correctAnswer": "D"
-                        },
-                        {
-                            "questionText": "What should you remember about this topic?",
-                            "options": ["It's optional", "It's fundamental", "It's complex", "It's outdated"],
-                            "correctAnswer": "B"
-                        },
-                        {
-                            "questionText": "How does this concept apply in practice?",
-                            "options": ["Theoretical only", "Practical application", "No application", "Limited use"],
-                            "correctAnswer": "B"
-                        },
-                        {
-                            "questionText": "What is the expected outcome of understanding this?",
-                            "options": ["Confusion", "Better comprehension", "No change", "More questions"],
-                            "correctAnswer": "B"
-                        }
-                    ]
+                // Check if model instance is available
+                if (model.instance == null) {
+                    Log.e(TAG, "Model instance is null")
+                    continuation.resume("""{"questions": []}""")
+                    return@suspendCancellableCoroutine
                 }
-                """.trimIndent()
                 
-                Log.d(TAG, "LLM simulation completed, returning response")
-                continuation.resume(simulatedResponse)
+                val instance = model.instance as LlmModelInstance
+                val fullResponse = StringBuilder()
                 
-                // TODO: Replace with actual LLM inference
-                /*
                 LlmChatModelHelper.runInference(
                     model = model,
                     input = prompt,
                     resultListener = { partialResult, done ->
+                        fullResponse.append(partialResult)
                         if (done) {
                             Log.d(TAG, "LLM inference completed")
-                            continuation.resume(partialResult)
+                            continuation.resume(fullResponse.toString())
                         }
                     },
                     cleanUpListener = {
                         Log.d(TAG, "LLM inference cleanup completed")
                     }
                 )
-                */
                 
             } catch (e: Exception) {
                 Log.e(TAG, "LLM inference failed", e)
@@ -269,19 +331,34 @@ class KlypDetailsViewModel @Inject constructor(
 
     private fun parseAndValidateQuestions(jsonString: String): List<Question> {
         return try {
-            Log.d(TAG, "Parsing questions JSON: $jsonString")
+            Log.d(TAG, "Parsing questions JSON (first 500 chars): ${jsonString.take(500)}")
             
-            val jsonObject = JSONObject(jsonString)
+            // Clean up the JSON string - remove any extra text before/after JSON
+            val cleanedJson = extractJsonFromResponse(jsonString)
+            Log.d(TAG, "Cleaned JSON: $cleanedJson")
+            
+            val jsonObject = JSONObject(cleanedJson)
             val questionsArray = jsonObject.getJSONArray("questions")
             val questions = mutableListOf<Question>()
+
+            if (questionsArray.length() == 0) {
+                Log.w(TAG, "No questions found in the response")
+                return emptyList()
+            }
 
             for (i in 0 until questionsArray.length()) {
                 try {
                     val questionObj = questionsArray.getJSONObject(i)
                     
-                    val questionText = questionObj.getString("questionText")
+                    val questionText = questionObj.getString("questionText").trim()
                     val optionsArray = questionObj.getJSONArray("options")
-                    val correctAnswer = questionObj.getString("correctAnswer")
+                    val correctAnswer = questionObj.getString("correctAnswer").trim().uppercase()
+
+                    // Validate question text
+                    if (questionText.isEmpty()) {
+                        Log.w(TAG, "Question $i has empty text. Skipping.")
+                        continue
+                    }
 
                     // Validate options
                     if (optionsArray.length() != 4) {
@@ -291,11 +368,20 @@ class KlypDetailsViewModel @Inject constructor(
 
                     val options = mutableListOf<String>()
                     for (j in 0 until optionsArray.length()) {
-                        options.add(optionsArray.getString(j))
+                        val option = optionsArray.getString(j).trim()
+                        if (option.isEmpty()) {
+                            Log.w(TAG, "Question $i has empty option at index $j. Skipping question.")
+                            break
+                        }
+                        options.add(option)
+                    }
+
+                    if (options.size != 4) {
+                        continue
                     }
 
                     // Validate correct answer
-                    val correctAnswerChar = when (correctAnswer.uppercase()) {
+                    val correctAnswerChar = when (correctAnswer) {
                         "A" -> 'A'
                         "B" -> 'B'
                         "C" -> 'C'
@@ -306,12 +392,6 @@ class KlypDetailsViewModel @Inject constructor(
                         }
                     }
 
-                    // Validate question text
-                    if (questionText.isBlank()) {
-                        Log.w(TAG, "Question $i has blank text. Skipping.")
-                        continue
-                    }
-
                     questions.add(
                         Question(
                             questionText = questionText,
@@ -320,7 +400,7 @@ class KlypDetailsViewModel @Inject constructor(
                         )
                     )
                     
-                    Log.d(TAG, "Successfully parsed question $i: $questionText")
+                    Log.d(TAG, "Successfully parsed question $i: ${questionText.take(50)}...")
                     
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to parse question $i", e)
@@ -329,6 +409,11 @@ class KlypDetailsViewModel @Inject constructor(
             }
 
             Log.d(TAG, "Successfully parsed ${questions.size} questions out of ${questionsArray.length()}")
+            
+            if (questions.size < 3) {
+                Log.w(TAG, "Only ${questions.size} valid questions parsed, which is less than minimum expected")
+            }
+            
             questions
             
         } catch (e: Exception) {
@@ -336,8 +421,41 @@ class KlypDetailsViewModel @Inject constructor(
             emptyList()
         }
     }
+    
+    /**
+     * Extracts JSON content from LLM response that might contain extra text
+     */
+    private fun extractJsonFromResponse(response: String): String {
+        try {
+            val startIndex = response.indexOf("{")
+            val lastIndex = response.lastIndexOf("}")
+            
+            if (startIndex != -1 && lastIndex != -1 && lastIndex > startIndex) {
+                return response.substring(startIndex, lastIndex + 1)
+            }
+            
+            // If no braces found, return original response
+            return response
+        } catch (e: Exception) {
+            Log.w(TAG, "Error extracting JSON from response", e)
+            return response
+        }
+    }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+    
+    /**
+     * Stop the AI model initialization process
+     */
+    fun stopModelInitialization() {
+        Log.d(TAG, "Stopping AI model initialization by user request")
+        _uiState.value = _uiState.value.copy(
+            isGeneratingQuiz = false,
+            isInitializingModel = false,
+            showStopButton = false,
+            errorMessage = "AI model initialization was cancelled."
+        )
     }
 }

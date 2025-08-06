@@ -292,6 +292,7 @@ fun MyClassesSection(
     onClassClick: (ClassDocument) -> Unit,
     onAddNewClassClick: () -> Unit,
     onViewAllClick: (() -> Unit)? = null,
+    onExportClass: ((ClassDocument) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Log.d("MyClassesSection", "classes: $classes")
@@ -347,7 +348,10 @@ fun MyClassesSection(
                         classDocument = classDoc,
                         onClick = { onClassClick(classDoc) },
                         cardColor = classColors[idx % classColors.size],
-                        showMenu = true
+                        showMenu = true,
+                        onExport = if (onExportClass != null) {
+                            { onExportClass(classDoc) }
+                        } else null
                     )
                 }
                 // Add Class box at the end
@@ -367,7 +371,8 @@ fun ClassCard(
     modifier: Modifier = Modifier,
     cardColor: Color = MaterialTheme.colorScheme.surface,
     showMenu: Boolean = false,
-    onDelete: (() -> Unit)? = null
+    onDelete: (() -> Unit)? = null,
+    onExport: (() -> Unit)? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Card(
@@ -447,6 +452,18 @@ fun ClassCard(
                         onDismissRequest = { menuExpanded = false },
                         modifier = Modifier.width(160.dp)
                     ) {
+                        if (onExport != null) {
+                            DropdownMenuItem(
+                                text = { Text("Export to JSON") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onExport.invoke()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Download, contentDescription = null)
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Remove Class") },
                             onClick = {

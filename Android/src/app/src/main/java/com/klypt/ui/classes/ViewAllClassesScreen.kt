@@ -27,6 +27,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,10 +47,29 @@ fun ViewAllClassesScreen(
     onNavigateToAddClass: () -> Unit,
     onClassClick: (ClassDocument) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ViewAllClassesViewModel = hiltViewModel()
+    viewModel: ViewAllClassesViewModel = hiltViewModel(),
+    exportViewModel: ClassExportViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val exportUiState by exportViewModel.uiState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf<ClassDocument?>(null) }
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Show export messages
+    LaunchedEffect(exportUiState.successMessage) {
+        exportUiState.successMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            exportViewModel.clearMessages()
+        }
+    }
+    
+    LaunchedEffect(exportUiState.errorMessage) {
+        exportUiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar("Error: $message")
+            exportViewModel.clearMessages()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -70,6 +90,9 @@ fun ViewAllClassesScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Class")
             }
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
         }
     ) { paddingValues ->
         Column(
@@ -118,10 +141,13 @@ fun ViewAllClassesScreen(
                                 cardColor = cardColor,
                                 showMenu = true,
                                 onDelete = { showDeleteDialog = classDoc },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 0.dp)
-                                    .align(Alignment.CenterHorizontally)
+                                onExport = { 
+                                    exportViewModel.exportClassToJson(
+                                        context = context,
+                                        classCode = classDoc.classCode,
+                                        className = classDoc.classTitle
+                                    )
+                                }
                             )
                         }
                     }
@@ -167,6 +193,29 @@ fun ViewAllClassesScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Share dialog after successful export
+    if (exportUiState.showShareDialog) {
+        AlertDialog(
+            onDismissRequest = { exportViewModel.dismissShareDialog() },
+            title = { Text("Export Successful") },
+            text = { Text("Your class has been exported to JSON format. Would you like to share the file?") },
+            confirmButton = {
+                TextButton(
+                    onClick = { 
+                        exportViewModel.shareExportedFile(context)
+                    }
+                ) {
+                    Text("Share")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { exportViewModel.dismissShareDialog() }) {
+                    Text("Done")
                 }
             }
         )

@@ -167,12 +167,13 @@ fun ClassDetailsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val userId = userContextProvider.getCurrentUserId()
+                    val ownsKlyp:Boolean = currentClassDocument?.educatorId == userId
                     Log.d("ClassDetailsScreen##", userId)
-                    if (uiState.klyps.isEmpty() && currentClassDocument?.educatorId == userId) {
+                    if (uiState.klyps.isEmpty()) {
                         item {
                             EmptyStateCard(
                                 message = "No educational content available for this class",
-                                actionText = "Add Klyp",
+                                actionText = if(ownsKlyp) "Add Klyp" else "Add Klyp (Not Owned, so won't be synced)",
                                 onActionClick = { showAddKlypDialog = true }
                             )
                         }
@@ -183,6 +184,14 @@ fun ClassDetailsScreen(
                                 klyp = klyp,
                                 onDelete = { showDeleteDialog = klyp },
                                 onClick = { onNavigateToKlypDetails(klyp) }
+                            )
+                        }
+
+                        item {
+                            EmptyStateCard(
+                                message = "Add your own Klyps to this Class",
+                                actionText = if(ownsKlyp) "Add Klyp" else "Add Klyp (Not Owned, so won't be synced)",
+                                onActionClick = { showAddKlypDialog = true }
                             )
                         }
                     }
@@ -233,14 +242,37 @@ fun ClassDetailsScreen(
         )
     }
 
-    // Add klyp dialog
+    // Add Klyp dialog - navigate to LLM Chat for klyp creation
     if (showAddKlypDialog && currentClassDocument != null) {
-        AddKlypDialog(
-            classCode = currentClassDocument.classCode,
-            onDismiss = { showAddKlypDialog = false },
-            onConfirm = { title, content ->
-                viewModel.addKlyp(title, content, currentClassDocument.classCode)
-                showAddKlypDialog = false
+        AlertDialog(
+            onDismissRequest = { showAddKlypDialog = false },
+            title = { Text("Add Klyp") },
+            text = { 
+                Column {
+                    Text("Create new educational content for this class using AI assistance.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Class: ${currentClassDocument.classTitle} (${currentClassDocument.classCode})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showAddKlypDialog = false
+                        // Navigate to LLM Chat for klyp creation with class context
+                        onNavigateToAddKlyp(currentClassDocument.classCode)
+                    }
+                ) {
+                    Text("Create with AI")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddKlypDialog = false }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -285,7 +317,8 @@ private fun KlypCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
+                //TODO(): Add delete button
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
@@ -305,54 +338,6 @@ private fun KlypCard(
             }
         }
     }
-}
-
-@Composable
-private fun AddKlypDialog(
-    classCode: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
-) {
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add New Klyp") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = content,
-                    onValueChange = { content = it },
-                    label = { Text("Content") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    maxLines = 6
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(title, content) },
-                enabled = title.isNotBlank() && content.isNotBlank()
-            ) {
-                Text("Add")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 @Composable

@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -37,6 +38,7 @@ private const val TAG = "QuizViewModel"
 
 data class QuizUiState(
     val isLoading: Boolean = true,
+    val isInitializing: Boolean = false,
     val isCompleted: Boolean = false,
     val questions: List<Question> = emptyList(),
     val currentQuestionIndex: Int = 0,
@@ -44,7 +46,9 @@ data class QuizUiState(
     val score: Double = 0.0,
     val correctAnswers: Int = 0,
     val quizAttempt: QuizAttempt? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val showStopButton: Boolean = false,
+    val loadingElapsedTime: Long = 0L
 )
 
 @HiltViewModel
@@ -62,31 +66,125 @@ class QuizViewModel @Inject constructor(
     fun initializeQuiz(klyp: Klyp, userId: String) {
         Log.d(TAG, "Initializing quiz for klyp: ${klyp.title} with user: $userId")
         
+        // Validate input parameters first
+        if (userId.isBlank()) {
+            Log.e(TAG, "Invalid user ID provided")
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                isInitializing = false,
+                showStopButton = false,
+                errorMessage = "Invalid user session. Please log in again."
+            )
+            return
+        }
+        
+        // Set initializing state
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            isInitializing = true,
+            errorMessage = null,
+            showStopButton = false,
+            loadingElapsedTime = 0L
+        )
+        
         currentKlyp = klyp
         studentId = userId
         startTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
         
-        if (klyp.questions.isEmpty()) {
-            Log.e(TAG, "No questions available for klyp: ${klyp.title}")
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                errorMessage = "No questions available for this quiz"
-            )
-            return
-        }
+        viewModelScope.launch {
+            try {
+                val startLoadingTime = System.currentTimeMillis()
+                
+                // Start a timer to track elapsed time and show stop button
+                val timerJob = launch {
+                    while (_uiState.value.isInitializing) {
+                        val elapsed = System.currentTimeMillis() - startLoadingTime
+                        _uiState.value = _uiState.value.copy(
+                            loadingElapsedTime = elapsed,
+                            showStopButton = elapsed > 3000L // Show stop button after 3 seconds
+                        )
+                        kotlinx.coroutines.delay(1000L) // Update every second
+                    }
+                }
+                
+                // The actual initialization process
+                val initializationJob = launch {
+                    // Validate klyp data
+                    if (klyp._id.isBlank()) {
+                        Log.e(TAG, "Invalid klyp ID")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isInitializing = false,
+                            showStopButton = false,
+                            errorMessage = "Invalid quiz data. Please try again."
+                        )
+                        return@launch
+                    }
+                    
+                    // Check if questions are available
+                    if (klyp.questions.isEmpty()) {
+                        Log.e(TAG, "No questions available for klyp: ${klyp.title}")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isInitializing = false,
+                            showStopButton = false,
+                            errorMessage = "This quiz doesn't have any questions yet. Please contact your instructor or try again later."
+                        )
+                        return@launch
+                    }
+                    
+                    // Validate question data integrity
+                    val invalidQuestions = klyp.questions.filter { question ->
+                        question.questionText.isBlank() || 
+                        question.options.isEmpty() || 
+                        question.options.size < 2 ||
+                        question.correctAnswer !in 'A'..'Z' ||
+                        question.correctAnswer >= ('A' + question.options.size)
+                    }
+                    
+                    if (invalidQuestions.isNotEmpty()) {
+                        Log.e(TAG, "Found ${invalidQuestions.size} invalid questions in klyp: ${klyp.title}")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isInitializing = false,
+                            showStopButton = false,
+                            errorMessage = "Some quiz questions are incomplete. Please contact your instructor."
+                        )
+                        return@launch
+                    }
 
-        Log.d(TAG, "Quiz initialized with ${klyp.questions.size} questions")
-        
-        _uiState.value = _uiState.value.copy(
-            isLoading = false,
-            questions = klyp.questions,
-            selectedAnswers = List(klyp.questions.size) { null },
-            currentQuestionIndex = 0,
-            errorMessage = null
-        )
-        
-        // Create initial quiz attempt
-        createQuizAttempt()
+                    // Brief delay for better UX (shorter than before)
+                    kotlinx.coroutines.delay(300)
+                    
+                    Log.d(TAG, "Quiz initialized successfully with ${klyp.questions.size} valid questions")
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isInitializing = false,
+                        showStopButton = false,
+                        questions = klyp.questions,
+                        selectedAnswers = List(klyp.questions.size) { null },
+                        currentQuestionIndex = 0,
+                        errorMessage = null
+                    )
+                    
+                    // Create initial quiz attempt
+                    createQuizAttempt()
+                }
+                
+                initializationJob.join()
+                timerJob.cancel()
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to initialize quiz", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isInitializing = false,
+                    showStopButton = false,
+                    errorMessage = "Failed to initialize quiz: ${e.message ?: "Unknown error"}"
+                )
+            }
+        }
     }
 
     private fun createQuizAttempt() {
@@ -113,9 +211,9 @@ class QuizViewModel @Inject constructor(
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to create quiz attempt", e)
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Failed to initialize quiz: ${e.message}"
-                )
+                // Don't fail the entire quiz initialization if quiz attempt creation fails
+                // User can still take the quiz, it just won't be tracked
+                Log.w(TAG, "Continuing with quiz initialization despite quiz attempt creation failure")
             }
         }
     }
@@ -282,5 +380,58 @@ class QuizViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+    
+    /**
+     * Stop the quiz initialization process
+     */
+    fun stopInitialization() {
+        Log.d(TAG, "Stopping quiz initialization by user request")
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            isInitializing = false,
+            showStopButton = false,
+            errorMessage = "Quiz initialization was cancelled."
+        )
+    }
+    
+    /**
+     * Retry quiz initialization in case of failure
+     */
+    fun retryInitialization() {
+        if (::currentKlyp.isInitialized) {
+            Log.d(TAG, "Retrying quiz initialization for klyp: ${currentKlyp.title}")
+            initializeQuiz(currentKlyp, studentId)
+        } else {
+            Log.e(TAG, "Cannot retry initialization - no klyp data available")
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Unable to retry. Please navigate back and try again."
+            )
+        }
+    }
+    
+    /**
+     * Force skip the loading screen (for debugging purposes)
+     */
+    fun skipLoading() {
+        if (_uiState.value.isInitializing && ::currentKlyp.isInitialized) {
+            Log.d(TAG, "Force skipping loading screen")
+            if (currentKlyp.questions.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isInitializing = false,
+                    questions = currentKlyp.questions,
+                    selectedAnswers = List(currentKlyp.questions.size) { null },
+                    currentQuestionIndex = 0,
+                    errorMessage = null
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isInitializing = false,
+                    errorMessage = "No questions available for this quiz"
+                )
+            }
+        }
     }
 }
