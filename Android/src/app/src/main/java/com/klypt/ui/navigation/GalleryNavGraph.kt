@@ -675,7 +675,8 @@ fun GalleryNavHost(
               popUpTo("home") { inclusive = true }
             }
           }
-        }
+        },
+        userContextProvider = userContextProvider
       )
     }
 
