@@ -92,8 +92,8 @@ fun LoginScreen(
                     onPhoneNumberChange = viewModel::updatePhoneNumber,
                     onCountryCodeChange = viewModel::updateCountryCode,
                     onEducatorLogin = {
-                        // Navigate to OTP screen with phone number
-                        onNavigateToHome()
+                        // First validate the educator exists in database, then navigate to OTP
+                        viewModel.login(onNavigateToHome)
                     },
                     clickSignUp = onNavigateToSignup,
                     recoverAccount = {}

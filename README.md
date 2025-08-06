@@ -1,61 +1,96 @@
-# Google AI Edge Gallery ✨
+# Klypt: Offline-First Education for All ✨
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/google-ai-edge/gallery)](https://github.com/google-ai-edge/gallery/releases)
 
-**Explore, Experience, and Evaluate the Future of On-Device Generative AI with Google AI Edge.**
+**Empowering students and teachers with a fully offline, gamified learning experience—powered by Gemma 3n.**
 
-The Google AI Edge Gallery is an experimental app that puts the power of cutting-edge Generative AI models directly into your hands, running entirely on your Android *(available now)* and iOS *(coming soon)* devices. Dive into a world of creative and practical AI use cases, all running locally, without needing an internet connection once the model is loaded. Experiment with different models, chat, ask questions with images, explore prompts, and more!
+**Klypt** is a lightweight, offline-first educational platform built to serve students and educators in areas with limited or unreliable internet access. Powered by Google’s **Gemma 3n** multimodal model and built using the AI Edge stack, Klypt reimagines how learning content is shared, accessed, and experienced—**entirely on-device**.
 
-**Overview**
-<img width="1532" alt="Overview" src="https://github.com/user-attachments/assets/4f2702d7-91a0-4eb3-aa76-58bc8e7089c6" />
+Our mission is to make interactive, gamified learning universally accessible, regardless of connectivity or infrastructure. Klypt addresses real-world challenges—teachers struggling to share content without the cloud, students without stable internet, and the absence of engaging offline learning tools—by combining modern AI, intuitive UX, and robust local-first infrastructure.
 
-**Ask Image**
-<img width="1532" alt="Ask Image" src="https://github.com/user-attachments/assets/e2b5b41b-fed0-4a7c-9547-2abb1c10962c" />
-
-**Prompt Lab**
-<img width="1532" alt="Prompt Lab" src="https://github.com/user-attachments/assets/22e459d0-0365-4a92-8570-fb59d4d1e320" />
-
-**AI Chat**
-<img width="1532" alt="AI Chat" src="https://github.com/user-attachments/assets/edaa4f89-237a-4b84-b647-b3c4631f09dc" />
+---
 
 ## ✨ Core Features
 
-*   **📱 Run Locally, Fully Offline:** Experience the magic of GenAI without an internet connection. All processing happens directly on your device.
-*   **🤖 Choose Your Model:** Easily switch between different models from Hugging Face and compare their performance.
-*   **🖼️ Ask Image:** Upload an image and ask questions about it. Get descriptions, solve problems, or identify objects.
-*   **✍️ Prompt Lab:** Summarize, rewrite, generate code, or use freeform prompts to explore single-turn LLM use cases.
-*   **💬 AI Chat:** Engage in multi-turn conversations.
-*   **📊 Performance Insights:** Real-time benchmarks (TTFT, decode speed, latency).
-*   **🧩 Bring Your Own Model:** Test your local LiteRT `.task` models.
-*   **🔗 Developer Resources:** Quick links to model cards and source code.
+### 📦 Seamless Class Sharing
+
+* Export/import class content using lightweight `.json` files—designed to be open, transparent, and developer-friendly.
+* Students can **import class files and start quizzes instantly**, with zero need for internet or cloud-based authentication.
+* Classes can be distributed via file transfer by educators, with no dependency on a class code or online syncing.
+* Educators can **generate and share new classes locally**, without internet, immediately after downloading the model.
+
+### 🔐 Offline-First Login System
+
+* **Powered by Couchbase Lite**, enabling secure offline authentication and data persistence.
+* Future support for **OTP verification** for educators to validate identity and recover accounts offline.
+* Ensures privacy, accessibility, and full functionality even in zero-connectivity zones.
+
+### 💾 Embedded Local Database
+
+* Entire user experience is backed by **local-first data storage**, powered by Couchbase Lite.
+* Future-ready for optional cloud sync, while defaulting to **user-controlled, private data**.
+
+### 🏗️ Lightweight, Modular Architecture
+
+* Built using **Kotlin** and **Jetpack Compose** for modern Android development.
+* Integrated with **Google AI Edge stack**, using **Gemma 3n** to power on-device, multimodal AI experiences.
+* Dynamically scales performance with **mix’n’match** submodel selection (2B, 4B, 8B).
+* Engineered for modularity—future support for voice input, image-based learning, and multilingual prompts.
+
+### 🎮 Gamified Learning Model
+
+* Tracks quiz completion, scores, and learning progress to increase student motivation.
+* Designed to make offline learning more interactive, rewarding, and autonomous.
+* Planned expansion includes streaks, adaptive difficulty, and content mastery metrics.
+
+---
+
+## 🌍 A Real Problem, A Real Solution
+
+One of our team members, Ahmed, tested the app with his younger siblings in a home with unreliable internet. With just a class file and the app, they were able to access quizzes and start learning—offline, instantly. This scenario reflects our target impact: bringing powerful AI-driven education to underconnected communities everywhere.
+
+---
+
+## 🎯 Aligned with Global Goals
+
+Klypt supports the **UN Sustainable Development Goal 4: Quality Education**, which aims to "ensure inclusive and equitable quality education and promote lifelong learning opportunities for all."
+
+---
 
 ## 🏁 Get Started in Minutes!
 
-1.  **Download the App:** Grab the [**latest APK**](https://github.com/google-ai-edge/gallery/releases/latest/download/ai-edge-gallery.apk).
-2.  **Install & Explore:** For detailed installation instructions (including for corporate devices) and a full user guide, head over to our [**Project Wiki**](https://github.com/google-ai-edge/gallery/wiki)!
+1. **Download the App**: [Coming soon – APK link]
+2. **Install & Explore**: Clone the repository and run the app on any Android device.
+3. **Load Class Files**: Open the app, load your `.json` class file, and start learning—no internet required.
+
+---
 
 ## 🛠️ Technology Highlights
 
-*   **Google AI Edge:** Core APIs and tools for on-device ML.
-*   **LiteRT:** Lightweight runtime for optimized model execution.
-*   **LLM Inference API:** Powering on-device Large Language Models.
-*   **Hugging Face Integration:** For model discovery and download.
+* **Google AI Edge** – For on-device LLM processing.
+* **Gemma 3n** – Powering multimodal, privacy-first interactions.
+* **Couchbase Lite** – Enabling full local-first data management and offline login.
+* **Kotlin + Jetpack Compose** – Modern tools for native Android development.
+
+---
 
 ## 🤝 Feedback
 
-This is an **experimental Alpha release**, and your input is crucial!
+This is an experimental alpha release—we’d love your input!
 
-*   🐞 **Found a bug?** [Report it here!](https://github.com/google-ai-edge/gallery/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%5D)
-*   💡 **Have an idea?** [Suggest a feature!](https://github.com/google-ai-edge/gallery/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5BFEATURE%5D)
+* 🐞 **Found a bug?** [Report it here](https://github.com/yourusername/klypt/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%5D)
+* 💡 **Have an idea?** [Suggest a feature](https://github.com/yourusername/klypt/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5BFEATURE%5D)
+
+---
 
 ## 📄 License
 
 Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
 
+---
+
 ## 🔗 Useful Links
 
-*   [**Project Wiki (Detailed Guides)**](https://github.com/google-ai-edge/gallery/wiki)
-*   [Hugging Face LiteRT Community](https://huggingface.co/litert-community)
-*   [LLM Inference guide for Android](https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android)
-*   [Google AI Edge Documentation](https://ai.google.dev/edge)
+* [Demo Video (Kaggle Submission)](https://your-demo-video-link.com)
+* [Technical Writeup](https://your-writeup-link.com)
+* [Live Demo / App Site](https://your-app-demo-link.com)
