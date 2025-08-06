@@ -244,15 +244,28 @@ class LoginViewModel @Inject constructor(
 
     //IsValid, errorMessage takes String
     private fun validateInputs(): Boolean {
-        val firstNameValidation = validator.validateName(_uiState.value.firstName)
-        val lastNameValidation = validator.validateName(_uiState.value.lastName)
+        return when (_uiState.value.role) {
+            UserRole.STUDENT -> {
+                val firstNameValidation = validator.validateName(_uiState.value.firstName)
+                val lastNameValidation = validator.validateName(_uiState.value.lastName)
 
-        _uiState.value = _uiState.value.copy(
-            firstNameError = firstNameValidation.errorMessage,
-            lastNameError = lastNameValidation.errorMessage
-        )
+                _uiState.value = _uiState.value.copy(
+                    firstNameError = firstNameValidation.errorMessage,
+                    lastNameError = lastNameValidation.errorMessage
+                )
 
-        return firstNameValidation.isValid && lastNameValidation.isValid
+                firstNameValidation.isValid && lastNameValidation.isValid
+            }
+            UserRole.EDUCATOR -> {
+                val phoneNumberValidation = validator.validatePhoneNumber(_uiState.value.phoneNumber)
+
+                _uiState.value = _uiState.value.copy(
+                    phoneNumberError = phoneNumberValidation.errorMessage
+                )
+
+                phoneNumberValidation.isValid
+            }
+        }
     }
 
     private fun validateForm() {

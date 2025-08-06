@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -347,6 +348,37 @@ fun OtpEntryScreen(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF2FA96E)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Skip Verification Button
+                Button(
+                    onClick = {
+                        // Skip verification and continue - same as dummy verify
+                        viewModel.verifyCode("123456", signupData, onNavigateToSignup)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2FA96E),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Skip",
+                        modifier = Modifier.padding(end = 8.dp),
+                        tint = Color.White
+                    )
+                    Text(
+                        text = "Continue Without Verification",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
                     )
                 }
             }
