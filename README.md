@@ -2,6 +2,8 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
+<img width="890" height="450" alt="Screenshot 2025-08-07 144749" src="https://github.com/user-attachments/assets/51e9c46d-95d0-4259-b288-6dcfa72eaf1b" />
+
 **Empowering students and educators with a fully offline, gamified learning experience—powered by Gemma 3n.**
 
 **Klypt** is a modular, offline-first educational platform built to serve students and educators in areas with limited or unreliable internet access. Powered by Google’s Gemma 3n multimodal model and built using the AI Edge stack, Klypt reimagines how learning content is shared, accessed, and experienced—entirely on-device.
@@ -10,7 +12,10 @@ Our mission is to make interactive, gamified learning universally accessible, re
 
 ---
 
+
 ## 1. Class Sharing
+<img width="2328" height="234" alt="image" src="https://github.com/user-attachments/assets/ebd5d7e3-c80f-463a-bce8-a01d02a6ae38" />
+
 
 ### Export/Import via File
 
@@ -25,7 +30,7 @@ Educators can export entire classes—including metadata, quizzes, and klyps—a
 ### Class Code
 
 **How it works:**  
-While class code-based sharing is not currently supported, Klypt’s file-based approach allows educators to distribute classes securely and transparently. In the future, class codes may be used to facilitate online sync and sharing, but the current system prioritizes offline accessibility.
+While class code-based sharing is not currently supported, Klypt’s file-based approach allows educators to distribute classes securely and transparently. In the future, class codes may be used to facilitate online sync and sharing, but the current system prioritizes offline accessibility. To get an idea on how this feature looks like for now, you can try creating a class and sharing it with another account in the same device Thanks to the couchbasedb lite.
 
 ### Generate New Class
 
@@ -49,6 +54,8 @@ Klypt uses Couchbase Lite to store user credentials and session data locally. Wh
 ---
 
 ## 3. Local Database
+<img width="1847" height="1308" alt="image" src="https://github.com/user-attachments/assets/23e1e0a7-5164-4870-bbec-549f6a4c9b6b" />
+
 
 ### Couchbase Lite
 
@@ -67,7 +74,7 @@ All user data, classes, klyps, and quiz results are stored locally using Couchba
 ### Technology Stack
 
 **How it works:**  
-Klypt is developed in Kotlin, using Jetpack Compose for UI. The app is built on Google AI Edge stack, supporting multimodal LLMs (Gemma 3n, 2B, 4B, 8B) for on-device content generation and personalization. The architecture is modular, allowing for future expansion—voice input, image-based learning, and multilingual prompts are planned features.
+Klypt is developed in Kotlin, using Jetpack Compose for UI. The app is built on Google AI Edge stack, supporting multimodal LLMs (Gemma 3n, 2B, 4B) for on-device content generation and personalization. The architecture is modular, allowing for future expansion—voice input is a planned features.
 
 **Technical details:**  
 - The app uses a Model-View-ViewModel (MVVM) architecture, with StateFlow for reactive UI updates.
@@ -77,6 +84,7 @@ Klypt is developed in Kotlin, using Jetpack Compose for UI. The app is built on 
 ---
 
 ## 5. Gamified Learning Model
+<img width="1584" height="891" alt="download" src="https://github.com/user-attachments/assets/61135756-defd-4027-81b9-802a865090a2" />
 
 ### Gamification Components
 
@@ -119,7 +127,7 @@ Exported/imported files follow a strict JSON schema for compatibility and transp
 
 1. **Role Management:** Students and educators follow distinct data schemas, requiring careful handling across all logic layers, especially when performing shared operations such as importing or modifying class data.
 2. **Model Context Handling:** Since models operate on isolated prompts, we had to implement a mechanism to pass relevant data before invoking model operations—ensuring the AI responds with appropriate context.
-3. **Voice Input Limitations:** Gemma 3n’s voice input is capped at around 30 seconds. To work around this, we opted to integrate external Text-to-Speech (TTS) tools, allowing users to transcribe voice inputs into text manually for consistent performance.
+3. **Voice Input Limitations:** Gemma 3n’s voice input is capped at around 30 seconds. To work around this, we opted to use external Text-to-Speech (TTS) tools, allowing users to transcribe voice inputs into text manually for consistent performance.
 4. **Class Data Synchronization During Import:** When importing a class, all existing klyps tied to the same class ID are overwritten. To preserve data integrity, we added logic to prevent users who are not the original authors from modifying or appending to that class, keeping contributions isolated.
 5. **App Bundling and Distribution:** Packaging an AI-powered app with large models is non-trivial. We drew inspiration from the Google AI Edge Gallery and implemented model packaging via Hugging Face access tokens, allowing us to keep the app lightweight while downloading models on demand.
 6. **Class Creation Workflow:** Initially, the app auto-generated classes when class context wasn’t passed between screens, leading to unexpected class duplication and data loss—especially after switching models in the LLM Chat interface. We resolved this by requiring users to explicitly select or create a class before proceeding, making the workflow predictable and robust.
@@ -144,7 +152,7 @@ Users can report bugs via GitHub Issues, following a provided template. Contribu
 
 ## 11. A Real Problem, A Real Solution
 
-One of our team members, Ahmed, tested the app with his younger siblings in a household with unreliable internet access. Using only a shared class file and the Klypt app, they were able to access quizzes and begin learning—completely offline and instantly. This real-world use case illustrates our core mission: delivering powerful, AI-driven educational experiences to underconnected communities around the world.
+Our team lead, Ahmed, tested the app with his younger siblings in a household with unreliable internet access. Using only a shared class file and the Klypt app, they were able to access quizzes and begin learning—completely offline and instantly. This real-world use case illustrates our core mission: delivering powerful, AI-driven educational experiences to underconnected communities around the world.
 
 ---
 
@@ -160,10 +168,7 @@ Klypt aligns with the United Nations Sustainable Development Goal 4: Quality Edu
 
 ---
 
-## 14. Testing Recommendations
-
-- Test class/klyp creation, deletion, navigation, empty/error states, user roles, offline scenarios, and large datasets.
-
----
-
 Klypt is a robust, extensible platform for offline, AI-powered education, built with transparency, modularity, and user empowerment at its core. Every feature is engineered for reliability, extensibility, and user empowerment, with detailed documentation and implementation guides supporting ongoing development and improvement.
+
+### Citation
+a7m-1st, Bimo Kuncoro. Klypt: Offline-First Education for All. https://www.kaggle.com/competitions/google-gemma-3n-hackathon/writeups/klypt-offline-first-education-for-all. 2025. Kaggle
